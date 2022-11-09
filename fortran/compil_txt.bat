@@ -15,8 +15,8 @@ if /I "%1" == "-O2" set optim= %1
 if /I "%1" == "-O1" set optim= %1
 if /I "%1" == "-O0" set optim= %1
 set profil= %2
-cd fsm_oshd
-gfortran %mods% %routines% %optim% %profil% -cpp -ffpe-trap=overflow -o FSM2
+cd fsm_txt
+gfortran %mods% %routines% %optim% %profil% -cpp -ffpe-trap=overflow -o FSM2_TXT
 del *.mod
-move FSM2.exe ..\FSM2.exe
+move FSM2_TXT.exe ..\FSM2_TXT.exe
 cd ..
