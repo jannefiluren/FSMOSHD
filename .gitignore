@@ -2,4 +2,4 @@
 *.mod
 dump.txt
 output*.txt
-states_end.txt
+states_*.txt
