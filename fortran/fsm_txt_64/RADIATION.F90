@@ -3,6 +3,8 @@
 !-----------------------------------------------------------------------
 subroutine RADIATION(alb,SWsrf,SWveg,Sdirt,Sdift,asrf_out,SWsci,LWt)
 
+use, intrinsic :: iso_fortran_env, only: dp=>real64
+
 use MODCONF, only: CANMOD, RADSBG, ALBEDO, OSHDTN
 
 use MODPERT, only: ALPERT
@@ -116,12 +118,12 @@ do i = 1, Nx
       afs = asmx
     else ! OSHDTN == 1
       ! 11/2021 tuning: high elevation afs changed from 0.86 to 0.92
-      if (dem(i,j) >= 2300) then
-        afs  = 0.92
-      else if (dem(i,j) <= 1500) then
-        afs = 0.80
+      if (dem(i,j) >= 2300_dp) then
+        afs  = 0.92_dp
+      else if (dem(i,j) <= 1500_dp) then
+        afs = 0.80_dp
       else
-        afs = 0.92 + (2300 - dem(i,j)) / (2300 - 1500) * (0.80 - 0.92)
+        afs = 0.92_dp + (2300_dp - dem(i,j)) / (2300_dp - 1500_dp) * (0.80_dp - 0.92_dp)
       end if
     end if
   end if
@@ -137,17 +139,17 @@ do i = 1, Nx
     if (Tsrf(i,j) >= Tm) tau = tmlt
     ! Forest adjustments -> not yet properly tested for OSHD but option currently unused
     if (month > 4 .AND. month < 10) then
-      tau = 70*3600
+      tau = 70_dp*3600_dp
     end if
     if (fveg(i,j) > 0 .and. Sdir(i,j) > epsilon(Sdir(i,j))) then
-      tau = tau /((1-trcn(i,j)*fsky(i,j))*(1+adfl*Tv(i,j)) + adfs*Tv(i,j))
+      tau = tau /((1_dp-trcn(i,j)*fsky(i,j))*(1_dp+adfl*Tv(i,j)) + adfs*Tv(i,j))
     else if (fveg(i,j) > 0 .and. Sdif(i,j) > epsilon(Sdif(i,j))) then 
-      tau = tau/((1-trcn(i,j)*fsky(i,j)) + adfs*trcn(i,j)*fsky(i,j))
+      tau = tau/((1_dp-trcn(i,j)*fsky(i,j)) + adfs*trcn(i,j)*fsky(i,j))
     else if (fveg(i,j) > 0 .and. (Sdir(i,j) + Sdif(i,j) <= epsilon(Sdir(i,j)+Sdif(i,j)))) then
-      tau = tau/(2-trcn(i,j)*fsky(i,j))
+      tau = tau/(2_dp-trcn(i,j)*fsky(i,j))
     end if     
 
-    rt = 1/tau + Sf(i,j)/Sfmin
+    rt = 1_dp/tau + Sf(i,j)/Sfmin
     alim = (asmn/tau + Sf(i,j)*afs/Sfmin)/rt
     albs(i,j) = alim + (albs(i,j) - alim)*exp(-rt*dt)
     if (albs(i,j) < min(afs, asmn)) albs(i,j) = min(afs, asmn)
@@ -160,24 +162,24 @@ do i = 1, Nx
     ! Melting and cold snow decay times
     if ((OSHDTN==0) .AND. (ALPERT .EQV. .FALSE.)) then
       ! albedo perturbation only intends at modifying the fresh snow albedo, not the decay time.
-      adm = 100
-      adc = 1000
+      adm = 100_dp
+      adc = 1000_dp
     else
       ! BC: NB, keep formerly tuned decay rates if albedo perturbations switched on
       if (month > 6 .AND. month < 10) then
-        adm = 50
+        adm = 50_dp
       else
-        adm = 130
+        adm = 130_dp
       end if
-      adc = 3000
+      adc = 3000_dp
     endif
     if (Tsrf(i,j) >= Tm .AND. Tsnow(1,i,j) >= Tm) then  ! was only based on Tss
-      albs(i,j) = (albs(i,j) - asmn)*exp(-(dt/3600)/adm) + asmn
+      albs(i,j) = (albs(i,j) - asmn)*exp(-(dt/3600_dp)/adm) + asmn
     else
-      albs(i,j) = albs(i,j) - (dt/3600)/adc
+      albs(i,j) = albs(i,j) - (dt/3600_dp)/adc
     end if
     if (SWEtmp < 75.0) then ! more stuff showing on and up through snow
-      afs = afs * 0.80
+      afs = afs * 0.80_dp
     end if
     ! Reset to fresh snow albedo (wasn't originally available; only else term)
     if ((Sf(i,j) * dt) > 0.0 .AND. Sf24h(i,j) > Sfmin) then
@@ -202,17 +204,17 @@ do i = 1, Nx
   if (tilefrac(i,j) < tthresh) goto 2 ! exclude points outside tile of interest
 
   ! Surface albedo
-  asrf = albs(i,j)*(1-fveg(i,j)*fsar)  
+  asrf = albs(i,j)*(1_dp-fveg(i,j)*fsar)  
   if (fsnow(i,j) <= epsilon(fsnow)) asrf = alb0(i,j)
 
 
   ! Partial snowcover on canopy
-  fcans = 0
+  fcans = 0_dp
   if (scap(i,j) > epsilon(scap)) fcans = Sveg(i,j) / scap(i,j)
-  aveg = (1 - fcans)*avg0 + fcans*avgs
+  aveg = (1_dp - fcans)*avg0 + fcans*avgs
   acan = fveg(i,j)*aveg
   ! Canopy surface albedo for computing terrain radiation over canopy
-  alb(i,j) = fveg(i,j)*aveg + (1-fveg(i,j))*asrf
+  alb(i,j) = fveg(i,j)*aveg + (1_dp-fveg(i,j))*asrf
   
   ! Surface albedo is stored in asurf_out to write in results
   asrf_out(i,j) = alb(i,j)
@@ -230,8 +232,8 @@ do i = 1, Nx
 
   ! Solar radiation trasmission 
   if (CANMOD == 0) then
-    SWveg(i,j) = 0
-    SWsrf(i,j) = (1 - alb(i,j))*(Sdir(i,j)+Sdif(i,j))
+    SWveg(i,j) = 0_dp
+    SWsrf(i,j) = (1_dp - alb(i,j))*(Sdir(i,j)+Sdif(i,j))
     SWsci(i,j) = Sdift(i,j)+Sdir(i,j)  
   endif
 
@@ -241,19 +243,19 @@ do i = 1, Nx
     tdir = Tv(i,j) 
 
     ! Effective albedo and net radiation
-    alb(i,j) = acan + (1 - acan)*asrf*tdif**2
+    alb(i,j) = acan + (1_dp - acan)*asrf*tdif**2_dp
     if (Sdif_aux + Sdirt(i,j) > epsilon(Sdift(i,j)))  & 
       alb(i,j) = (acan*(Sdif_aux+tdir*Sdirt(i,j)) + asrf*tdif*(tdif*Sdif_aux+tdir*Sdirt(i,j))) / &
                 (Sdif_aux + Sdirt(i,j))
-    SWsrf(i,j) = (1 - asrf)*(tdif*Sdif_aux + tdir*Sdirt(i,j))
-    SWveg(i,j) = ((1-tdif)*(1-aveg)+tdif*asrf*(1-tdif))*Sdif_aux + &   
-                  (tdir*fveg(i,j)*(1-aveg)+tdir*asrf*(1-tdif))*Sdirt(i,j)   ! local SWR absorption by vegetation correlates with local tdir  
+    SWsrf(i,j) = (1_dp - asrf)*(tdif*Sdif_aux + tdir*Sdirt(i,j))
+    SWveg(i,j) = ((1_dp-tdif)*(1_dp-aveg)+tdif*asrf*(1_dp-tdif))*Sdif_aux + &   
+                  (tdir*fveg(i,j)*(1_dp-aveg)+tdir*asrf*(1_dp-tdif))*Sdirt(i,j)   ! local SWR absorption by vegetation correlates with local tdir  
     SWsci(i,j) = tdif*Sdif_aux + tdir*Sdirt(i,j)
   endif 
   
     ! Thermal emissions from surroundings 
     ! Terrain LWR if not calculated later; 
-    LWt(i,j) = fsky_terr(i,j)*LW(i,j) + (1 - fsky_terr(i,j))*sb*Ta(i,j)**4   
+    LWt(i,j) = fsky_terr(i,j)*LW(i,j) + (1_dp - fsky_terr(i,j))*sb*Ta(i,j)**4_dp   
 
     ! LW overwritten by LWt only if EBALFOR is used, where terrain impacts are accounted for already 
     if (CANMOD == 0 .OR. fveg(i,j) == 0) then
