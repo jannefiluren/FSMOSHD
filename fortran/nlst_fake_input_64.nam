@@ -11,9 +11,9 @@
 &nam_driving
   zzT = 10,
   zzU = 10,
-  met_file = 'data/input_first_5wj.txt',
-  out_file = 'data/output_first_5wj_32.txt',
-  dump_file = 'data/states_end_32.txt',
+  met_file = 'data/input_fake_5wj.txt',
+  out_file = 'data/output_fake_5wj_64.txt',
+  start_file = 'data/states_end_64.txt',
 /
 &nam_modconf
   NALBEDO = 2,

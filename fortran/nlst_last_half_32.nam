@@ -13,7 +13,7 @@
   zzU = 10,
   met_file = 'data/input_last_5wj.txt',
   out_file = 'data/output_last_5wj_32.txt',
-  start_file = 'data/states_end.txt',
+  start_file = 'data/states_end_32.txt',
 /
 &nam_modconf
   NALBEDO = 2,
