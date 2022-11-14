@@ -221,12 +221,11 @@ LIST_STATE_RESULTS(1:iresults_count) = CLIST_STATE_RESULTS(1:iresults_count)
 ! Outputs
 Nave = 1 !24 Set to one, 24h averages created in OSHD Matlab wrapper
 
-close(5000)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !-2- !!!!!!!!!!!!!!!!!!!!    OPEN THE FILES   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! Open Files for OSHD states input and output and results output
-call OPEN_FILES
+!call OPEN_FILES
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 open(umet, file = met_file)
@@ -526,6 +525,21 @@ end if
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+! !-4- !!!!!!!!!!!!!!!!!!!! READ DRIVING/STATES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! ! states relevant to both open and forest simulation
+! read(1101) albs
+! read(1102) Ds
+! read(1103) fsnow
+! read(1104) Nsnow
+! read(1106) Sice
+! read(1107) Sliq
+! read(1116) Tsrf
+! read(1119) Tsnow
+! read(1120) Tsoil
+! read(1123) fsky_terr
+! read(1127) lat
+! read(1128) lon
+! read(1129) dem
 
 read(5000, nam_location)
 
@@ -542,26 +556,26 @@ if (TILE == 'glacier') then
 endif
 
 ! model tile fractions 
-if (TILE == 'open') then 
-  tilefrac = dem/dem   ! temporary fix to get ones within our entire domain, assuming we always want to run an open tile. may have to be revisited
-else 
-  read(1139) tilefrac
-endif 
+! if (TILE == 'open') then 
+tilefrac = dem/dem   ! temporary fix to get ones within our entire domain, assuming we always want to run an open tile. may have to be revisited
+! else 
+!   read(1139) tilefrac
+! endif 
 
 if (SNFRAC == 0 .or. SNFRAC == 2) then
-  read(1110) snowdepthmax
+  ! read(1110) snowdepthmax
 endif
 
 if (SNFRAC == 0 ) then
-  ! states specific to open runs
-  read(1109) snowdepthmin
-  read(1111) snowdepthhist
-  read(1113) swemin
-  read(1114) swemax
-  read(1115) swehist
-  read(1124) slopemu
-  read(1125) xi
-  read(1126) Ld
+  ! ! states specific to open runs
+  ! read(1109) snowdepthmin
+  ! read(1111) snowdepthhist
+  ! read(1113) swemin
+  ! read(1114) swemax
+  ! read(1115) swehist
+  ! read(1124) slopemu
+  ! read(1125) xi
+  ! read(1126) Ld
 endif
 
 if (TILE /= 'forest') then
@@ -573,17 +587,17 @@ if (TILE /= 'forest') then
   fveg(:,:) = 1 - exp(-kveg*VAI(:,:))
   fves(:,:) = 1 - exp(-kveg*VAI(:,:))
 else ! TILE == 'forest'
-  ! lus fields specific to forest runs
-  read(1130) Qcan
-  read(1131) Sveg
-  read(1132) Tcan
-  read(1133) Tveg
-  read(1134) fveg
-  read(1135) hcan
-  read(1136) lai
-  read(1137) vfhp
-  read(1138) fves
-  read(1140) pmultf
+  ! ! lus fields specific to forest runs
+  ! read(1130) Qcan
+  ! read(1131) Sveg
+  ! read(1132) Tcan
+  ! read(1133) Tveg
+  ! read(1134) fveg
+  ! read(1135) hcan
+  ! read(1136) lai
+  ! read(1137) vfhp
+  ! read(1138) fves
+  ! read(1140) pmultf
 
   ! derived canopy properties 
   VAI(:,:) = lai(:,:) 
