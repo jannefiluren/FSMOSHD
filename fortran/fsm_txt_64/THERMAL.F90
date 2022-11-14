@@ -194,4 +194,15 @@ do i = 1, Nx
 end do
 end do
 
+open(1, file = 'data/test_thermal.txt', status = 'old')  
+write(1,*) Ds1
+write(1,*) gs1
+write(1,*) ks1
+write(1,*) Ts1
+write(1,*) Tveg0
+write(1,*) csoil
+write(1,*) ksnow
+write(1,*) ksoil
+close(1) 
+
 end subroutine THERMAL
