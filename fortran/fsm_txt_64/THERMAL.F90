@@ -3,6 +3,8 @@
 !-----------------------------------------------------------------------
 subroutine THERMAL(csoil,Ds1,gs1,ks1,ksnow,ksoil,Ts1,Tveg0)
 
+use, intrinsic :: iso_fortran_env, only: dp=>real64
+
 use MODCONF, only: CONDCT, DENSTY
 
 use MODTILE, only: TILE, tthresh 
@@ -132,15 +134,15 @@ do i = 1, Nx
       csoil(k,i,j) = hcap_soil(i,j)*Dzsoil(k)
       ksoil(k,i,j) = hcon_soil(i,j)
       if (theta(k,i,j) > epsilon(theta)) then
-        dthudT = 0
+        dthudT = 0_dp
         sthu = theta(k,i,j)
-        sthf = 0
+        sthf = 0_dp
         Tc = Tsoil(k,i,j) - Tm
         Tmax = Tm + (sathh(i,j)/dPsidT)*(Vsat(i,j)/theta(k,i,j))**b(i,j)
         if (Tsoil(k,i,j) < Tmax) then
           dthudT = (-dPsidT*Vsat(i,j)/(b(i,j)*sathh(i,j))) *  &
-                   (dPsidT*Tc/sathh(i,j))**(-1/b(i,j) - 1)
-          sthu = Vsat(i,j)*(dPsidT*Tc/sathh(i,j))**(-1/b(i,j))
+                   (dPsidT*Tc/sathh(i,j))**(-1_dp/b(i,j) - 1_dp)
+          sthu = Vsat(i,j)*(dPsidT*Tc/sathh(i,j))**(-1_dp/b(i,j))
           sthu = min(sthu, theta(k,i,j))
           sthf = (theta(k,i,j) - sthu)*rho_wat/rho_ice
         end if
@@ -150,13 +152,13 @@ do i = 1, Nx
                        + rho_wat*Dzsoil(k)*((hcap_wat - hcap_ice)*Tc + Lf)*dthudT
         Smf = rho_ice*sthf/(rho_wat*Vsat(i,j))
         Smu = sthu/Vsat(i,j)
-        thice = 0
+        thice = 0_dp
         if (Smf > epsilon(Smf)) thice = Vsat(i,j)*Smf/(Smu + Smf) 
-        thwat = 0
+        thwat = 0_dp
         if (Smu > epsilon(Smu)) thwat = Vsat(i,j)*Smu/(Smu + Smf)
         hcon_sat = hcon_soil(i,j)*(hcon_wat**thwat)*(hcon_ice**thice)/(hcon_air**Vsat(i,j))
         ksoil(k,i,j) = (hcon_sat - hcon_soil(i,j))*(Smf + Smu) + hcon_soil(i,j)
-        if (k == 1) gs1(i,j) = gsat*max((Smu*Vsat(i,j)/Vcrit(i,j))**2, 1.)
+        if (k == 1) gs1(i,j) = gsat*max((Smu*Vsat(i,j)/Vcrit(i,j))**2.0_dp, 1.0_dp)
       end if
       
     end if
@@ -182,8 +184,8 @@ do i = 1, Nx
   ! Note that this 'trick' has not yet been tested for top layers < 10cm!
   Ds1(i,j) = max(Dzsoil(1), Ds(1,i,j))
   Ts1(i,j) = Tsoil(1,i,j) + (Tsnow(1,i,j) - Tsoil(1,i,j))*Ds(1,i,j)/Dzsoil(1)
-  ks1(i,j) = Dzsoil(1) / (2*Ds(1,i,j)/ksnow(1,i,j) + (Dzsoil(1) - 2*Ds(1,i,j))/ksoil(1,i,j))
-  if (Ds(1,i,j) > 0.5*Dzsoil(1)) ks1(i,j) = ksnow(1,i,j)
+  ks1(i,j) = Dzsoil(1) / (2_dp*Ds(1,i,j)/ksnow(1,i,j) + (Dzsoil(1) - 2_dp*Ds(1,i,j))/ksoil(1,i,j))
+  if (Ds(1,i,j) > 0.5_dp*Dzsoil(1)) ks1(i,j) = ksnow(1,i,j)
   if (Ds(1,i,j) > Dzsoil(1)) Ts1(i,j) = Tsnow(1,i,j)
   Tveg0(i,j) = Tveg(i,j)
     

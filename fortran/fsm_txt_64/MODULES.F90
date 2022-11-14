@@ -2,33 +2,36 @@
 ! Physical constants
 !-----------------------------------------------------------------------
 module CONSTANTS
+
+use, intrinsic :: iso_fortran_env, only: dp=>real64 
+
 real*8, parameter :: &
-  cp = 1005,         &! Specific heat capacity of air (J/K/kg)
-  eps = 0.622,       &! Ratio of molecular weights of water and dry air
-  e0 = 610.78,       &! Saturation vapour pressure at Tm (Pa)
-  grav = 9.81,       &! Acceleration due to gravity (m/s^2)
-  hcap_ice = 2100,   &! Specific heat capacity of ice (J/K/kg)
-  hcap_wat = 4180,   &! Specific heat capacity of water (J/K/kg)
-  hcon_air = 0.025,  &! Thermal conductivity of air (W/m/K)
-  hcon_clay = 1.16,  &! Thermal conductivity of clay (W/m/K)
-  hcon_ice = 2.24,   &! Thermal conducivity of ice (W/m/K)
-  hcon_sand = 1.57,  &! Thermal conductivity of sand (W/m/K)
-  hcon_wat = 0.56,   &! Thermal conductivity of water (W/m/K)
-  I0 = 1367,         &! Solar constant (W/m^2)
-  Lf = 0.334e6,      &! Latent heat of fusion (J/kg)
-  Lv = 2.501e6,      &! Latent heat of vapourisation (J/kg)
-  Ls = Lf + Lv,      &! Latent heat of sublimation (J/kg)
-  pi = 3.14159,      &! pi
-  Rair = 287,        &! Gas constant for air (J/K/kg)
-  Rwat = 462,        &! Gas constant for water vapour (J/K/kg)
-  rho_ice = 917,     &! Density of ice (kg/m^3)
-  rho_wat = 1000,    &! Density of water (kg/m^3)
-  sb = 5.67e-8,      &! Stefan-Boltzmann constant (W/m^2/K^4)
-  em_snow = 0.99,    &! Emissivity snow for Stefan-Boltzmann
-  em_soil = 0.90,    &! Emissivity soil for Stefan-Boltzmann
-  Tm = 273.15,       &! Melting point (K)
-  vkman = 0.4,       &! Von Karman constant
-  undef =  1.e+6      ! Initialization value for allocatables
+  cp = 1005_dp,         &! Specific heat capacity of air (J/K/kg)
+  eps = 0.622_dp,       &! Ratio of molecular weights of water and dry air
+  e0 = 610.78_dp,       &! Saturation vapour pressure at Tm (Pa)
+  grav = 9.81_dp,       &! Acceleration due to gravity (m/s^2)
+  hcap_ice = 2100_dp,   &! Specific heat capacity of ice (J/K/kg)
+  hcap_wat = 4180_dp,   &! Specific heat capacity of water (J/K/kg)
+  hcon_air = 0.025_dp,  &! Thermal conductivity of air (W/m/K)
+  hcon_clay = 1.16_dp,  &! Thermal conductivity of clay (W/m/K)
+  hcon_ice = 2.24_dp,   &! Thermal conducivity of ice (W/m/K)
+  hcon_sand = 1.57_dp,  &! Thermal conductivity of sand (W/m/K)
+  hcon_wat = 0.56_dp,   &! Thermal conductivity of water (W/m/K)
+  I0 = 1367_dp,         &! Solar constant (W/m^2)
+  Lf = 0.334e6_dp,      &! Latent heat of fusion (J/kg)
+  Lv = 2.501e6_dp,      &! Latent heat of vapourisation (J/kg)
+  Ls = Lf + Lv,         &! Latent heat of sublimation (J/kg)
+  pi = 3.14159_dp,      &! pi
+  Rair = 287_dp,        &! Gas constant for air (J/K/kg)
+  Rwat = 462_dp,        &! Gas constant for water vapour (J/K/kg)
+  rho_ice = 917_dp,     &! Density of ice (kg/m^3)
+  rho_wat = 1000_dp,    &! Density of water (kg/m^3)
+  sb = 5.67e-8_dp,      &! Stefan-Boltzmann constant (W/m^2/K^4)
+  em_snow = 0.99_dp,    &! Emissivity snow for Stefan-Boltzmann
+  em_soil = 0.90_dp,    &! Emissivity soil for Stefan-Boltzmann
+  Tm = 273.15_dp,       &! Melting point (K)
+  vkman = 0.4_dp,       &! Von Karman constant
+  undef =  1.e+6_dp      ! Initialization value for allocatables
 integer, parameter :: &
   iundef = 1.e+6      ! Initialization value for integer allocatables
 end module CONSTANTS

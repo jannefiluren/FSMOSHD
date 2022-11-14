@@ -3,6 +3,8 @@
 !-----------------------------------------------------------------------
 subroutine SETUP
 
+use, intrinsic :: iso_fortran_env, only: dp=>real64 
+
 use MODCONF, only: ALBEDO,CANMOD,CONDCT,DENSTY,EXCHNG,HYDROL,&
 SNFRAC,RADSBG,ZOFFST,OSHDTN,HN_ON,FOR_HN
 
@@ -146,9 +148,9 @@ Dzsnow = DDzsnow
 Dzsoil = DDzsoil
 
 ! Driving data
-dt = 1
-zzT = 10
-zzU = 10
+dt = 1_dp
+zzT = 10_dp
+zzU = 10_dp
 start_file = 'none'
 dump_file = 'none'
 read(5000,nam_driving)
@@ -262,71 +264,71 @@ endif
 Nitr = 4
 
 ! Defaults for canopy parameters
-avg0 = 0.1
-avgs = 0.4
-cden = 0.004
-cvai = 6.6
-cveg = 20
-Gcn1 = 0.5
-Gcn2 = 0
-gsnf = 0
-kdif = 0.5
-kveg = 1
-rchd = 0.67
-rchz = 0.2          
-tcnc = 240
-tcnm = 48
+avg0 = 0.1_dp
+avgs = 0.4_dp
+cden = 0.004_dp
+cvai = 6.6_dp
+cveg = 20_dp
+Gcn1 = 0.5_dp
+Gcn2 = 0_dp
+gsnf = 0_dp
+kdif = 0.5_dp
+kveg = 1_dp
+rchd = 0.67_dp
+rchz = 0.2_dp
+tcnc = 240_dp
+tcnm = 48_dp
 
 ! Defaults for snow parameters
-a_eta = 0.1
-asmx = 0.8       ! unused if OSHDTN = 1
-asmn = 0.5
-b_eta = 0.023
-bstb = 5
-bthr = 2
-c_eta = 250
-eta0 = 3.7e7
-eta1 = 7.62237e6
-hfsn = 0.1
-kfix = 0.24
-rho0 = 300
-rhob = 6
-rhoc = 26
-rhof = 109
-rcld = 300
-rgr0 = 5e-5
-rmlt = 500
-snda = 2.8e-6
-Talb = -2
-tcld = 1000
-tmlt = 100
-trho = 200
-Wirr = 0.03
-z0sn = 0.002
-Sfmin = 10
+a_eta = 0.1_dp
+asmx = 0.8_dp       ! unused if OSHDTN = 1
+asmn = 0.5_dp
+b_eta = 0.023_dp
+bstb = 5_dp
+bthr = 2_dp
+c_eta = 250_dp
+eta0 = 3.7e7_dp
+eta1 = 7.62237e6_dp
+hfsn = 0.1_dp
+kfix = 0.24_dp
+rho0 = 300_dp
+rhob = 6_dp
+rhoc = 26_dp
+rhof = 109_dp
+rcld = 300_dp
+rgr0 = 5e-5_dp
+rmlt = 500_dp
+snda = 2.8e-6_dp
+Talb = -2_dp
+tcld = 1000_dp
+tmlt = 100_dp
+trho = 200_dp
+Wirr = 0.03_dp
+z0sn = 0.002_dp
+Sfmin = 10_dp
 
 ! some defaults different for forest tile - commented-out values based on FS-EBP runs, revisit during tuning
 if (TILE == 'forest') then
-  ! asmx = 0.88
-  hfsn = 0.3    
-  z0sn = 0.005   
+  ! asmx = 0.88_dp
+  hfsn = 0.3_dp    
+  z0sn = 0.005_dp   
 endif 
 
 ! Defaults for ground surface parameters
-bstb = 5
-gsat = 0.01
+bstb = 5_dp
+gsat = 0.01_dp
 
 ! Defaults for additional parameters required for forest snow process parametrization
-adfs = 3
-adfl = 2
-fsar = 0.1
-psf  = 1
-psr  = 0.1
-wcan = 2.5
-zsub = 2
-zgf = 5
-zgr = 5
-khcf = 3
+adfs = 3_dp
+adfl = 2_dp
+fsar = 0.1_dp
+psf  = 1_dp
+psr  = 0.1_dp
+wcan = 2.5_dp
+zsub = 2_dp
+zgf = 5_dp
+zgr = 5_dp
+khcf = 3_dp
 
 if (DENSTY == 0) then
   rhof = rho0
@@ -339,15 +341,15 @@ allocate(fcly(Nx,Ny))
 allocate(fsnd(Nx,Ny))
 allocate(z0sf(Nx,Ny))
 if (TILE == 'glacier') then
-  alb0(:,:) = 0.3
-  z0sf(:,:) = 0.04
+  alb0(:,:) = 0.3_dp
+  z0sf(:,:) = 0.04_dp
 else
-  alb0(:,:) = 0.2
-  z0sf(:,:) = 0.2
+  alb0(:,:) = 0.2_dp
+  z0sf(:,:) = 0.2_dp
 endif
-fcly(:,:) = 0.3
-fsnd(:,:) = 0.6
-if (TILE == 'forest') z0sf(:,:) = 0.2
+fcly(:,:) = 0.3_dp
+fsnd(:,:) = 0.6_dp
+if (TILE == 'forest') z0sf(:,:) = 0.2_dp
 
 ! Canopy parameters
 allocate(canh(Nx,Ny))
@@ -397,25 +399,25 @@ allocate(Vcrit(Nx,Ny))
 do j = 1, Ny
   do i = 1, Nx
     if (fcly(i,j) + fsnd(i,j) > 1) then
-      fcly(i,j) = 1 - fsnd(i,j)
+      fcly(i,j) = 1_dp - fsnd(i,j)
     endif
-    b(i,j) = 3.1 + 15.7*fcly(i,j) - 0.3*fsnd(i,j)
-    hcap_soil(i,j) = (2.128*fcly(i,j) + 2.385*fsnd(i,j))*1e6 / (fcly(i,j) + fsnd(i,j))
-    sathh(i,j) = 10**(0.17 - 0.63*fcly(i,j) - 1.58*fsnd(i,j))
-    Vsat(i,j) = 0.505 - 0.037*fcly(i,j) - 0.142*fsnd(i,j)
-    Vcrit(i,j) = Vsat(i,j)*(sathh(i,j)/3.364)**(1/b(i,j))
-    hcon_min = (hcon_clay**fcly(i,j)) * (hcon_sand**(1 - fcly(i,j)))
-    hcon_soil(i,j) = (hcon_air**Vsat(i,j)) * (hcon_min**(1 - Vsat(i,j)))
+    b(i,j) = 3.1_dp + 15.7_dp*fcly(i,j) - 0.3_dp*fsnd(i,j)
+    hcap_soil(i,j) = (2.128_dp*fcly(i,j) + 2.385_dp*fsnd(i,j))*1e6_dp / (fcly(i,j) + fsnd(i,j))
+    sathh(i,j) = 10_dp**(0.17_dp - 0.63_dp*fcly(i,j) - 1.58_dp*fsnd(i,j))
+    Vsat(i,j) = 0.505_dp - 0.037_dp*fcly(i,j) - 0.142_dp*fsnd(i,j)
+    Vcrit(i,j) = Vsat(i,j)*(sathh(i,j)/3.364_dp)**(1_dp/b(i,j))
+    hcon_min = (hcon_clay**fcly(i,j)) * (hcon_sand**(1_dp - fcly(i,j)))
+    hcon_soil(i,j) = (hcon_air**Vsat(i,j)) * (hcon_min**(1_dp - Vsat(i,j)))
   end do
 end do
 
 ! Convert time scales from hours to seconds
-dt = 3600*dt
-tcnc = 3600*tcnc
-tcnm = 3600*tcnm
-tcld = 3600*tcld
-tmlt = 3600*tmlt
-trho = 3600*trho
+dt = 3600_dp*dt
+tcnc = 3600_dp*tcnc
+tcnm = 3600_dp*tcnm
+tcld = 3600_dp*tcld
+tmlt = 3600_dp*tmlt
+trho = 3600_dp*trho
 
 ! Allocate state variables
 allocate(albs(Nx,Ny))
@@ -442,31 +444,31 @@ allocate(swehist(14,Nx,Ny))
 allocate(fsky_terr(Nx,Ny))
 
 ! Default initialization of state variables 
-albs(:,:)    = 0.8500
-Ds(:,:,:)    = 0
-fsnow(:,:)   = 0
-Nsnow(:,:)   = 0
-Qcan(:,:)    = 0
+albs(:,:)    = 0.8500_dp
+Ds(:,:,:)    = 0_dp
+fsnow(:,:)   = 0_dp
+Nsnow(:,:)   = 0_dp
+Qcan(:,:)    = 0_dp
 rgrn(:,:,:)  = undef !*GM watch out: rgrn currently not tracked
-Sice(:,:,:)  = 0
-Sliq(:,:,:)  = 0
-Sveg(:,:)    = 0
-Tcan(:,:)    = 273.1500
-Tsnow(:,:,:) = 273.1500
-Tsoil(:,:,:) = 273.1500
-Tveg(:,:)    = 273.1500
-snowdepthmin(:,:) = 0
-snowdepthmax(:,:) = 0
-snowdepthhist(:,:,:) = 0
-swemin(:,:) = 0
-swemax(:,:) = 0
-swehist(:,:,:) = 0
+Sice(:,:,:)  = 0_dp
+Sliq(:,:,:)  = 0_dp
+Sveg(:,:)    = 0_dp
+Tcan(:,:)    = 273.1500_dp
+Tsnow(:,:,:) = 273.1500_dp
+Tsoil(:,:,:) = 273.1500_dp
+Tveg(:,:)    = 273.1500_dp
+snowdepthmin(:,:) = 0_dp
+snowdepthmax(:,:) = 0_dp
+snowdepthhist(:,:,:) = 0_dp
+swemin(:,:) = 0_dp
+swemax(:,:) = 0_dp
+swehist(:,:,:) = 0_dp
 
 ! Initial soil profiles from namelist
 allocate(fsat(Nsoil))
 allocate(Tprof(Nsoil))
-fsat(:)  = 0.5
-Tprof(:) = 285
+fsat(:)  = 0.5_dp
+Tprof(:) = 285_dp
 do k = 1, Nsoil
   theta(k,:,:) = fsat(k)*Vsat(:,:)
   Tsoil(k,:,:) = Tprof(k)
@@ -580,12 +582,12 @@ endif
 
 if (TILE /= 'forest') then
   ! canopy properties (no canopy)
-  VAI(:,:)  = 0
-  hcan(:,:) = 0
-  fsky(:,:) = 1
+  VAI(:,:)  = 0_dp
+  hcan(:,:) = 0_dp
+  fsky(:,:) = 1_dp
   trcn(:,:) = exp(-kdif*VAI(:,:))
-  fveg(:,:) = 1 - exp(-kveg*VAI(:,:))
-  fves(:,:) = 1 - exp(-kveg*VAI(:,:))
+  fveg(:,:) = 1_dp - exp(-kveg*VAI(:,:))
+  fves(:,:) = 1_dp - exp(-kveg*VAI(:,:))
 else ! TILE == 'forest'
   ! ! lus fields specific to forest runs
   ! read(1130) Qcan
@@ -601,18 +603,18 @@ else ! TILE == 'forest'
 
   ! derived canopy properties 
   VAI(:,:) = lai(:,:) 
-  trcn(:,:) = 1-0.9*fveg(:,:)  
+  trcn(:,:) = 1_dp-0.9_dp*fveg(:,:)  
   do j = 1, Ny
     do i = 1, Nx
       fsky(i,j) = vfhp(i,j)/trcn(i,j)
       if ( fsky(i,j) > 1 ) trcn(i,j) = vfhp(i,j)
-      if ( fsky(i,j) > 1 ) fsky(i,j) = 1
+      if ( fsky(i,j) > 1 ) fsky(i,j) = 1_dp
     end do
   end do 
 endif
 
 ! derived canopy parameters
-canh(:,:) = 12500*VAI(:,:)
+canh(:,:) = 12500_dp*VAI(:,:)
 scap(:,:) = cvai*VAI(:,:)
 
 close(5000)
