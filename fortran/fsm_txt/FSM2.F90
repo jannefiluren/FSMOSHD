@@ -26,6 +26,7 @@ do
     if (EoR) goto 1
     call PHYSICS
   end do
+  call OUTPUT
 end do
 
 1 continue
