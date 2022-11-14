@@ -1,2 +1,5 @@
 *.exe
 *.mod
+dump.txt
+output*.txt
+states_end.txt
