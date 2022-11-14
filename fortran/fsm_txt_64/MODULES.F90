@@ -403,3 +403,7 @@ module FILES
     dump_file           ! Dump file name
 end module FILES
 
+module TEST
+  integer :: &
+    dump_data           ! Write debug info to file
+end module TEST

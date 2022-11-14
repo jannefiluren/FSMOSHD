@@ -60,6 +60,8 @@ use IOUNITS, only : &
 
 use FILES, only : dump_file
 
+use TEST
+
 implicit none
  
 integer :: & 
@@ -111,7 +113,7 @@ logical :: lexist
 !-1- !!!!!!!!!!!!!!!!!!!!  READ THE NAMELIST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 namelist  /nam_grid/    NNx,NNy,NNsmax,NNsoil
 namelist  /nam_layers/  DDzsnow,DDzsoil
-namelist  /nam_driving/ zzT,zzU,met_file,out_file,start_file,dump_file
+namelist  /nam_driving/ zzT,zzU,met_file,out_file,start_file,dump_file,dump_data
 namelist  /nam_modconf/ NALBEDO,NCANMOD,NCONDCT,NDENSTY,NEXCHNG,NHYDROL,NSNFRAC,NRADSBG,NZOFFST,NOSHDTN,LHN_ON,LFOR_HN
 namelist  /nam_modtile/ CTILE, rtthresh
 namelist  /nam_modpert/ LZ0PERT,LWCPERT,LFSPERT,LALPERT,LSLPERT
@@ -153,6 +155,7 @@ zzT = 10_dp
 zzU = 10_dp
 start_file = 'none'
 dump_file = 'none'
+dump_data = 0
 read(5000,nam_driving)
 zT = zzT
 zU = zzU
