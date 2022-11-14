@@ -65,6 +65,8 @@ use LANDUSE, only: &
   dem,               &! Terrain elevation (m)
   tilefrac            ! Grid cell tile fraction
 
+use TEST
+
 implicit none
 
 real*8, intent(inout) :: &
@@ -262,5 +264,18 @@ do i = 1, Nx
   
 end do
 end do
+
+if (dump_data == 1) then
+  open(1, file="data/test_radiation.txt")
+  write(1,*) alb
+  write(1,*) asrf_out
+  write(1,*) Sdirt
+  write(1,*) Sdift
+  write(1,*) SWveg
+  write(1,*) SWsrf
+  write(1,*) SWsci
+  write(1,*) LWt
+  close(1) 
+end if
 
 end subroutine RADIATION
