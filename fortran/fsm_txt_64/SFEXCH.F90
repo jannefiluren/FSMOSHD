@@ -62,6 +62,8 @@ use LANDUSE, only: &
   hcan,              &! Canopy height (m)
   tilefrac            ! Grid cell tile fraction
 
+use TEST
+
 implicit none
 
 real*8, intent(in) :: &
@@ -253,5 +255,19 @@ do i = 1, Nx
   
 end do
 end do
+
+if (dump_data == 1) then
+  open(1, file="data/test_sfexch.txt")
+  write(1,*) KH 
+  write(1,*) KHa
+  write(1,*) KHg
+  write(1,*) KHv
+  write(1,*) KWg
+  write(1,*) KWv
+  write(1,*) Usc
+  close(1) 
+end if
+
+stop
 
 end subroutine SFEXCH
