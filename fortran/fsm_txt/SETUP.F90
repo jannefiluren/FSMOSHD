@@ -96,11 +96,12 @@ logical :: lexist
 !-1- !!!!!!!!!!!!!!!!!!!!  READ THE NAMELIST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 namelist  /nam_grid/    NNx,NNy,NNsmax,NNsoil
 namelist  /nam_layers/  DDzsnow,DDzsoil
-namelist  /nam_driving/ zzT,zzU
+namelist  /nam_driving/ zzT,zzU,met_file,out_file,start_file,dump_file
 namelist  /nam_modconf/ NALBEDO,NCANMOD,NCONDCT,NDENSTY,NEXCHNG,NHYDROL,NSNFRAC,NRADSBG,NZOFFST,NOSHDTN,LHN_ON,LFOR_HN
 namelist  /nam_modtile/ CTILE, rtthresh
 namelist  /nam_modpert/ LZ0PERT,LWCPERT,LFSPERT,LALPERT,LSLPERT
 namelist  /nam_results/ CLIST_DIAG_RESULTS, CLIST_STATE_RESULTS
+namelist  /nam_location/ fsky_terr,slopemu,xi,Ld,lat,lon,dem,pmultf
 
 ! get namelist path from first command argument.
 call getarg(1, nlst_file)
@@ -135,6 +136,8 @@ Dzsoil = DDzsoil
 dt = 1
 zzT = 10
 zzU = 10
+start_file = 'none'
+dump_file = 'none'
 read(5000,nam_driving)
 zT = zzT
 zU = zzU
@@ -455,21 +458,8 @@ end do
 Tsrf(:,:) = Tsoil(1,:,:)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-!-4- !!!!!!!!!!!!!!!!!!!! READ DRIVING/STATES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! states relevant to both open and forest simulation
-read(1101) albs
-read(1102) Ds
-read(1103) fsnow
-read(1104) Nsnow
-read(1106) Sice
-read(1107) Sliq
-read(1116) Tsrf
-read(1119) Tsnow
-read(1120) Tsoil
-read(1123) fsky_terr
-read(1127) lat
-read(1128) lon
-read(1129) dem
+
+read(5000, nam_location)
 
 ! Cap glacier temperatures to 0°C
 if (TILE == 'glacier') then
@@ -542,5 +532,7 @@ endif
 ! derived canopy parameters
 canh(:,:) = 12500*VAI(:,:)
 scap(:,:) = cvai*VAI(:,:)
+
+close(5000)
 
 end subroutine SETUP
