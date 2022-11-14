@@ -3,6 +3,8 @@
 !-----------------------------------------------------------------------
 subroutine SFEXCH(gs1,KH,KHa,KHg,KHv,KWg,KWv,Usc)
 
+use, intrinsic :: iso_fortran_env, only: dp=>real64
+
 use MODCONF, only: CANMOD, ZOFFST, EXCHNG, OSHDTN, SNFRAC
 
 use MODPERT, only: Z0PERT
@@ -123,19 +125,19 @@ do i = 1, Nx
   else
     ! Ground roughness length
     if (TILE == 'glacier') then
-      z0loc = 0.0009
+      z0loc = 0.0009_dp
     else
       if (OSHDTN == 0 .OR. tile == 'forest') then
         z0loc = z0sn
       else ! OSHDTN == 1
         if (dem(i,j) >= 2300) then
-          z0loc = 0.003
-        else if (dem(i,j) >= 1500) then
-          z0loc = 0.03 + (dem(i,j) - 1500) / (2300 - 1500) * (0.003 - 0.03)
-        else if (dem(i,j) >= 1200) then  ! simple linear b/w two above values
-          z0loc = 0.2 + (dem(i,j) - 1200) / (1500 - 1200) * (0.03 - 0.2)
+          z0loc = 0.003_dp
+        else if (dem(i,j) >= 1500_dp) then
+          z0loc = 0.03_dp + (dem(i,j) - 1500_dp) / (2300_dp - 1500_dp) * (0.003_dp - 0.03_dp)
+        else if (dem(i,j) >= 1200_dp) then  ! simple linear b/w two above values
+          z0loc = 0.2_dp + (dem(i,j) - 1200_dp) / (1500_dp - 1200_dp) * (0.03_dp - 0.2_dp)
         else
-          z0loc = 0.2
+          z0loc = 0.2_dp
         end if
       end if
     end if
@@ -145,7 +147,7 @@ do i = 1, Nx
   ! BC, stabilize the tuning point runs by using a Ds threshold instead of fsnow.
   ! TODO: test the impact for the grid points.
   if (SNFRAC==3) then
-    if (sum(Ds(:,i,j)) <= 0.05) then
+    if (sum(Ds(:,i,j)) <= 0.05_dp) then
       z0g = z0sf(i,j)
     endif
   else
@@ -155,53 +157,53 @@ do i = 1, Nx
   ! Additional roughness lengths and friction velocity
   if (EXCHNG == 2) then ! Forest - specific adjustment *GM
     ! Open
-    z0h = 0.1 * z0g 
+    z0h = 0.1_dp * z0g 
     ustar = vkman*Ua(i,j)/log(zU/z0g) 
     rgo = log(zT/z0h)/(vkman*ustar) 
 
     ! Forest
     if (fveg(i,j) > epsilon(fveg(i,j))) then
       z0g = (zgf + zgr*fveg(i,j)) * z0g    
-      z0h = 0.1 * z0g
+      z0h = 0.1_dp * z0g
       dh = rchd * hcan(i,j) 
       z0v = rchz * hcan(i,j) 
       ustar = vkman*Ua(i,j)/log((zU1 - dh)/z0v)
       Uh = (ustar/vkman)*log((hcan(i,j) - dh)/z0v)
       KHh = vkman*ustar*(hcan(i,j) - dh)
-      Usf = exp(wcan*(zsub/hcan(i,j) - 1))*Uh
+      Usf = exp(wcan*(zsub/hcan(i,j) - 1_dp))*Uh
     end if
   else
     z0v = rchz*hcan(i,j)
-    z0  = (z0v**fveg(i,j)) * (z0g**(1 - fveg(i,j)))
-    z0h = 0.1*z0
+    z0  = (z0v**fveg(i,j)) * (z0g**(1_dp - fveg(i,j)))
+    z0h = 0.1_dp*z0
     dh = fveg(i,j)*rchd*hcan(i,j)
-    CD = (vkman / log((zU1 - dh)/z0))**2
+    CD = (vkman / log((zU1 - dh)/z0))**2_dp
     ustar = sqrt(CD)*Ua(i,j)
   endif
   Uso = Ua(i,j)*log(zsub/z0g)/log(zU/z0g)
 
   if (EXCHNG == 0) then
   ! No stability adjustment
-    fh = 1
-    Ric = 0
+    fh = 1_dp
+    Ric = 0_dp
   endif
   if (EXCHNG == 1) then
   ! Stability adjustment (Louis et al. 1982, quoted by Beljaars 1992)
-    Tint = fveg(i,j)*Tveg(i,j) + (1 - fveg(i,j))*Tsrf(i,j)
-    RiB = grav*(Ta(i,j) - Tint)*(zU1 - dh)**2 / ((zT1 - dh)*Ta(i,j)*Ua(i,j)**2)
-    if (RiB > 0.2) RiB = 0.2 ! New maximum threshold for RiB
-    if (RiB > 0) then 
-      fh = 1/(1 + 3*bstb*RiB*sqrt(1 + bstb*RiB))
+    Tint = fveg(i,j)*Tveg(i,j) + (1_dp - fveg(i,j))*Tsrf(i,j)
+    RiB = grav*(Ta(i,j) - Tint)*(zU1 - dh)**2_dp / ((zT1 - dh)*Ta(i,j)*Ua(i,j)**2_dp)
+    if (RiB > 0.2_dp) RiB = 0.2_dp ! New maximum threshold for RiB
+    if (RiB > 0_dp) then 
+      fh = 1_dp/(1_dp + 3_dp*bstb*RiB*sqrt(1_dp + bstb*RiB))
     else
-      fh = 1 - 3*bstb*RiB / (1 + 3*bstb**2*CD*sqrt(-RiB*zU1/z0))
+      fh = 1_dp - 3_dp*bstb*RiB / (1_dp + 3_dp*bstb**2_dp*CD*sqrt(-RiB*zU1/z0))
     endif
-    Ric = grav*(Tcan(i,j) - Tsrf(i,j))*hcan(i,j) / (Tcan(i,j)*ustar**2)
-    Ric = max(min(Ric,10.),0.)
+    Ric = grav*(Tcan(i,j) - Tsrf(i,j))*hcan(i,j) / (Tcan(i,j)*ustar**2_dp)
+    Ric = max(min(Ric,10.0_dp),0.0_dp)
   endif
   ! Note that currently, fh and Ric are not used in EXCHNG == 2, i.e. no stability correction
 
   ! Eddy diffusivities
-  if (fveg(i,j) == 0) then
+  if (fveg(i,j) == 0_dp) then
     KH(i,j) = fh*vkman*ustar / log(zT1/z0h)
     call QSAT(Ps(i,j),Tsrf(i,j),Qs)
     if (Sice(1,i,j) > epsilon(Sice(1,i,j))  .or. Qa(i,j) > Qs) then
@@ -213,18 +215,18 @@ do i = 1, Nx
   else
     if (EXCHNG == 2) then
       rad = (log((zT1 - dh)/(hcan(i,j)- dh))/(vkman*ustar) +  & 
-        hcan(i,j)*(exp(wcan*(1 -(z0v + dh)/hcan(i,j))) - 1)/(wcan*KHh))/khcf
+        hcan(i,j)*(exp(wcan*(1_dp -(z0v + dh)/hcan(i,j))) - 1_dp)/(wcan*KHh))/khcf
       KHa(i,j) = sqrt(fves(i,j))/ rad 
-      Usub = sqrt(fves(i,j))*Usf + (1 - sqrt(fves(i,j)))*Uso
-      Usub = max(Usub, 0.1)
-      rgd = 1 / (vkman**2 * Usub) * log(zsub/z0h) * log(zsub/z0g); 
-      KHg(i,j)  = 1/rgd
-      Uc = exp(wcan*((z0v + dh)/hcan(i,j) - 1))*Uh
+      Usub = sqrt(fves(i,j))*Usf + (1_dp - sqrt(fves(i,j)))*Uso
+      Usub = max(Usub, 0.1_dp)
+      rgd = 1_dp / (vkman**2_dp * Usub) * log(zsub/z0h) * log(zsub/z0g); 
+      KHg(i,j)  = 1_dp/rgd
+      Uc = exp(wcan*((z0v + dh)/hcan(i,j) - 1_dp))*Uh
       KHv(i,j) = VAI(i,j)*sqrt(Uc)/cveg
       Usc(i,j) = Usub
     else
       KHa(i,j) = fh*vkman*ustar / log((zT1 - dh)/z0)
-      KHg(i,j) = vkman*ustar*((1 - fveg(i,j))*fh/log(z0/z0h) + fveg(i,j)*cden/(1 + 0.5*Ric))
+      KHg(i,j) = vkman*ustar*((1_dp - fveg(i,j))*fh/log(z0/z0h) + fveg(i,j)*cden/(1_dp + 0.5_dp*Ric))
       KHv(i,j) = sqrt(ustar)*VAI(i,j)/cveg
     endif
     call QSAT(Ps(i,j),Tsrf(i,j),Qs)

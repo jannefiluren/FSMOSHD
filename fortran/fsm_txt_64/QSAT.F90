@@ -3,6 +3,8 @@
 !-----------------------------------------------------------------------
 subroutine QSAT(P,T,Qs)
 
+use, intrinsic :: iso_fortran_env, only: dp=>real64
+
 use CONSTANTS, only: &
   eps,               &! Ratio of molecular weights of water and dry air
   e0,                &! Saturation vapour pressure at Tm (Pa)
@@ -23,9 +25,9 @@ real*8 :: &
 
 Tc = T - Tm
 if (Tc > 0) then
-  es = e0*exp(17.5043*Tc / (241.3 + Tc))
+  es = e0*exp(17.5043_dp*Tc / (241.3_dp + Tc))
 else
-  es = e0*exp(22.4422*Tc / (272.186 + Tc))
+  es = e0*exp(22.4422_dp*Tc / (272.186_dp + Tc))
 end if
 Qs = eps*es / P
 
