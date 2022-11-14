@@ -50,6 +50,14 @@ use STATE_VARIABLES
 
 use LANDUSE
 
+use IOUNITS, only : &
+  uout,              &! Output file unit number
+  umet,              &! Driving file unit number
+  udmp,              &! Dump file unit number
+  ustr                ! Start file unit number
+
+use FILES, only : dump_file
+
 implicit none
  
 integer :: & 
@@ -76,7 +84,12 @@ real, allocatable :: &
   fsat(:),           &! Initial moisture content of soil layers as fractions of saturation
   Tprof(:)            ! Initial soil layer temperatures (K)
 
-character(len=200) :: nlst_file
+character(len=200) :: &
+  nlst_file,        & ! Namelist file name
+  met_file,         & ! Drive file name
+  out_file,         & ! Output file name
+  start_file          ! Start file name
+
 
 character(len=20) :: CTILE
   
@@ -215,6 +228,10 @@ close(5000)
 ! Open Files for OSHD states input and output and results output
 call OPEN_FILES
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+open(umet, file = met_file)
+open(uout, file = out_file)
+
 
 !-3- !!!!!!!!!!!!!!!!!!!!  ALLOCATE VARIABLES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -426,25 +443,25 @@ allocate(swehist(14,Nx,Ny))
 allocate(fsky_terr(Nx,Ny))
 
 ! Default initialization of state variables 
-albs(:,:)    = undef
-Ds(:,:,:)    = undef
-fsnow(:,:)   = undef
-Nsnow(:,:)   = iundef
-Qcan(:,:)    = undef
+albs(:,:)    = 0.8500
+Ds(:,:,:)    = 0
+fsnow(:,:)   = 0
+Nsnow(:,:)   = 0
+Qcan(:,:)    = 0
 rgrn(:,:,:)  = undef !*GM watch out: rgrn currently not tracked
-Sice(:,:,:)  = undef
-Sliq(:,:,:)  = undef
-Sveg(:,:)    = undef
-Tcan(:,:)    = undef
-Tsnow(:,:,:) = undef
-Tsoil(:,:,:) = undef
-Tveg(:,:)    = undef
-snowdepthmin(:,:) = undef
-snowdepthmax(:,:) = undef
-snowdepthhist(:,:,:) = undef
-swemin(:,:) = undef
-swemax(:,:) = undef
-swehist(:,:,:) = undef
+Sice(:,:,:)  = 0
+Sliq(:,:,:)  = 0
+Sveg(:,:)    = 0
+Tcan(:,:)    = 273.1500
+Tsnow(:,:,:) = 273.1500
+Tsoil(:,:,:) = 273.1500
+Tveg(:,:)    = 273.1500
+snowdepthmin(:,:) = 0
+snowdepthmax(:,:) = 0
+snowdepthhist(:,:,:) = 0
+swemin(:,:) = 0
+swemax(:,:) = 0
+swehist(:,:,:) = 0
 
 ! Initial soil profiles from namelist
 allocate(fsat(Nsoil))
@@ -456,6 +473,57 @@ do k = 1, Nsoil
   Tsoil(k,:,:) = Tprof(k)
 end do
 Tsrf(:,:) = Tsoil(1,:,:)
+
+! Initialize state variables from a named start file
+if (start_file /= 'none') then
+  open(ustr, file = start_file)
+  read(ustr,*) albs(:,:)
+  read(ustr,*) Ds(:,:,:)
+  read(ustr,*) Nsnow(:,:)
+  read(ustr,*) Qcan(:,:)
+  read(ustr,*) Sice(:,:,:)
+  read(ustr,*) Sliq(:,:,:)
+  read(ustr,*) Sveg(:,:)
+  read(ustr,*) Tcan(:,:)
+  read(ustr,*) theta(:,:,:)
+  read(ustr,*) Tsnow(:,:,:)
+  read(ustr,*) Tsoil(:,:,:)
+  read(ustr,*) Tsrf(:,:)
+  read(ustr,*) fsnow(:,:)
+  read(ustr,*) Tveg(:,:)
+  read(ustr,*) snowdepthmin(:,:)
+  read(ustr,*) snowdepthmax(:,:)
+  read(ustr,*) snowdepthhist(:,:,:)
+  read(ustr,*) swemin(:,:)
+  read(ustr,*) swemax(:,:)
+  read(ustr,*) swehist(:,:,:)
+
+  print *,  albs
+  print *,  Ds
+  print *,  Nsnow
+  print *,  Qcan
+  print *,  Sice
+  print *,  Sliq
+  print *,  Sveg
+  print *,  Tcan
+  print *,  theta
+  print *,  Tsnow
+  print *,  Tsoil
+  print *,  Tsrf
+  print *,  fsnow
+  print *,  Tveg
+  print *,  snowdepthmin
+  print *,  snowdepthmax
+  print *,  snowdepthhist
+  print *,  swemin
+  print *,  swemax
+  print *,  swehist
+
+
+  close(ustr)
+end if
+
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 

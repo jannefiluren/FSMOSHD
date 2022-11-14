@@ -7,6 +7,11 @@ use MODCONF, only: CANMOD,SNFRAC
 
 use MODE_WRITE, only: WRITE_2D
 
+use IOUNITS, only : &
+  udmp                ! Dump file unit number
+
+use FILES, only : dump_file
+
 use STATE_VARIABLES, only : &
   albs,              &! Snow albedo
   Ds,                &! Snow layer thicknesses (m)
@@ -25,36 +30,36 @@ use STATE_VARIABLES, only : &
   Tcan,              &! Canopy air space temperature (K)
   Tsnow,             &! Snow layer temperatures (K)
   Tsoil,             &! Soil layer temperatures (K)
+  theta,             &! Volumetric moisture content of soil layers
   Tsrf,              &! Surface skin temperature (K)
   Tveg                ! Vegetation temperature (K)
 
 implicit none
 
-! Write into state files.
-write(1201) albs
-write(1202) Ds
-write(1203) fsnow
-write(1204) Nsnow
-write(1206) Sice
-write(1207) Sliq
-write(1216) Tsrf
-write(1219) Tsnow
-write(1220) Tsoil
-if (SNFRAC == 0 .or. SNFRAC == 2) then
-  write(1210) snowdepthmax
-endif
-if (SNFRAC == 0) then
-  write(1209) snowdepthmin
-  write(1211) snowdepthhist
-  write(1213) swemin
-  write(1214) swemax
-  write(1215) swehist
-endif
-if (CANMOD == 1) then
-  write(1223) Qcan
-  write(1224) Sveg
-  write(1225) Tcan
-  write(1226) Tveg
-endif
+if (dump_file /= 'none') then
+  open(udmp, file = dump_file)  
+  write(udmp,*) albs(:,:)
+  write(udmp,*) Ds(:,:,:)
+  write(udmp,*) Nsnow(:,:)
+  write(udmp,*) Qcan(:,:)
+  write(udmp,*) Sice(:,:,:)
+  write(udmp,*) Sliq(:,:,:)
+  write(udmp,*) Sveg(:,:)
+  write(udmp,*) Tcan(:,:)
+  write(udmp,*) theta(:,:,:)
+  write(udmp,*) Tsnow(:,:,:)
+  write(udmp,*) Tsoil(:,:,:)
+  write(udmp,*) Tsrf(:,:)
+  write(udmp,*) fsnow(:,:)
+  write(udmp,*) Tveg(:,:)
+  write(udmp,*) snowdepthmin(:,:)
+  write(udmp,*) snowdepthmax(:,:)
+  write(udmp,*) snowdepthhist(:,:,:)
+  write(udmp,*) swemin(:,:)
+  write(udmp,*) swemax(:,:)
+  write(udmp,*) swehist(:,:,:)
+  close(udmp)
+end if
+    
+  end subroutine DUMP
 
-end subroutine DUMP
