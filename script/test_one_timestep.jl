@@ -147,3 +147,15 @@ println(maximum(abs.(Tsnow_fortran - Tsnow[:,1,1])))
 println(maximum(abs.(Sice_fortran - Sice[:,1,1])))
 println(maximum(abs.(Sliq_fortran - Sliq[:,1,1])))
 println(maximum(abs.(Ds_fortran - Ds[:,1,1])))
+
+# TEST SOIL
+
+println("TEST SOIL")
+
+include("../src/soil.jl")
+
+fortran = readlines("../fortran/data/test_soil.txt")
+
+Tsoil_fortran = parse.(Float64,split(fortran[1]))
+
+println(maximum(abs.(Tsoil_fortran - Tsoil)))
