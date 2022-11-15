@@ -78,3 +78,39 @@ println(maximum(abs.(KHv_fortran - KHv)))
 println(maximum(abs.(KWg_fortran - KWg)))
 println(maximum(abs.(KWv_fortran - KWv)))
 println(maximum(abs.(Usc_fortran - Usc)))
+
+### TEST EBALSRF
+
+println("TEST EBALSRF")
+
+include("../src/ebalsrf.jl")
+
+fortran = readlines("../fortran/data/test_ebalsrf.txt")
+
+Esrf_fortran = parse.(Float64,split(fortran[1]))
+Eveg_fortran = parse.(Float64,split(fortran[2]))
+G_fortran = parse.(Float64,split(fortran[3]))
+H_fortran = parse.(Float64,split(fortran[4]))
+Hsrf_fortran = parse.(Float64,split(fortran[5]))
+LE_fortran = parse.(Float64,split(fortran[6]))
+LEsrf_fortran = parse.(Float64,split(fortran[7]))
+LWsci_fortran = parse.(Float64,split(fortran[8]))
+LWveg_fortran = parse.(Float64,split(fortran[9]))
+Melt_fortran = parse.(Float64,split(fortran[10]))
+Rnet_fortran = parse.(Float64,split(fortran[11]))
+Rsrf_fortran = parse.(Float64,split(fortran[12]))
+
+println(maximum(abs.(Esrf_fortran - Esrf)))
+println(maximum(abs.(Eveg_fortran - Eveg)))
+println(maximum(abs.(G_fortran - G)))
+println(maximum(abs.(H_fortran - H)))
+println(maximum(abs.(Hsrf_fortran - Hsrf)))
+println(maximum(abs.(LE_fortran - LE)))
+println(maximum(abs.(LEsrf_fortran - LEsrf)))
+println(maximum(abs.(LWsci_fortran - LWsci)))
+println(maximum(abs.(LWveg_fortran - LWveg)))
+println(maximum(abs.(Melt_fortran - Melt)))
+println(maximum(abs.(Rnet_fortran - Rnet)))
+println(maximum(abs.(Rsrf_fortran - Rsrf)))
+
+
