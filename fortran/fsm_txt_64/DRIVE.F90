@@ -3,6 +3,8 @@
 !-----------------------------------------------------------------------
 subroutine DRIVE(EoR)
 
+use, intrinsic :: iso_fortran_env, only: dp=>real64
+
 use MODCONF, only: CANMOD
 
 use MODPERT, only: Z0PERT,WCPERT,FSPERT,ALPERT,SLPERT
@@ -122,8 +124,8 @@ do i = 1,Nx
   Sf(i,j) = Sf(i,j)/dt
   Rf(i,j) = Rf(i,j)/dt
   Tc(i,j) = Ta(i,j) - Tm
-  es(i,j) = e0*exp(17.5043*Tc(i,j)/(241.3 + Tc(i,j)))
-  Qa(i,j) = (RH(i,j)/100)*eps*es(i,j)/Ps(i,j)
+  es(i,j) = e0*exp(17.5043_dp*Tc(i,j)/(241.3_dp + Tc(i,j)))
+  Qa(i,j) = (RH(i,j)/100_dp)*eps*es(i,j)/Ps(i,j)
  end do
 end do
 
