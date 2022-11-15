@@ -107,6 +107,18 @@ real*8 :: &
   rgo,               &! Theoretical ground aerodynamic resistance for an open site (s/m) 
   z0loc               ! Elevation-dependent roughness length of snow (m), constant or tuned depending on OSHDTN
 
+
+! Initialize arrays for reproducability...
+
+KH(:,:) = 0_dp
+KHa(:,:) = 0_dp
+KHg(:,:) = 0_dp
+KHv(:,:) = 0_dp
+KWg(:,:) = 0_dp
+KWv(:,:) = 0_dp
+Usc(:,:) = 0_dp
+
+
 do j = 1, Ny
 do i = 1, Nx
 
