@@ -3,6 +3,8 @@
 !-----------------------------------------------------------------------
 subroutine SNOW(Esrf,G,ksnow,ksoil,Melt,unload,Gsoil,Roff,meltflux_out,Sbsrf)
 
+use, intrinsic :: iso_fortran_env, only: dp=>real64
+
 use MODCONF, only: HYDROL,DENSTY,OSHDTN,HN_ON,SNFRAC
 
 use MODTILE, only: tthresh
@@ -131,9 +133,9 @@ real*8 :: &
   Roff_bare(Nx,Ny)    ! Bare soil runoff (kg/m^2)
 
 Gsoil(:,:) = G(:,:)
-Roff(:,:) = 0
-meltflux_out(:,:) = 0
-Roff_bare(:,:) = Rf(:,:) * dt * (1 - fsnow(:,:))
+Roff(:,:) = 0_dp
+meltflux_out(:,:) = 0_dp
+Roff_bare(:,:) = Rf(:,:) * dt * (1_dp - fsnow(:,:))
 Roff_snow(:,:) = Rf(:,:) * dt * fsnow(:,:)
 
 ! Points with existing snowpack
@@ -142,7 +144,7 @@ do i = 1, Nx
 
   if (tilefrac(i,j) < tthresh) goto 1 ! exclude points outside tile of interest
 
-  Sbsrf(i,j) = 0
+  Sbsrf(i,j) = 0_dp
 
   if (fsnow(i,j) > epsilon(fsnow)) then ! This condition should be equivalent to Nsnow(i,j) > 0
 
@@ -151,7 +153,7 @@ do i = 1, Nx
     if (SNFRAC == 3) then
       fsnow_thres(i,j) = fsnow(i,j)
     else
-      fsnow_thres(i,j) = max(fsnow(i,j),0.1)
+      fsnow_thres(i,j) = max(fsnow(i,j),0.1_dp)
     end if
 
     ! Heat conduction
@@ -159,14 +161,14 @@ do i = 1, Nx
       csnow(k) = (Sice(k,i,j)*hcap_ice + Sliq(k,i,j)*hcap_wat) / fsnow(i,j)
     end do
     if (Nsnow(i,j) == 1) then
-      Gs(1) = 2 / (Ds(1,i,j)/ksnow(1,i,j) + Dzsoil(1)/ksoil(1,i,j))
+      Gs(1) = 2_dp / (Ds(1,i,j)/ksnow(1,i,j) + Dzsoil(1)/ksoil(1,i,j))
       dTs(1) = (G(i,j) + Gs(1)*(Tsoil(1,i,j) - Tsnow(1,i,j)))*dt /  &
                (csnow(1) + Gs(1)*dt)
     else
       do k = 1, Nsnow(i,j) - 1
-        Gs(k) = 2 / (Ds(k,i,j)/ksnow(k,i,j) + Ds(k+1,i,j)/ksnow(k+1,i,j))
+        Gs(k) = 2_dp / (Ds(k,i,j)/ksnow(k,i,j) + Ds(k+1,i,j)/ksnow(k+1,i,j))
       end do
-      a(1) = 0
+      a(1) = 0_dp
       b(1) = csnow(1) + Gs(1)*dt
       c(1) = - Gs(1)*dt
       rhs(1) = (G(i,j) - Gs(1)*(Tsnow(1,i,j) - Tsnow(2,i,j)))*dt
@@ -178,10 +180,10 @@ do i = 1, Nx
                  + Gs(k)*(Tsnow(k+1,i,j) - Tsnow(k,i,j))*dt 
       end do
       k = Nsnow(i,j)
-      Gs(k) = 2 / (Ds(k,i,j)/ksnow(k,i,j) + Dzsoil(1)/ksoil(1,i,j))
+      Gs(k) = 2_dp / (Ds(k,i,j)/ksnow(k,i,j) + Dzsoil(1)/ksoil(1,i,j))
       a(k) = c(k-1)
       b(k) = csnow(k) + (Gs(k-1) + Gs(k))*dt
-      c(k) = 0
+      c(k) = 0_dp
       rhs(k) = Gs(k-1)*(Tsnow(k-1,i,j) - Tsnow(k,i,j))*dt  &
                + Gs(k)*(Tsoil(1,i,j) - Tsnow(k,i,j))*dt
       call TRIDIAG(Nsnow(i,j),Nsmax,a,b,c,rhs,dTs)
@@ -189,7 +191,7 @@ do i = 1, Nx
     do k = 1, Nsnow(i,j)
       Tsnow(k,i,j) = Tsnow(k,i,j) + dTs(k)
       if (HN_ON) then
-        Tsnow(k,i,j) = max(Tsnow(k,i,j), (Tm-40))
+        Tsnow(k,i,j) = max(Tsnow(k,i,j), (Tm-40_dp))
       endif
     end do
     k = Nsnow(i,j)
@@ -202,39 +204,39 @@ do i = 1, Nx
     
     do k = 1, Nsnow(i,j)
       coldcont = csnow(k)*(Tm - Tsnow(k,i,j))
-      if (coldcont < 0) then
+      if (coldcont < 0_dp) then
         dSice = dSice - fsnow(i,j)*coldcont/Lf
         Tsnow(k,i,j) = Tm
       end if
       if (dSice > epsilon(dSice)) then
         if (dSice > Sice(k,i,j)) then  ! Layer melts completely
           dSice = dSice - Sice(k,i,j)
-          Ds(k,i,j) = 0
+          Ds(k,i,j) = 0_dp
           Sliq(k,i,j) = Sliq(k,i,j) + Sice(k,i,j)
-          Sice(k,i,j) = 0
+          Sice(k,i,j) = 0_dp
         else                       ! Layer melts partially
-          Ds(k,i,j) = (1 - dSice/Sice(k,i,j))*Ds(k,i,j)
+          Ds(k,i,j) = (1_dp - dSice/Sice(k,i,j))*Ds(k,i,j)
           Sice(k,i,j) = Sice(k,i,j) - dSice
           Sliq(k,i,j) = Sliq(k,i,j) + dSice
-          dSice = 0                ! Melt exhausted
+          dSice = 0_dp                ! Melt exhausted
         end if
       end if
     end do
 
     ! Remove snow by sublimation 
-    dSice = max(Esrf(i,j)*fsnow_thres(i,j), 0.)*dt
+    dSice = max(Esrf(i,j)*fsnow_thres(i,j), 0.0_dp)*dt
     if (dSice > epsilon(dSice)) then
       do k = 1, Nsnow(i,j)
         if (dSice > Sice(k,i,j)) then  ! Layer sublimates completely
           dSice = dSice - Sice(k,i,j)
-          Ds(k,i,j) = 0
+          Ds(k,i,j) = 0_dp
           Sbsrf(i,j) = Sbsrf(i,j) + Sice(k,i,j)
-          Sice(k,i,j) = 0
+          Sice(k,i,j) = 0_dp
         else                       ! Layer sublimates partially
-          Ds(k,i,j) = (1 - dSice/Sice(k,i,j))*Ds(k,i,j)
+          Ds(k,i,j) = (1_dp - dSice/Sice(k,i,j))*Ds(k,i,j)
           Sice(k,i,j) = Sice(k,i,j) - dSice
           Sbsrf(i,j) = Sbsrf(i,j) + dSice
-          dSice = 0                ! Sublimation exhausted
+          dSice = 0_dp                ! Sublimation exhausted
         end if
       end do
     end if
@@ -242,31 +244,31 @@ do i = 1, Nx
     ! Snow hydraulics
     ! First, unloading snow is added to liquid water if Ta above freezing point
     if (Ta(i,j) >= Tm) then
-      Roff_bare(i,j) = Roff_bare(i,j) + unload(i,j) * (1 - fsnow(i,j)) ! Bare soil fraction
+      Roff_bare(i,j) = Roff_bare(i,j) + unload(i,j) * (1_dp - fsnow(i,j)) ! Bare soil fraction
       Roff_snow(i,j) = Roff_snow(i,j) + unload(i,j) * fsnow(i,j) ! Snow covered ground fraction
     end if
     if (HYDROL == 0) then
       ! Free-draining snow 
-      meltflux_out(i,j) = 0
+      meltflux_out(i,j) = 0_dp
       do k = 1, Nsnow(i,j)
         Roff_snow(i,j) = Roff_snow(i,j) + Sliq(k,i,j)
         meltflux_out(i,j) =  meltflux_out(i,j) + Sliq(k,i,j)
-        Sliq(k,i,j) = 0
+        Sliq(k,i,j) = 0_dp
       end do
     elseif (HYDROL == 1) then
       ! Bucket storage 
       do k = 1, Nsnow(i,j)
-        phi = 0
-        if (Ds(k,i,j) > epsilon(Ds)) phi = 1 - Sice(k,i,j)/(rho_ice*Ds(k,i,j)*fsnow(i,j))
+        phi = 0_dp
+        if (Ds(k,i,j) > epsilon(Ds)) phi = 1_dp - Sice(k,i,j)/(rho_ice*Ds(k,i,j)*fsnow(i,j))
         SliqMax = fsnow(i,j)*rho_wat*Ds(k,i,j)*phi*Wirr
         Sliq(k,i,j) = Sliq(k,i,j) + Roff_snow(i,j)
-        Roff_snow(i,j) = 0
+        Roff_snow(i,j) = 0_dp
         if (Sliq(k,i,j) > SliqMax) then       ! Liquid capacity exceeded
           Roff_snow(i,j) = Sliq(k,i,j) - SliqMax   ! so drainage to next layer
           Sliq(k,i,j) = SliqMax
         end if
         coldcont = csnow(k)*(Tm - Tsnow(k,i,j))
-        if (coldcont > 0) then       ! Liquid can freeze
+        if (coldcont > 0_dp) then       ! Liquid can freeze
           dSice = min(Sliq(k,i,j), fsnow(i,j)*coldcont/Lf) 
           Sliq(k,i,j) = Sliq(k,i,j) - dSice
           Sice(k,i,j) = Sice(k,i,j) + dSice
@@ -275,8 +277,8 @@ do i = 1, Nx
         end if
       end do
       
-      if (meltflux_out(i,j) < 0) then
-        meltflux_out(i,j) = 0
+      if (meltflux_out(i,j) < 0_dp) then
+        meltflux_out(i,j) = 0_dp
       end if
       
     else  ! HYDROL == 2
@@ -284,12 +286,12 @@ do i = 1, Nx
       do k = 1, Nsnow(i,j)
         if (Ds(k,i,j) > epsilon(Ds)) then
           rhos = Sice(k,i,j) / Ds(k,i,j) / fsnow(i,j)
-          SliqCap = 0.03 + 0.07*(1 - rhos/200)
-          SliqCap = max(SliqCap, 0.03)
+          SliqCap = 0.03_dp + 0.07_dp*(1_dp - rhos/200_dp)
+          SliqCap = max(SliqCap, 0.03_dp)
         end if
         SliqMax = SliqCap*Sice(k,i,j)
         Sliq(k,i,j) = Sliq(k,i,j) + Roff_snow(i,j)
-        Roff_snow(i,j) = 0
+        Roff_snow(i,j) = 0_dp
         if (Sliq(k,i,j) > SliqMax) then       ! Liquid capacity exceeded
           Roff_snow(i,j) = Sliq(k,i,j) - SliqMax   ! so drainage to next layer
           Sliq(k,i,j) = SliqMax
@@ -305,8 +307,8 @@ do i = 1, Nx
         end if
       end do
       
-      if (meltflux_out(i,j) < 0) then
-        meltflux_out(i,j) = 0
+      if (meltflux_out(i,j) < 0_dp) then
+        meltflux_out(i,j) = 0_dp
       end if
       
     endif
@@ -332,26 +334,26 @@ do i = 1, Nx
       end do
     else if (DENSTY == 2) then
       ! Snow compaction by overburden
-      mass = 0
+      mass = 0_dp
       do k = 1, Nsnow(i,j)
-        mass = mass + 0.5*(Sice(k,i,j) + Sliq(k,i,j)) / fsnow(i,j)
+        mass = mass + 0.5_dp*(Sice(k,i,j) + Sliq(k,i,j)) / fsnow(i,j)
         if (Ds(k,i,j) > epsilon(Ds)) then
           rhos = (Sice(k,i,j) + Sliq(k,i,j)) / Ds(k,i,j) / fsnow(i,j)
-          rhos = rhos + (rhos*grav*mass*dt/(eta0*exp(-(Tsnow(k,i,j) - Tm)/12.4 + rhos/55.6))   &
-                      + dt*rhos*snda*exp((Tsnow(k,i,j) - Tm)/23.8 - max(rhos - 150, 0.)/21.7))
+          rhos = rhos + (rhos*grav*mass*dt/(eta0*exp(-(Tsnow(k,i,j) - Tm)/12.4_dp + rhos/55.6_dp))   &
+                      + dt*rhos*snda*exp((Tsnow(k,i,j) - Tm)/23.8_dp - max(rhos - 150_dp, 0.0_dp)/21.7_dp))
           Ds(k,i,j) = (Sice(k,i,j) + Sliq(k,i,j)) / rhos / fsnow(i,j)
         end if
-        mass = mass + 0.5*(Sice(k,i,j) + Sliq(k,i,j)) / fsnow(i,j)
+        mass = mass + 0.5_dp*(Sice(k,i,j) + Sliq(k,i,j)) / fsnow(i,j)
       end do
     else ! DENSTY == 3
       ! Snow compaction by overburden, dependent on liquid water content (Crocus B92)
-      mass = 0
+      mass = 0_dp
       do k = 1, Nsnow(i,j)
-        mass = mass + 0.5*(Sice(k,i,j) + Sliq(k,i,j)) / fsnow(i,j)
+        mass = mass + 0.5_dp*(Sice(k,i,j) + Sliq(k,i,j)) / fsnow(i,j)
         if (Ds(k,i,j) > epsilon(Ds)) then
           rhos = (Sice(k,i,j) + Sliq(k,i,j)) / Ds(k,i,j) / fsnow(i,j)
-          f1 = 1 / (1 + 600 * Sliq(k,i,j) / (rho_wat * Ds(k,i,j) * fsnow(i,j)))
-          f2 = 1.0
+          f1 = 1_dp / (1_dp + 600_dp * Sliq(k,i,j) / (rho_wat * Ds(k,i,j) * fsnow(i,j)))
+          f2 = 1.0_dp
           eta = f1 * f2 * eta1 * (rhos / c_eta) * exp(a_eta * (Tm - Tsnow(k,i,j)) + b_eta * rhos)
           rhos = rhos + rhos*grav*mass*dt/eta
           Ds(k,i,j) = (Sice(k,i,j) + Sliq(k,i,j)) / rhos / fsnow(i,j)
@@ -398,12 +400,12 @@ do i = 1, Nx
   ! Falling snow temperature
   Tsnow0 = min(Ta(i,j), Tm)
   if (HN_ON) then
-    Tsnow0 = max(Tsnow0, (Tm-40))
+    Tsnow0 = max(Tsnow0, (Tm-40_dp))
   end if
 
   ! Add snowfall and frost to layer 1 with fresh snow density and grain size
-  Esnow = 0
-  if (Esrf(i,j) < 0 .and. Tsrf(i,j) < Tm) then
+  Esnow = 0_dp
+  if (Esrf(i,j) < 0_dp .and. Tsrf(i,j) < Tm) then
     Esnow = fsnow(i,j) * Esrf(i,j)
     Sbsrf(i,j) = Esnow*dt
   end if 
@@ -416,8 +418,8 @@ do i = 1, Nx
   ! quite small.  When this occurred on bare ground, Tsnow calculation would blow up,
   ! place NaN in Tsnow and snow would never again melt through the season
   ! Do we still need this Catch in FSM??
-  if (Nsnow(i,j) <= 1 .and. dSice < .001 .and. Sice(1,i,j) < .001) then
-    dSice = FLOAT(INT(dSice * 1000 + 0.5)) / 1000
+  if (Nsnow(i,j) <= 1_dp .and. dSice < .001_dp .and. Sice(1,i,j) < .001_dp) then
+    dSice = FLOAT(INT(dSice * 1000_dp + 0.5_dp)) / 1000_dp
   end if
   
   if (DENSTY == 0) then
@@ -425,19 +427,19 @@ do i = 1, Nx
   else
     if (OSHDTN == 0) then 
       ! Initial formulation
-      rhonew = max(rhof + rhob*(Ta(i,j) - Tm) + rhoc*Ua(i,j)**0.5, 50.)
+      rhonew = max(rhof + rhob*(Ta(i,j) - Tm) + rhoc*Ua(i,j)**0.5_dp, 50.0_dp)
     else ! OSHDTN == 1
       ! New formulation with decompaction
-      rhonew = rhof + rhob*(Ta(i,j) - Tm) + rhoc*Ua(i,j)**0.5
-      if (dem(i,j) <= 1000) then
-        t_decompaction = 24
-      else if (dem(i,j) > 2000) then
-        t_decompaction = 0
+      rhonew = rhof + rhob*(Ta(i,j) - Tm) + rhoc*Ua(i,j)**0.5_dp
+      if (dem(i,j) <= 1000_dp) then
+        t_decompaction = 24_dp
+      else if (dem(i,j) > 2000_dp) then
+        t_decompaction = 0_dp
       else
-        t_decompaction = 24 + (dem(i,j) - 1000) / (2000 - 1000) * (0 - 24)
+        t_decompaction = 24_dp + (dem(i,j) - 1000_dp) / (2000_dp - 1000_dp) * (0_dp - 24_dp)
       end if
-      rhonew = 300 + (rhonew - 300)*exp(t_decompaction/100)
-      rhonew = max(rhonew, 50.)
+      rhonew = 300_dp + (rhonew - 300_dp)*exp(t_decompaction/100_dp)
+      rhonew = max(rhonew, 50.0_dp)
     end if
   endif
   if (Sice(1,i,j) + dSice > epsilon(Sice)) then
@@ -492,7 +494,7 @@ do i = 1, Nx
     csnow(1) = (Sice(1,i,j)*hcap_ice + Sliq(1,i,j)*hcap_wat) / fsnow(i,j)
     E(1) = csnow(1)*(Tsnow(1,i,j) - Tm) + ((dSice + unload(i,j)) * hcap_ice / fsnow(i,j)) * (Tsnow0 - Tsnow(1,i,j)) ! Adjustment given that csnow(1) already includes the new snow
   else
-    E(:) = 0
+    E(:) = 0_dp
   end if
   if (Nsnow(i,j) > 1) then
     do k = 2, Nsnow(i,j)
@@ -503,13 +505,13 @@ do i = 1, Nx
   Nold = Nsnow(i,j)
 
   ! Initialise new layers
-  Ds(:,i,j) = 0
-  rgrn(:,i,j) = 0
-  Sice(:,i,j) = 0
-  Sliq(:,i,j) = 0
+  Ds(:,i,j) = 0_dp
+  rgrn(:,i,j) = 0_dp
+  Sice(:,i,j) = 0_dp
+  Sliq(:,i,j) = 0_dp
   Tsnow(:,i,j) = Tm
-  U(:) = 0
-  Nsnow(i,j) = 0
+  U(:) = 0_dp
+  Nsnow(i,j) = 0_dp
 
   if (fsnow(i,j) > epsilon(fsnow)) then  ! Existing or new snowpack
 
@@ -549,10 +551,10 @@ do i = 1, Nx
           Sice(knew,i,j) = Sice(knew,i,j) + wt*S(kold) 
           Sliq(knew,i,j) = Sliq(knew,i,j) + wt*W(kold)
           U(knew) = U(knew) + wt*E(kold)
-          D(kold) = (1 - wt)*D(kold)
-          E(kold) = (1 - wt)*E(kold)
-          S(kold) = (1 - wt)*S(kold)
-          W(kold) = (1 - wt)*W(kold)
+          D(kold) = (1_dp - wt)*D(kold)
+          E(kold) = (1_dp - wt)*E(kold)
+          S(kold) = (1_dp - wt)*S(kold)
+          W(kold) = (1_dp - wt)*W(kold)
           knew = knew + 1
           if (knew > Nsnow(i,j)) exit
           dnew = Ds(knew,i,j)
@@ -565,7 +567,7 @@ do i = 1, Nx
       csnow(k) = (Sice(k,i,j)*hcap_ice + Sliq(k,i,j)*hcap_wat) / fsnow(i,j)
       Tsnow(k,i,j) = Tm + U(k) / csnow(k)
       if (HN_ON) then
-        Tsnow(k,i,j) = max(Tsnow(k,i,j), (Tm-40))
+        Tsnow(k,i,j) = max(Tsnow(k,i,j), (Tm-40_dp))
       endif      
       rgrn(k,i,j) = rgrn(k,i,j) / Sice(k,i,j)
     end do 
