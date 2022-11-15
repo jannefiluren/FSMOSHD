@@ -5,6 +5,8 @@ subroutine EBALSRF(Ds1,KH,KHa,KHv,KWg,KWv,ks1,SWsrf,SWveg,Ts1, &
                    Esrf,Eveg,G,H,Hsrf,LE,LEsrf,Melt,Rnet,Rsrf, &
                    LWsci,LWveg)
 
+use, intrinsic :: iso_fortran_env, only: dp=>real64
+
 use MODCONF, only: CANMOD
 
 use MODTILE, only: TILE, tthresh 
@@ -99,49 +101,49 @@ do i = 1, Nx
     call QSAT(Ps(i,j),Tsrf(i,j),Qs)
     Lh = Lv
     if (Tsrf(i,j) < Tm .or. Sice(1,i,j) > epsilon(Sice(1,i,j))) Lh = Ls
-    D = Lh*Qs/(Rwat*Tsrf(i,j)**2)
+    D = Lh*Qs/(Rwat*Tsrf(i,j)**2_dp)
     rho = Ps(i,j) / (Rair*Ta(i,j))
 
     ! Explicit fluxes
     Esrf(i,j) = rho*KWg(i,j)*(Qs - Qa(i,j))
-    G(i,j) = 2*ks1(i,j)*(Tsrf(i,j) - Ts1(i,j))/Ds1(i,j)
+    G(i,j) = 2_dp*ks1(i,j)*(Tsrf(i,j) - Ts1(i,j))/Ds1(i,j)
     H(i,j) = cp*rho*KH(i,j)*(Tsrf(i,j) - Ta(i,j))
     LE(i,j) = Lh*Esrf(i,j)
-    Melt(i,j) = 0
-    Rnet(i,j) = SWsrf(i,j) + trcn(i,j)*LW(i,j) - sb*Tsrf(i,j)**4  &
-                            + (1 - trcn(i,j))*sb*Tveg(i,j)**4
+    Melt(i,j) = 0_dp
+    Rnet(i,j) = SWsrf(i,j) + trcn(i,j)*LW(i,j) - sb*Tsrf(i,j)**4_dp  &
+                            + (1_dp - trcn(i,j))*sb*Tveg(i,j)**4_dp
 
     ! Surface energy balance increments without melt
     dTs = (Rnet(i,j) - G(i,j) - H(i,j) - LE(i,j)) /  &
-          (4*sb*Tsrf(i,j)**3 + 2*ks1(i,j)/Ds1(i,j) + rho*(cp*KH(i,j) + Lh*D*KWg(i,j)))
+          (4_dp*sb*Tsrf(i,j)**3_dp + 2_dp*ks1(i,j)/Ds1(i,j) + rho*(cp*KH(i,j) + Lh*D*KWg(i,j)))
     dE = rho*KWg(i,j)*D*dTs
-    dG = 2*ks1(i,j)*dTs/Ds1(i,j) 
+    dG = 2_dp*ks1(i,j)*dTs/Ds1(i,j) 
     dH = cp*rho*KH(i,j)*dTs
-    dR = -4*sb*Tsrf(i,j)**3*dTs
+    dR = -4_dp*sb*Tsrf(i,j)**3_dp*dTs
 
     ! Surface melting
     if (Tsrf(i,j) + dTs > Tm .and. Sice(1,i,j) > epsilon(Sice(1,i,j))) then
       Melt(i,j) = sum(Sice(:,i,j))/dt
       dTs = (Rnet(i,j) - G(i,j) - H(i,j) - LE(i,j) - Lf*Melt(i,j)) /  &
-            (4*sb*Tsrf(i,j)**3 + 2*ks1(i,j)/Ds1(i,j) + rho*(cp*KH(i,j) + Ls*D*KWg(i,j)))
+            (4_dp*sb*Tsrf(i,j)**3_dp + 2_dp*ks1(i,j)/Ds1(i,j) + rho*(cp*KH(i,j) + Ls*D*KWg(i,j)))
       dE = rho*KWg(i,j)*D*dTs
-      dG = 2*ks1(i,j)*dTs/Ds1(i,j)
+      dG = 2_dp*ks1(i,j)*dTs/Ds1(i,j)
       dH = cp*rho*KH(i,j)*dTs
-      dR = -4*sb*Tsrf(i,j)**3*dTs
+      dR = -4_dp*sb*Tsrf(i,j)**3_dp*dTs
       if (Tsrf(i,j) + dTs < Tm) then
         call QSAT(Ps(i,j),Tm,Qs)
         Esrf(i,j) = rho*KWg(i,j)*(Qs - Qa(i,j))  
-        G(i,j) = 2*ks1(i,j)*(Tm - Ts1(i,j))/Ds1(i,j)
+        G(i,j) = 2_dp*ks1(i,j)*(Tm - Ts1(i,j))/Ds1(i,j)
         H(i,j) = cp*rho*KH(i,j)*(Tm - Ta(i,j))
         LE(i,j) = Ls*Esrf(i,j)
-        Rnet(i,j) = SWsrf(i,j) + trcn(i,j)*LW(i,j) - sb*Tm**4  &
-                                + (1 - trcn(i,j))*sb*Tveg(i,j)**4
+        Rnet(i,j) = SWsrf(i,j) + trcn(i,j)*LW(i,j) - sb*Tm**4_dp  &
+                                + (1_dp - trcn(i,j))*sb*Tveg(i,j)**4_dp
         Melt(i,j) = (Rnet(i,j) - H(i,j) - LE(i,j) - G(i,j)) / Lf
-        Melt(i,j) = max(Melt(i,j), 0.)
-        dE = 0
-        dG = 0
-        dH = 0
-        dR = 0
+        Melt(i,j) = max(Melt(i,j), 0.0_dp)
+        dE = 0_dp
+        dG = 0_dp
+        dH = 0_dp
+        dR = 0_dp
         dTs = Tm - Tsrf(i,j)
       end if
     end if
@@ -155,15 +157,15 @@ do i = 1, Nx
       if (Tsrf(i,j) + dTs > Tm .and. Sice(1,i,j) <= epsilon(Sice(1,i,j))) then
         call QSAT(Ps(i,j),Tm,Qs)
         Esrf(i,j) = rho*KWg(i,j)*(Qs - Qa(i,j))  
-        G(i,j) = 2*ks1(i,j)*(Tm - Ts1(i,j))/Ds1(i,j)
+        G(i,j) = 2_dp*ks1(i,j)*(Tm - Ts1(i,j))/Ds1(i,j)
         H(i,j) = cp*rho*KH(i,j)*(Tm - Ta(i,j))
         LE(i,j) = Ls*Esrf(i,j)
-        Rnet(i,j) = SWsrf(i,j) + trcn(i,j)*LW(i,j) - sb*Tm**4  &
-                                + (1 - trcn(i,j))*sb*Tveg(i,j)**4
-        dE = 0
-        dG = 0
-        dH = 0
-        dR = 0
+        Rnet(i,j) = SWsrf(i,j) + trcn(i,j)*LW(i,j) - sb*Tm**4_dp  &
+                                + (1_dp - trcn(i,j))*sb*Tveg(i,j)**4_dp
+        dE = 0_dp
+        dG = 0_dp
+        dH = 0_dp
+        dR = 0_dp
         dTs = Tm - Tsrf(i,j)
       end if
     end if
@@ -189,11 +191,11 @@ do i = 1, Nx
 
     ! Ensure LWsci and LWveg exist as variable even in open runs
     LWsci(i,j) = LW(i,j)
-    LWveg(i,j) = 0
+    LWveg(i,j) = 0_dp
 
     if (CANMOD == 0) then
       ! Add fluxes from canopy in zero-layer model
-      Eveg(i,j) = 0
+      Eveg(i,j) = 0_dp
       if (fveg(i,j) > epsilon(fveg(i,j))) then
         Eveg(i,j) = - KWv(i,j)*Esrf(i,j) / (KHa(i,j) + KWv(i,j))
         H(i,j) = KHa(i,j)*H(i,j) / (KHa(i,j) + KHv(i,j))
@@ -201,7 +203,7 @@ do i = 1, Nx
         if (Tveg(i,j) > Tm) Lh = Lv
         LE(i,j) = LE(i,j) + Lh*Eveg(i,j)
         Rnet(i,j) = Rnet(i,j) + SWveg(i,j) +  &
-                    (1 - trcn(i,j))*(LW(i,j) + sb*Tsrf(i,j)**4 - 2*sb*Tveg(i,j)**4)
+                    (1_dp - trcn(i,j))*(LW(i,j) + sb*Tsrf(i,j)**4_dp - 2_dp*sb*Tveg(i,j)**4_dp)
       end if
     end if
   end if
