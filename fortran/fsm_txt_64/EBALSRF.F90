@@ -248,6 +248,4 @@ if (dump_data == 1) then
   close(1) 
 end if
 
-stop
-
 end subroutine EBALSRF

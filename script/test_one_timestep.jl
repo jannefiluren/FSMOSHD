@@ -56,11 +56,14 @@ println(maximum(abs.(csoil_fortran - csoil[:,1,1])))
 println(maximum(abs.(ksnow_fortran - ksnow[:,1,1])))
 println(maximum(abs.(ksoil_fortran - ksoil[:,1,1])))
 
-### TEST SFEXCH
+### TEST SFEXCH AND EBALSRF
 
-println("TEST SFEXCH")
+println("TEST SFEXCH AND EBALSRF")
 
-include("../src/sfexch.jl")
+for i in 1:Nitr
+  include("../src/sfexch.jl")
+  include("../src/ebalsrf.jl")
+end
 
 fortran = readlines("../fortran/data/test_sfexch.txt")
 
@@ -84,7 +87,7 @@ println(maximum(abs.(Usc_fortran - Usc)))
 
 println("TEST EBALSRF")
 
-include("../src/ebalsrf.jl")
+
 
 fortran = readlines("../fortran/data/test_ebalsrf.txt")
 
