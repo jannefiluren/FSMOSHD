@@ -44,6 +44,8 @@ use LANDUSE, only : &
   fveg,              &! Canopy cover fraction
   tilefrac            ! Grid cell tile fraction
 
+use TEST
+
 implicit none
 
 real*8, intent(in) :: &
@@ -86,6 +88,22 @@ real*8 :: &
   Qs,                &! Saturation humidity
   rho,               &! Air density (kg/m^3)
   Ssub                ! Mass of snow available for sublimation (kg/m^2)
+
+
+! Initialize arrays for reproducability...
+
+Esrf(:,:) = 0_dp
+Eveg(:,:) = 0_dp
+G(:,:) = 0_dp
+H(:,:) = 0_dp
+Hsrf(:,:) = 0_dp
+LE(:,:) = 0_dp
+LEsrf(:,:) = 0_dp
+LWsci(:,:) = 0_dp
+LWveg(:,:) = 0_dp
+Melt(:,:) = 0_dp
+Rnet(:,:) = 0_dp
+Rsrf(:,:) = 0_dp
 
 
 do j = 1, Ny
@@ -212,5 +230,24 @@ do i = 1, Nx
   
 end do
 end do
+
+if (dump_data == 1) then
+  open(1, file="data/test_ebalsrf.txt")
+  write(1,*) Esrf
+  write(1,*) Eveg
+  write(1,*) G
+  write(1,*) H
+  write(1,*) Hsrf
+  write(1,*) LE
+  write(1,*) LEsrf
+  write(1,*) LWsci
+  write(1,*) LWveg
+  write(1,*) Melt
+  write(1,*) Rnet
+  write(1,*) Rsrf
+  close(1) 
+end if
+
+stop
 
 end subroutine EBALSRF
