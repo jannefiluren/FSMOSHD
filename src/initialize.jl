@@ -45,3 +45,14 @@ LWveg = zeros(Nx,Ny)
 Melt = zeros(Nx,Ny)
 Rnet = zeros(Nx,Ny)
 Rsrf = zeros(Nx,Ny)
+
+# Snow
+
+Gsoil = zeros(Nx, Ny)
+Roff = zeros(Nx, Ny)
+meltflux_out = zeros(Nx, Ny)
+Sbsrf = zeros(Nx, Ny)
+Roff_bare = zeros(Nx, Ny)
+Roff_snow = zeros(Nx, Ny)
+fsnow_thres = zeros(Nx, Ny)
+unload = zeros(Nx, Ny)

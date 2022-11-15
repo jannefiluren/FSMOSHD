@@ -3,6 +3,7 @@ include("../src/setup.jl")
 include("../src/initialize.jl")
 include("../src/drive.jl")
 include("../src/qsat.jl")
+include("../src/tridiag.jl")
 
 ### TEST RADIATION
 
@@ -83,12 +84,6 @@ println(maximum(abs.(KWg_fortran - KWg)))
 println(maximum(abs.(KWv_fortran - KWv)))
 println(maximum(abs.(Usc_fortran - Usc)))
 
-### TEST EBALSRF
-
-println("TEST EBALSRF")
-
-
-
 fortran = readlines("../fortran/data/test_ebalsrf.txt")
 
 Esrf_fortran = parse.(Float64,split(fortran[1]))
@@ -117,4 +112,38 @@ println(maximum(abs.(Melt_fortran - Melt)))
 println(maximum(abs.(Rnet_fortran - Rnet)))
 println(maximum(abs.(Rsrf_fortran - Rsrf)))
 
+# TEST SNOW
 
+println("TEST SNOW")
+
+include("../src/snow.jl")
+
+fortran = readlines("../fortran/data/test_snow.txt")
+
+Gsoil_fortran = parse.(Float64,split(fortran[1]))
+Roff_fortran = parse.(Float64,split(fortran[2]))
+meltflux_out_fortran = parse.(Float64,split(fortran[3]))
+Sbsrf_fortran = parse.(Float64,split(fortran[4]))
+Roff_bare_fortran = parse.(Float64,split(fortran[5]))
+Roff_snow_fortran = parse.(Float64,split(fortran[6]))
+fsnow_thres_fortran = parse.(Float64,split(fortran[7]))
+unload_fortran = parse.(Float64,split(fortran[8]))
+csnow_fortran = parse.(Float64,split(fortran[9]))
+Tsnow_fortran = parse.(Float64,split(fortran[10]))
+Sice_fortran = parse.(Float64,split(fortran[11]))
+Sliq_fortran = parse.(Float64,split(fortran[12]))
+Ds_fortran = parse.(Float64,split(fortran[13]))
+
+println(maximum(abs.(Gsoil_fortran - Gsoil)))
+println(maximum(abs.(Roff_fortran - Roff)))
+println(maximum(abs.(meltflux_out_fortran - meltflux_out)))
+println(maximum(abs.(Sbsrf_fortran - Sbsrf)))
+println(maximum(abs.(Roff_bare_fortran - Roff_bare)))
+println(maximum(abs.(Roff_snow_fortran - Roff_snow)))
+println(maximum(abs.(fsnow_thres_fortran - fsnow_thres)))
+println(maximum(abs.(unload_fortran - unload)))
+println(maximum(abs.(csnow_fortran - csnow)))
+println(maximum(abs.(Tsnow_fortran - Tsnow[:,1,1])))
+println(maximum(abs.(Sice_fortran - Sice[:,1,1])))
+println(maximum(abs.(Sliq_fortran - Sliq[:,1,1])))
+println(maximum(abs.(Ds_fortran - Ds[:,1,1])))
