@@ -63,6 +63,8 @@ use LANDUSE, only: &
   dem,               &! Terrain elevation (m)
   tilefrac            ! Grid cell tile fraction
 
+use TEST
+
 implicit none
 
 real*8, intent(in) :: &
@@ -573,5 +575,23 @@ do i = 1, Nx
   
 end do
 end do
+
+if (dump_data == 1) then
+  open(1, file="data/test_snow.txt")
+  write(1,*) Gsoil
+  write(1,*) Roff
+  write(1,*) meltflux_out
+  write(1,*) Sbsrf
+  write(1,*) Roff_bare
+  write(1,*) Roff_snow
+  write(1,*) fsnow_thres
+  write(1,*) unload
+  write(1,*) csnow
+  write(1,*) Tsnow
+  write(1,*) Sice
+  write(1,*) Sliq
+  write(1,*) Ds
+  close(1) 
+end if
 
 end subroutine SNOW
