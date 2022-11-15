@@ -1,12 +1,12 @@
-alb = similar(albs)   ### hack
-asrf_out = similar(albs)   ### hack
-Sdirt = similar(albs)   ### hack
-Sdift = similar(albs)   ### hack
-SWveg = similar(albs)   ### hack
-SWsrf = similar(albs)   ### hack
-SWsci = similar(albs)   ### hack
-LWt = similar(albs)   ### hack
-SWtopo_out = similar(albs)   ### hack
+# alb = similar(albs)   ### hack
+# asrf_out = similar(albs)   ### hack
+# Sdirt = similar(albs)   ### hack
+# Sdift = similar(albs)   ### hack
+# SWveg = similar(albs)   ### hack
+# SWsrf = similar(albs)   ### hack
+# SWsci = similar(albs)   ### hack
+# LWt = similar(albs)   ### hack
+# SWtopo_out = similar(albs)   ### hack
 
 # Snow albedo
 for j = 1:Ny

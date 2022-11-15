@@ -1,5 +1,6 @@
 include("../src/parameters.jl")
 include("../src/setup.jl")
+include("../src/initialize.jl")
 include("../src/drive.jl")
 include("../src/qsat.jl")
 

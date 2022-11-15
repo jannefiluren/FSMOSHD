@@ -1,10 +1,10 @@
-KH = zeros(Nx, Ny)
-KHa = zeros(Nx, Ny)
-KHg = zeros(Nx, Ny)
-KHv = zeros(Nx, Ny)
-KWg = zeros(Nx, Ny)
-KWv = zeros(Nx, Ny)
-Usc = zeros(Nx, Ny)
+# KH = zeros(Nx, Ny)
+# KHa = zeros(Nx, Ny)
+# KHg = zeros(Nx, Ny)
+# KHv = zeros(Nx, Ny)
+# KWg = zeros(Nx, Ny)
+# KWv = zeros(Nx, Ny)
+# Usc = zeros(Nx, Ny)
 
 
 for j = 1:Ny

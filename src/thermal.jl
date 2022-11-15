@@ -1,11 +1,11 @@
-ksnow = zeros(Nsmax, Nx, Ny)
-csoil = zeros(Nsoil, Nx, Ny)
-ksoil = zeros(Nsoil, Nx, Ny)
-gs1 = zeros(Nx, Ny)
-Ds1 = zeros(Nx, Ny)
-Ts1 = zeros(Nx, Ny)
-ks1 = zeros(Nx, Ny)
-Tveg0 = zeros(Nx, Ny)
+# ksnow = zeros(Nsmax, Nx, Ny)
+# csoil = zeros(Nsoil, Nx, Ny)
+# ksoil = zeros(Nsoil, Nx, Ny)
+# gs1 = zeros(Nx, Ny)
+# Ds1 = zeros(Nx, Ny)
+# Ts1 = zeros(Nx, Ny)
+# ks1 = zeros(Nx, Ny)
+# Tveg0 = zeros(Nx, Ny)
 
 
 # Thermal conductivity of snow
