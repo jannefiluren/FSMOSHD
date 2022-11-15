@@ -21,7 +21,9 @@ use STATE_VARIABLES, only: &
 
 use LANDUSE, only: &
   tilefrac            ! Grid cell tile fraction
-  
+
+use TEST
+
 implicit none
 
 real*8, intent(in) :: &
@@ -84,6 +86,12 @@ do i = 1, Nx
   
 end do
 end do
+
+if (dump_data == 1) then
+  open(1, file="data/test_soil.txt")
+  write(1,*) Tsoil
+  close(1) 
+end if
 
 end subroutine SOIL
  
