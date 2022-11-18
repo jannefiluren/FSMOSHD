@@ -75,5 +75,36 @@ plot(diff_tsrf)
 ylabel("diff tsrf")
 
 
+%% compare julia against rerun using fortran code with txt input
 
+fortran = readmatrix("..\fortran\data\output_5wj_32.txt");
+julia = readmatrix("..\fortran\data\output_5wj_julia.txt");
 
+fortran_time = datenum(fortran(:,1),fortran(:,2),fortran(:,3),fortran(:,4),0,0);
+julia_time = datenum(julia(:,1),julia(:,2),julia(:,3),julia(:,4),0,0);
+
+[~,ifortran,ijulia] = intersect(fortran_time,julia_time);
+
+figure
+plot(julia_time(ijulia),julia(ijulia,5),'.r')
+hold on
+plot(fortran_time(ifortran),fortran(ifortran,5),'b')
+title("Ds")
+
+disp("Max diff in Ds :" + max(abs(julia(ijulia,5)-fortran(ifortran,5))))
+
+figure
+plot(julia_time(ijulia),julia(ijulia,7),'.r')
+hold on
+plot(fortran_time(ifortran),fortran(ifortran,7),'b')
+title("Ds")
+
+disp("Max diff in SWE :" + max(abs(julia(ijulia,7)-fortran(ifortran,7))))
+
+figure
+plot(julia_time(ijulia),julia(ijulia,8),'.r')
+hold on
+plot(fortran_time(ifortran),fortran(ifortran,8),'b')
+title("Ds")
+
+disp("Max diff in Tsrf :" + max(abs(julia(ijulia,8)-fortran(ifortran,8))))

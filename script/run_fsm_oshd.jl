@@ -13,13 +13,20 @@ include("../src/soil.jl")
 
 Qa = similar(Ta)
 
+if length(output_file) > 0
+  fout = open(output_file, "w") 
+end
+
+
 for (index,data) in enumerate(readlines(drive_file))
 
   println("Time step: ", index)
 
   ### Run drive
 
-  drive(data)
+  local year, month, day, hour
+
+  year, month, day, hour = drive(data)
 
   ### Run radiation
 
@@ -164,79 +171,90 @@ for (index,data) in enumerate(readlines(drive_file))
 
   Tsoil_fortran = parse.(Float64, split(fortran[1]))
 
+  if length(output_file) > 0
+    println(fout,"$(year) $(month) $(day) $(hour) $(sum(Ds[:,1,1])) $(fsnow[1,1]) $(sum(Sice[:,1,1]+Sliq[:,1,1])) $(Tsrf[1,1])")
+  end
+
 end
 
-### Test radiation
+if length(output_file) > 0
+  close(fout)
+end
 
-println("\nTest radiation")
+if check_final_vals
 
-println(maximum(abs.(alb_fortran - alb)))
-println(maximum(abs.(asrf_out_fortran - asrf_out)))
-println(maximum(abs.(Sdirt_fortran - Sdirt)))
-println(maximum(abs.(Sdift_fortran - Sdift)))
-println(maximum(abs.(SWveg_fortran - SWveg)))
-println(maximum(abs.(SWsrf_fortran - SWsrf)))
-println(maximum(abs.(SWsci_fortran - SWsci)))
-println(maximum(abs.(LWt_fortran - LWt)))
+  ### Test radiation
 
-### Test thermal
+  println("\nTest radiation")
 
-println("\nTest thermal")
+  println(maximum(abs.(alb_fortran - alb)))
+  println(maximum(abs.(asrf_out_fortran - asrf_out)))
+  println(maximum(abs.(Sdirt_fortran - Sdirt)))
+  println(maximum(abs.(Sdift_fortran - Sdift)))
+  println(maximum(abs.(SWveg_fortran - SWveg)))
+  println(maximum(abs.(SWsrf_fortran - SWsrf)))
+  println(maximum(abs.(SWsci_fortran - SWsci)))
+  println(maximum(abs.(LWt_fortran - LWt)))
 
-println(maximum(abs.(Ds1_fortran - Ds1)))
-println(maximum(abs.(gs1_fortran - gs1)))
-println(maximum(abs.(ks1_fortran - ks1)))
-println(maximum(abs.(Ts1_fortran - Ts1)))
-println(maximum(abs.(Tveg0_fortran - Tveg0)))
-println(maximum(abs.(csoil_fortran - csoil[:, 1, 1])))
-println(maximum(abs.(ksnow_fortran - ksnow[:, 1, 1])))
-println(maximum(abs.(ksoil_fortran - ksoil[:, 1, 1])))
+  ### Test thermal
 
-### Test sfexch and ebalsrf
+  println("\nTest thermal")
 
-println("\nTest sfexch and ebalsrf")
+  println(maximum(abs.(Ds1_fortran - Ds1)))
+  println(maximum(abs.(gs1_fortran - gs1)))
+  println(maximum(abs.(ks1_fortran - ks1)))
+  println(maximum(abs.(Ts1_fortran - Ts1)))
+  println(maximum(abs.(Tveg0_fortran - Tveg0)))
+  println(maximum(abs.(csoil_fortran - csoil[:, 1, 1])))
+  println(maximum(abs.(ksnow_fortran - ksnow[:, 1, 1])))
+  println(maximum(abs.(ksoil_fortran - ksoil[:, 1, 1])))
 
-println(maximum(abs.(KH_fortran - KH)))
-println(maximum(abs.(KHa_fortran - KHa)))
-println(maximum(abs.(KHg_fortran - KHg)))
-println(maximum(abs.(KHv_fortran - KHv)))
-println(maximum(abs.(KWg_fortran - KWg)))
-println(maximum(abs.(KWv_fortran - KWv)))
-println(maximum(abs.(Usc_fortran - Usc)))
+  ### Test sfexch and ebalsrf
 
-println(maximum(abs.(Esrf_fortran - Esrf)))
-println(maximum(abs.(Eveg_fortran - Eveg)))
-println(maximum(abs.(G_fortran - G)))
-println(maximum(abs.(H_fortran - H)))
-println(maximum(abs.(Hsrf_fortran - Hsrf)))
-println(maximum(abs.(LE_fortran - LE)))
-println(maximum(abs.(LEsrf_fortran - LEsrf)))
-println(maximum(abs.(LWsci_fortran - LWsci)))
-println(maximum(abs.(LWveg_fortran - LWveg)))
-println(maximum(abs.(Melt_fortran - Melt)))
-println(maximum(abs.(Rnet_fortran - Rnet)))
-println(maximum(abs.(Rsrf_fortran - Rsrf)))
+  println("\nTest sfexch and ebalsrf")
 
-# Test snow
+  println(maximum(abs.(KH_fortran - KH)))
+  println(maximum(abs.(KHa_fortran - KHa)))
+  println(maximum(abs.(KHg_fortran - KHg)))
+  println(maximum(abs.(KHv_fortran - KHv)))
+  println(maximum(abs.(KWg_fortran - KWg)))
+  println(maximum(abs.(KWv_fortran - KWv)))
+  println(maximum(abs.(Usc_fortran - Usc)))
 
-println("\nTest snow")
+  println(maximum(abs.(Esrf_fortran - Esrf)))
+  println(maximum(abs.(Eveg_fortran - Eveg)))
+  println(maximum(abs.(G_fortran - G)))
+  println(maximum(abs.(H_fortran - H)))
+  println(maximum(abs.(Hsrf_fortran - Hsrf)))
+  println(maximum(abs.(LE_fortran - LE)))
+  println(maximum(abs.(LEsrf_fortran - LEsrf)))
+  println(maximum(abs.(LWsci_fortran - LWsci)))
+  println(maximum(abs.(LWveg_fortran - LWveg)))
+  println(maximum(abs.(Melt_fortran - Melt)))
+  println(maximum(abs.(Rnet_fortran - Rnet)))
+  println(maximum(abs.(Rsrf_fortran - Rsrf)))
 
-println(maximum(abs.(Gsoil_fortran - Gsoil)))
-println(maximum(abs.(Roff_fortran - Roff)))
-println(maximum(abs.(meltflux_out_fortran - meltflux_out)))
-println(maximum(abs.(Sbsrf_fortran - Sbsrf)))
-println(maximum(abs.(Roff_bare_fortran - Roff_bare)))
-println(maximum(abs.(Roff_snow_fortran - Roff_snow)))
-println(maximum(abs.(fsnow_thres_fortran - fsnow_thres)))
-println(maximum(abs.(unload_fortran - unload)))
-println(maximum(abs.(Tsnow_fortran - Tsnow[:, 1, 1])))
-println(maximum(abs.(Sice_fortran - Sice[:, 1, 1])))
-println(maximum(abs.(Sliq_fortran - Sliq[:, 1, 1])))
-println(maximum(abs.(Ds_fortran - Ds[:, 1, 1])))
+  # Test snow
 
-# Test soil
+  println("\nTest snow")
 
-println("\nTest soil")
+  println(maximum(abs.(Gsoil_fortran - Gsoil)))
+  println(maximum(abs.(Roff_fortran - Roff)))
+  println(maximum(abs.(meltflux_out_fortran - meltflux_out)))
+  println(maximum(abs.(Sbsrf_fortran - Sbsrf)))
+  println(maximum(abs.(Roff_bare_fortran - Roff_bare)))
+  println(maximum(abs.(Roff_snow_fortran - Roff_snow)))
+  println(maximum(abs.(fsnow_thres_fortran - fsnow_thres)))
+  println(maximum(abs.(unload_fortran - unload)))
+  println(maximum(abs.(Tsnow_fortran - Tsnow[:, 1, 1])))
+  println(maximum(abs.(Sice_fortran - Sice[:, 1, 1])))
+  println(maximum(abs.(Sliq_fortran - Sliq[:, 1, 1])))
+  println(maximum(abs.(Ds_fortran - Ds[:, 1, 1])))
 
-println(maximum(abs.(Tsoil_fortran - Tsoil)))
+  # Test soil
 
+  println("\nTest soil")
+
+  println(maximum(abs.(Tsoil_fortran - Tsoil)))
+
+end
