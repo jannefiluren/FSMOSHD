@@ -6,25 +6,34 @@ old = readmatrix("..\fortran\data\results_jim_operational_5wj.txt");
 new_time = datenum(new(:,1),new(:,2),new(:,3),new(:,4),0,0);
 old_time = datenum(old(:,1),old(:,2),old(:,3),old(:,4),0,0);
 
+[~,inew,iold] = intersect(new_time,old_time);
+
 figure
-plot(old_time,old(:,5),'.r')
+plot(old_time(iold),old(iold,5),'.r')
 hold on
-plot(new_time,new(:,5))
+plot(new_time(inew),new(inew,5),'b')
 title("Ds")
 
+disp("Max diff in Ds :" + max(abs(new(inew,5)-old(iold,5))))
+
 figure
-plot(new_time,new(:,7))
+plot(old_time(iold),old(iold,6),'.r')
 hold on
-plot(old_time,old(:,6),'*r')
+plot(new_time(inew),new(inew,7),'b')
 title("SWE")
 
+disp("Max diff in SWE :" + max(abs(old(iold,6)-new(inew,7))))
+
 figure
-plot(new_time,new(:,8))
+plot(old_time(iold),old(iold,7),'.r')
 hold on
-plot(old_time,old(:,7),'*r')
+plot(new_time(inew),new(inew,8),'b')
 title("Tsrf")
 
+disp("Max diff in Tsrf :" + max(abs(old(iold,7)-new(inew,8))))
+
 clear
+
 
 %% verify restart of fsm...
 
