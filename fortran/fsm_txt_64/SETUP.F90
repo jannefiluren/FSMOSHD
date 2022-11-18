@@ -622,4 +622,36 @@ scap(:,:) = cvai*VAI(:,:)
 
 close(5000)
 
+if (dump_data == 1) then
+  open(1, file="data/test_setup.txt")
+  
+  write(1,*)  albs
+  write(1,*)  Ds
+  write(1,*)  Nsnow
+  write(1,*)  Qcan
+  write(1,*)  Sice
+  write(1,*)  Sliq
+  write(1,*)  Sveg
+  write(1,*)  Tcan
+  write(1,*)  theta
+  write(1,*)  Tsnow
+  write(1,*)  Tsoil
+  write(1,*)  Tsrf
+  write(1,*)  fsnow
+  write(1,*)  Tveg
+  write(1,*)  snowdepthmin
+  write(1,*)  snowdepthmax
+  write(1,*)  snowdepthhist
+  write(1,*)  swemin
+  write(1,*)  swemax
+  write(1,*)  swehist
+  write(1,*)  fcly
+  write(1,*)  b
+  write(1,*)  hcap_soil
+  write(1,*)  sathh
+  write(1,*)  Vsat
+  write(1,*)  Vcrit
+  close(1) 
+end if
+
 end subroutine SETUP

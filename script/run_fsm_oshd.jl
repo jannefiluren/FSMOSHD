@@ -11,6 +11,71 @@ include("../src/ebalsrf.jl")
 include("../src/snow.jl")
 include("../src/soil.jl")
 
+fortran = readlines("../fortran/data/test_setup.txt")
+
+albs_fortran = parse.(Float64, split(fortran[1]))
+Ds_fortran = parse.(Float64, split(fortran[2]))
+Nsnow_fortran = parse.(Float64, split(fortran[3]))
+Qcan_fortran = parse.(Float64, split(fortran[4]))
+Sice_fortran = parse.(Float64, split(fortran[5]))
+Sliq_fortran = parse.(Float64, split(fortran[6]))
+Sveg_fortran = parse.(Float64, split(fortran[7]))
+Tcan_fortran = parse.(Float64, split(fortran[8]))
+theta_fortran = parse.(Float64, split(fortran[9]))
+Tsnow_fortran = parse.(Float64, split(fortran[10]))
+Tsoil_fortran = parse.(Float64, split(fortran[11]))
+Tsrf_fortran = parse.(Float64, split(fortran[12]))
+fsnow_fortran = parse.(Float64, split(fortran[13]))
+Tveg_fortran = parse.(Float64, split(fortran[14]))
+snowdepthmin_fortran = parse.(Float64, split(fortran[15]))
+snowdepthmax_fortran = parse.(Float64, split(fortran[16]))
+snowdepthhist_fortran = parse.(Float64, split(fortran[17]))
+swemin_fortran = parse.(Float64, split(fortran[18]))
+swemax_fortran = parse.(Float64, split(fortran[19]))
+swehist_fortran = parse.(Float64, split(fortran[20]))
+fcly_fortran = parse.(Float64, split(fortran[21]))
+b_fortran = parse.(Float64, split(fortran[22]))
+hcap_soil_fortran = parse.(Float64, split(fortran[23]))
+sathh_fortran = parse.(Float64, split(fortran[24]))
+Vsat_fortran = parse.(Float64, split(fortran[25]))
+Vcrit_fortran = parse.(Float64, split(fortran[26]))
+
+if check_final_vals
+
+    ### Test setup
+
+    println("\nTest setup")
+
+    println(maximum(abs.(albs_fortran - albs)))
+    println(maximum(abs.(Ds_fortran - Ds)))
+    println(maximum(abs.(Nsnow_fortran - Nsnow)))
+    println(maximum(abs.(Qcan_fortran - Qcan)))
+    println(maximum(abs.(Sice_fortran - Sice)))
+    println(maximum(abs.(Sliq_fortran - Sliq)))
+    println(maximum(abs.(Sveg_fortran - Sveg)))
+    println(maximum(abs.(Tcan_fortran - Tcan)))
+    println(maximum(abs.(theta_fortran - theta)))
+    println(maximum(abs.(Tsnow_fortran - Tsnow)))
+    println(maximum(abs.(Tsoil_fortran - Tsoil)))
+    println(maximum(abs.(Tsrf_fortran - Tsrf)))
+    println(maximum(abs.(fsnow_fortran - fsnow)))
+    println(maximum(abs.(Tveg_fortran - Tveg)))
+    println(maximum(abs.(snowdepthmin_fortran - snowdepthmin)))
+    println(maximum(abs.(snowdepthmax_fortran - snowdepthmax)))
+    println(maximum(abs.(snowdepthhist_fortran - snowdepthhist)))
+    println(maximum(abs.(swemin_fortran - swemin)))
+    println(maximum(abs.(swemax_fortran - swemax)))
+    println(maximum(abs.(swehist_fortran - swehist)))
+    println(maximum(abs.(fcly_fortran - fcly)))
+    println(maximum(abs.(b_fortran - b)))
+    println(maximum(abs.(hcap_soil_fortran - hcap_soil)))
+    println(maximum(abs.(sathh_fortran - sathh)))
+    println(maximum(abs.(Vsat_fortran - Vsat)))
+    println(maximum(abs.(Vcrit_fortran - Vcrit)))
+end
+
+
+
 Qa = similar(Ta)
 
 if length(output_file) > 0
