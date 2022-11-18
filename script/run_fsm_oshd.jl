@@ -237,7 +237,7 @@ for (index,data) in enumerate(readlines(drive_file))
   Tsoil_fortran = parse.(Float64, split(fortran[1]))
 
   if length(output_file) > 0
-    println(fout,"$(year) $(month) $(day) $(hour) $(sum(Ds[:,1,1])) $(fsnow[1,1]) $(sum(Sice[:,1,1]+Sliq[:,1,1])) $(Tsrf[1,1])")
+    println(fout,"$(year) $(month) $(day) $(hour) $(sum(Ds[:,1,1])) $(fsnow[1,1]) $(sum(Sice[:,1,1]+Sliq[:,1,1])) $(Tsrf[1,1]) $(Nsnow[1,1])")
   end
 
 end

@@ -43,12 +43,12 @@ use STATE_VARIABLES, only: &
 ! ! Averages
 ! diags(:) = diags(:) / Nave
 
-write(uout,100) year,month,day,hour,sum(Ds),fsnow,sum(Sice+Sliq),Tsrf
+write(uout,*) year,month,day,hour,sum(Ds),fsnow,sum(Sice+Sliq),Tsrf,Nsnow
 
 ! diags(:) = 0
 ! SWint = 0
 ! SWout = 0
 
-100 format(i4,2(2x,i2),7(2x,f10.3))
+!100 format(i4,2(2x,i2),7(2x,f10.3))
 
 end subroutine OUTPUT

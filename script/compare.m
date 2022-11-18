@@ -77,7 +77,7 @@ ylabel("diff tsrf")
 
 %% compare julia against rerun using fortran code with txt input
 
-fortran = readmatrix("..\fortran\data\output_5wj_32.txt");
+fortran = readmatrix("..\fortran\data\output_5wj_64.txt");
 julia = readmatrix("..\fortran\data\output_5wj_julia.txt");
 
 fortran_time = datenum(fortran(:,1),fortran(:,2),fortran(:,3),fortran(:,4),0,0);
@@ -89,6 +89,7 @@ figure
 plot(julia_time(ijulia),julia(ijulia,5),'.r')
 hold on
 plot(fortran_time(ifortran),fortran(ifortran,5),'b')
+legend("julia","fortran")
 title("Ds")
 
 disp("Max diff in Ds :" + max(abs(julia(ijulia,5)-fortran(ifortran,5))))
@@ -97,7 +98,8 @@ figure
 plot(julia_time(ijulia),julia(ijulia,7),'.r')
 hold on
 plot(fortran_time(ifortran),fortran(ifortran,7),'b')
-title("Ds")
+legend("julia","fortran")
+title("SWE")
 
 disp("Max diff in SWE :" + max(abs(julia(ijulia,7)-fortran(ifortran,7))))
 
@@ -105,6 +107,17 @@ figure
 plot(julia_time(ijulia),julia(ijulia,8),'.r')
 hold on
 plot(fortran_time(ifortran),fortran(ifortran,8),'b')
-title("Ds")
+legend("julia","fortran")
+title("Tsrf")
 
 disp("Max diff in Tsrf :" + max(abs(julia(ijulia,8)-fortran(ifortran,8))))
+
+figure
+plot(julia_time(ijulia),julia(ijulia,9),'.r')
+hold on
+plot(fortran_time(ifortran),fortran(ifortran,9),'b')
+legend("julia","fortran")
+title("Nsnow")
+
+disp("Max diff in Nsnow :" + max(abs(julia(ijulia,9)-fortran(ifortran,9))))
+
