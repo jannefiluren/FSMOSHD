@@ -226,8 +226,6 @@ Tsrf[:,:] .= Tsoil[1,:,:]
 
 # Read state variables
 
-state_file = "../fortran/data/states_end_64.txt"
-
 if isfile(state_file)
     tmp = readlines(state_file)
 
