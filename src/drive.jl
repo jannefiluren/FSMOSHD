@@ -1,7 +1,6 @@
-function drive()
+function drive(data)
 
-  tmp = readline("../fortran/data/input_fake_5wj.txt")
-  tmp = parse.(Float64, split(tmp))
+  tmp = parse.(Float64, split(data))
 
   year = tmp[1]
   month = tmp[2]

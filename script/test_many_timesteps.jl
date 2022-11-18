@@ -13,6 +13,7 @@ include("../src/soil.jl")
 
 Qa = similar(Ta)
 
+drive_file = ARGS[1]
 
 for (index,data) in enumerate(readlines(drive_file))
 
@@ -20,7 +21,7 @@ for (index,data) in enumerate(readlines(drive_file))
 
   ### Run drive
 
-  drive()
+  drive(data)
 
   ### Run radiation
 
