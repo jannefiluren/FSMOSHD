@@ -588,7 +588,6 @@ if (dump_data == 1) then
   write(1,*) Roff_snow
   write(1,*) fsnow_thres
   write(1,*) unload
-  write(1,*) csnow
   write(1,*) Tsnow
   write(1,*) Sice
   write(1,*) Sliq
