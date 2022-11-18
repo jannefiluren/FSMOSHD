@@ -252,6 +252,27 @@ if isfile(state_file)
 
 end
 
+# println(albs)
+# println(Ds)
+# println(Nsnow)
+# println(Qcan)
+# println(Sice)
+# println(Sliq)
+# println(Sveg)
+# println(Tcan)
+# println(theta)
+# println(Tsnow)
+# println(Tsoil)
+# println(Tsrf)
+# println(fsnow)
+# println(Tveg)
+# println(snowdepthmin)
+# println(snowdepthmax)
+# println(snowdepthhist)
+# println(swemin)
+# println(swemax)
+# println(swehist)
+
 
 # ! Cap glacier temperatures to 0°C
 # if (TILE == 'glacier') then
