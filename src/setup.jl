@@ -125,7 +125,7 @@ if (TILE == "glacier")
   z0sf = 0.04*ones(Nx,Ny)
 else
   alb0 = 0.2*ones(Nx,Ny)
-  z0sf = 0.1*ones(Nx,Ny)
+  z0sf = 0.2*ones(Nx,Ny)
 end
 
 fcly = 0.3*ones(Nx,Ny)
@@ -189,21 +189,21 @@ tmlt = 3600*tmlt
 trho = 3600*trho
 
 # Allocate state variables
-albs = zeros(Nx,Ny)
+albs = 0.85.*ones(Nx,Ny)
 Ds = zeros(Nsmax,Nx,Ny)
-Nsnow = zeros(Int32,Nx,Ny)
+Nsnow = zeros(Int64,Nx,Ny)
 Qcan = zeros(Nx,Ny)
 rgrn = zeros(Nsmax,Nx,Ny)
 Sice = zeros(Nsmax,Nx,Ny)
 Sliq = zeros(Nsmax,Nx,Ny)
 Sveg = zeros(Nx,Ny)
-Tcan = zeros(Nx,Ny)
+Tcan = 273.15.*ones(Nx,Ny)
 theta = zeros(Nsoil,Nx,Ny)
-Tsnow = zeros(Nsmax,Nx,Ny)
-Tsoil = zeros(Nsoil,Nx,Ny)
+Tsnow = 273.15.*ones(Nsmax,Nx,Ny)
+Tsoil = 273.15.*ones(Nsoil,Nx,Ny)
 Tsrf = zeros(Nx,Ny)
 fsnow = zeros(Nx,Ny)
-Tveg = zeros(Nx,Ny)
+Tveg = 273.15.*ones(Nx,Ny)
 snowdepthmin = zeros(Nx,Ny)
 snowdepthmax = zeros(Nx,Ny)
 snowdepthhist = zeros(14,Nx,Ny)
