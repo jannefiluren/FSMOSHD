@@ -13,15 +13,16 @@ include("../src/soil.jl")
 
 Qa = similar(Ta)
 
-for data in readlines("../fortran/data/input_fake_5wj.txt")
+
+for (index,data) in enumerate(readlines(drive_file))
+
+  println("Time step: ", index)
 
   ### Run drive
 
   drive()
 
   ### Run radiation
-
-  println("Run radiation")
 
   radiation()
 
@@ -47,8 +48,6 @@ for data in readlines("../fortran/data/input_fake_5wj.txt")
 
   ### Run thermal
 
-  println("Run thermal")
-
   thermal()
 
   fortran = readlines("../fortran/data/test_thermal.txt")
@@ -72,8 +71,6 @@ for data in readlines("../fortran/data/input_fake_5wj.txt")
   ksoil_fortran = parse.(Float64, split(fortran[8]))
 
   ### Run sfexch and ebalsrf
-
-  println("Run sfexch and ebalsrf")
 
   for i in 1:Nitr
     sfexch()
@@ -128,8 +125,6 @@ for data in readlines("../fortran/data/input_fake_5wj.txt")
 
   # Run snow
 
-  println("Run snow")
-
   snow()
 
   fortran = readlines("../fortran/data/test_snow.txt")
@@ -161,8 +156,6 @@ for data in readlines("../fortran/data/input_fake_5wj.txt")
   Ds_fortran = parse.(Float64, split(fortran[12]))
 
   # Run soil
-
-  println("Run soil")
 
   soil()
 
