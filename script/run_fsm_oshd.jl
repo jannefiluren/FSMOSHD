@@ -89,7 +89,7 @@ for (index,data) in enumerate(readlines(drive_file))
 
   ### Run drive
 
-  local year, month, day, hour
+  global year, month, day, hour
 
   year, month, day, hour = drive(data)
 
