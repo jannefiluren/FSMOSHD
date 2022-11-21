@@ -232,7 +232,7 @@ end do
 end do
 
 if (dump_data == 1) then
-  open(1, file="data/test_ebalsrf.txt")
+  open(1, file="temp/test_ebalsrf.txt")
   write(1,*) Esrf
   write(1,*) Eveg
   write(1,*) G

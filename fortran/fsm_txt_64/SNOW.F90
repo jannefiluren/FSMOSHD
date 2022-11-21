@@ -579,7 +579,7 @@ end do
 end do
 
 if (dump_data == 1) then
-  open(1, file="data/test_snow.txt")
+  open(1, file="temp/test_snow.txt")
   write(1,*) Gsoil
   write(1,*) Roff
   write(1,*) meltflux_out

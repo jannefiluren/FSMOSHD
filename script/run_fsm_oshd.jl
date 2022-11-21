@@ -11,7 +11,7 @@ include("../src/ebalsrf.jl")
 include("../src/snow.jl")
 include("../src/soil.jl")
 
-fortran = readlines("../fortran/data/test_setup.txt")
+fortran = readlines("../fortran/temp/test_setup.txt")
 
 albs_fortran = parse.(Float64, split(fortran[1]))
 Ds_fortran = parse.(Float64, split(fortran[2]))
@@ -99,7 +99,7 @@ for (index,data) in enumerate(readlines(drive_file))
 
   radiation()
 
-  fortran = readlines("../fortran/data/test_radiation.txt")
+  fortran = readlines("../fortran/temp/test_radiation.txt")
 
   global alb_fortran
   global asrf_out_fortran
@@ -123,7 +123,7 @@ for (index,data) in enumerate(readlines(drive_file))
 
   thermal()
 
-  fortran = readlines("../fortran/data/test_thermal.txt")
+  fortran = readlines("../fortran/temp/test_thermal.txt")
 
   global Ds1_fortran
   global gs1_fortran
@@ -150,7 +150,7 @@ for (index,data) in enumerate(readlines(drive_file))
     ebalsrf()
   end
 
-  fortran = readlines("../fortran/data/test_sfexch.txt")
+  fortran = readlines("../fortran/temp/test_sfexch.txt")
 
   global KH_fortran
   global KHa_fortran
@@ -168,7 +168,7 @@ for (index,data) in enumerate(readlines(drive_file))
   KWv_fortran = parse.(Float64, split(fortran[6]))
   Usc_fortran = parse.(Float64, split(fortran[7]))
 
-  fortran = readlines("../fortran/data/test_ebalsrf.txt")
+  fortran = readlines("../fortran/temp/test_ebalsrf.txt")
 
   global Esrf_fortran
   global Eveg_fortran
@@ -200,7 +200,7 @@ for (index,data) in enumerate(readlines(drive_file))
 
   snow()
 
-  fortran = readlines("../fortran/data/test_snow.txt")
+  fortran = readlines("../fortran/temp/test_snow.txt")
 
   global Gsoil_fortran
   global Roff_fortran
@@ -232,7 +232,7 @@ for (index,data) in enumerate(readlines(drive_file))
 
   soil()
 
-  fortran = readlines("../fortran/data/test_soil.txt")
+  fortran = readlines("../fortran/temp/test_soil.txt")
 
   global Tsoil_fortran
 

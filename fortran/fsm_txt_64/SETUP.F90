@@ -621,7 +621,7 @@ scap(:,:) = cvai*VAI(:,:)
 close(5000)
 
 if (dump_data == 1) then
-  open(1, file="data/test_setup.txt")
+  open(1, file="temp/test_setup.txt")
   
   write(1,*)  albs
   write(1,*)  Ds

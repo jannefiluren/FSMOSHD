@@ -268,7 +268,7 @@ end do
 end do
 
 if (dump_data == 1) then
-  open(1, file="data/test_radiation.txt")
+  open(1, file="temp/test_radiation.txt")
   write(1,*) alb
   write(1,*) asrf_out
   write(1,*) Sdirt

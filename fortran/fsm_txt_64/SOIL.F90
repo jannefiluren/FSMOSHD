@@ -90,7 +90,7 @@ end do
 end do
 
 if (dump_data == 1) then
-  open(1, file="data/test_soil.txt")
+  open(1, file="temp/test_soil.txt")
   write(1,*) Tsoil
   close(1) 
 end if

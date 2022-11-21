@@ -269,7 +269,7 @@ end do
 end do
 
 if (dump_data == 1) then
-  open(1, file="data/test_sfexch.txt")
+  open(1, file="temp/test_sfexch.txt")
   write(1,*) KH 
   write(1,*) KHa
   write(1,*) KHg

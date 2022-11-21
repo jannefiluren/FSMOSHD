@@ -197,7 +197,7 @@ end do
 end do
 
 if (dump_data == 1) then
-  open(1, file="data/test_thermal.txt")
+  open(1, file="temp/test_thermal.txt")
   write(1,*) Ds1
   write(1,*) gs1
   write(1,*) ks1

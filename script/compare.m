@@ -1,7 +1,7 @@
 %% compare against jim operational runs (see branch jan-translate-input in jim_operational)
 
-new = readmatrix("..\fortran\data\output_5wj_32.txt");
-old = readmatrix("..\fortran\data\results_jim_operational_5wj.txt");
+new = readmatrix("..\fortran\output_32\output_SLF_5WJ.txt");
+old = readmatrix("..\fortran\output_oshd\results_SLF_5WJ.txt");
 
 new_time = datenum(new(:,1),new(:,2),new(:,3),new(:,4),0,0);
 old_time = datenum(old(:,1),old(:,2),old(:,3),old(:,4),0,0);
@@ -37,9 +37,9 @@ clear
 
 %% verify restart of fsm...
 
-complete = readmatrix("..\fortran\data\output_5wj_32.txt");
-first_half = readmatrix("..\fortran\data\output_first_5wj_32.txt");
-second_half = readmatrix("..\fortran\data\output_last_5wj_32.txt");
+complete = readmatrix("..\fortran\output_32\output_SLF_5WJ.txt");
+first_half = readmatrix("..\fortran\output_32\output_first_SLF_5WJ.txt");
+second_half = readmatrix("..\fortran\output_32\output_last_SLF_5WJ.txt");
 merged = [first_half; second_half];
 
 disp("Check that all are the same: " + all(complete(:) == merged(:)))
@@ -48,8 +48,8 @@ clear
 
 %% compare 32 and 64 bit versions
 
-complete_32 = readmatrix("..\fortran\data\output_5wj_32.txt");
-complete_64 = readmatrix("..\fortran\data\output_5wj_64.txt");
+complete_32 = readmatrix("..\fortran\output_32\output_SLF_5WJ.txt");
+complete_64 = readmatrix("..\fortran\output_64\output_SLF_5WJ.txt");
 
 disp("Check that all are the same: " + all(complete_32(:) == complete_64(:)))
 
@@ -77,8 +77,8 @@ ylabel("diff tsrf")
 
 %% compare julia against rerun using fortran code with txt input
 
-fortran = readmatrix("..\fortran\data\output_5wj_64.txt");
-julia = readmatrix("..\fortran\data\output_5wj_julia.txt");
+fortran = readmatrix("..\fortran\output_64\output_SLF_5WJ.txt");
+julia = readmatrix("..\fortran\output_julia\output_SLF_5WJ.txt");
 
 fortran_time = datenum(fortran(:,1),fortran(:,2),fortran(:,3),fortran(:,4),0,0);
 julia_time = datenum(julia(:,1),julia(:,2),julia(:,3),julia(:,4),0,0);
