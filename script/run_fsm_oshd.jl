@@ -85,6 +85,8 @@ end
 
 for (index,data) in enumerate(readlines(drive_file))
 
+  global fortran
+
   println("Time step: ", index)
 
   ### Run drive
