@@ -497,26 +497,26 @@ if (start_file /= 'none') then
   read(ustr,*) swemax(:,:)
   read(ustr,*) swehist(:,:,:)
 
-  print *,  albs
-  print *,  Ds
-  print *,  Nsnow
-  print *,  Qcan
-  print *,  Sice
-  print *,  Sliq
-  print *,  Sveg
-  print *,  Tcan
-  print *,  theta
-  print *,  Tsnow
-  print *,  Tsoil
-  print *,  Tsrf
-  print *,  fsnow
-  print *,  Tveg
-  print *,  snowdepthmin
-  print *,  snowdepthmax
-  print *,  snowdepthhist
-  print *,  swemin
-  print *,  swemax
-  print *,  swehist
+  ! print *,  albs
+  ! print *,  Ds
+  ! print *,  Nsnow
+  ! print *,  Qcan
+  ! print *,  Sice
+  ! print *,  Sliq
+  ! print *,  Sveg
+  ! print *,  Tcan
+  ! print *,  theta
+  ! print *,  Tsnow
+  ! print *,  Tsoil
+  ! print *,  Tsrf
+  ! print *,  fsnow
+  ! print *,  Tveg
+  ! print *,  snowdepthmin
+  ! print *,  snowdepthmax
+  ! print *,  snowdepthhist
+  ! print *,  swemin
+  ! print *,  swemax
+  ! print *,  swehist
 
 
   close(ustr)
