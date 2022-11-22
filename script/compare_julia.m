@@ -46,5 +46,9 @@ title("Nsnow")
 
 disp("Max diff in Nsnow :" + max(abs(julia(ijulia,9)-fortran(ifortran,9))))
 
+figure
+plot(julia(ijulia,8)-fortran(ifortran,8))
+title("Diff in Tsrf")
+
 end
 
