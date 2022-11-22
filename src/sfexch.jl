@@ -35,11 +35,11 @@ function sfexch()
               if (dem[i, j] >= 2300)
                 z0loc = 0.003
               elseif (dem[i, j] >= 1500)
-                z0loc = 0.01 + (dem[i, j] - 1500) / (2300 - 1500) * (0.003 - 0.01)
+                z0loc = 0.03 + (dem[i, j] - 1500) / (2300 - 1500) * (0.003 - 0.03)
               elseif (dem[i, j] >= 1200)  # simple linear b/w two above values
-                z0loc = 0.1 + (dem[i, j] - 1200) / (1500 - 1200) * (0.01 - 0.1)
+                z0loc = 0.2 + (dem[i, j] - 1200) / (1500 - 1200) * (0.03 - 0.2)
               else
-                z0loc = 0.1
+                z0loc = 0.2
               end
             end
           end
