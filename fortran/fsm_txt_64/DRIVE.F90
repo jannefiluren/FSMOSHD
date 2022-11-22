@@ -117,7 +117,7 @@ read(umet,*,end=1) year, month, day, hour, Sdir, Sdif, LW, Sf, Rf, Ta, RH, Ua, P
 !   read(819,pos=where,IOSTAT=eastatus) ((slP(i,j),j=1,Ny),i=1,Nx)
 ! endif
 
-Ua = max(Ua, 0.1)
+Ua = max(Ua, 0.1_dp)
 
 do i = 1,Nx
  do j = 1,Ny
