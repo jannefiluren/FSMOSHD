@@ -21,6 +21,8 @@ function drive(data)
   es = similar(Ta)   #### hack
   # Qa = similar(Ta)   #### hack
 
+  Ua .= max.(Ua, 0.1)
+
   Sf .= Sf ./ dt
   Rf .= Rf ./ dt
   Tc .= Ta .- Tm
