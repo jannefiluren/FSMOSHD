@@ -13,6 +13,9 @@ include("../src/ebalsrf.jl")
 include("../src/snow.jl")
 include("../src/soil.jl")
 
+Qa = similar(Ta)
+
+
 function run_fsm_julia(station)
 
   drive_file = "../fortran/input/input_" * replace(station, "." => "_") * ".txt"
@@ -28,10 +31,6 @@ function run_fsm_julia(station)
   lat[:,:] .= terrain[5]
   lon[:,:] .= terrain[6]
   dem[:,:] .= terrain[7]
-
-  global Qa
-
-  Qa = similar(Ta)
 
   fout = open(output_file, "w")
 
