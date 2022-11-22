@@ -11,6 +11,17 @@ include("../src/ebalsrf.jl")
 include("../src/snow.jl")
 include("../src/soil.jl")
 
+terrain = readline("../fortran/input/terrain_" * replace(station,"." => "_") * ".txt")
+terrain = parse.(Float64,split(terrain,","))
+
+fsky_terr[:,:] .= terrain[1]
+slopemu[:,:] .= terrain[2]
+xi[:,:] .= terrain[3]
+Ld[:,:] .= terrain[4]
+lat[:,:] .= terrain[5]
+lon[:,:] .= terrain[6]
+dem[:,:] .= terrain[7]
+
 fortran = readlines("../fortran/temp/test_setup.txt")
 
 albs_fortran = parse.(Float64, split(fortran[1]))
@@ -72,8 +83,8 @@ if check_final_vals
     println(maximum(abs.(sathh_fortran - sathh)))
     println(maximum(abs.(Vsat_fortran - Vsat)))
     println(maximum(abs.(Vcrit_fortran - Vcrit)))
-end
 
+end
 
 
 Qa = similar(Ta)
