@@ -1,13 +1,6 @@
-%% Settings
-
-clear
-
-station = "MCH.BLS2";
+function compare_julia(station)
 
 station = replace(station,".","_");
-
-
-%% compare julia against rerun using fortran code with txt input
 
 fortran = readmatrix("..\fortran\output_64\output_" + station + "_run_from_julia.txt");
 julia = readmatrix("..\fortran\output_julia\output_" + station + "_test.txt");
@@ -52,4 +45,6 @@ legend("julia","fortran")
 title("Nsnow")
 
 disp("Max diff in Nsnow :" + max(abs(julia(ijulia,9)-fortran(ifortran,9))))
+
+end
 
