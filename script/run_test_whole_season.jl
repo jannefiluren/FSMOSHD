@@ -1,8 +1,10 @@
 # ./run_all_whole_season.bat
 
-drive_file = "../fortran/input/input_SLF_5WJ.txt"
+station = "SLF.5WJ"
+
+drive_file = "../fortran/input/input_" * replace(station, "." => "_") * ".txt"
+output_file = "../fortran/output_julia/output_" * replace(station, "." => "_") * "_test.txt"
 state_file = ""
 check_final_vals = false
-output_file = "../fortran/output_julia/output_SLF_5WJ.txt"
 
 include("run_fsm_oshd.jl")
