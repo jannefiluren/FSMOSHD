@@ -22,12 +22,12 @@ function radiation()
           afs = asmx
         else # OSHDTN == 1
           # 11/2021 tuning: high elevation afs changed from 0.86 to 0.92
-          if (dem[i, j] >= 2200)
+          if (dem[i, j] >= 2300)
             afs = 0.92
-          elseif (dem[i, j] <= 1400)
+          elseif (dem[i, j] <= 1500)
             afs = 0.80
           else
-            afs = 0.92 + (2200 - dem[i, j]) / (2200 - 1400) * (0.80 - 0.92)
+            afs = 0.92 + (2300 - dem[i, j]) / (2300 - 1500) * (0.80 - 0.92)
           end
         end
 
