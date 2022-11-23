@@ -2,3 +2,6 @@ name = "FSMOSHD"
 uuid = "5919be0d-1d81-4a5b-ac5f-ee56392bdbf1"
 authors = ["jannefiluren <magnusson@slf.ch>"]
 version = "0.1.0"
+
+[deps]
+Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
