@@ -104,7 +104,7 @@ for (index,data) in enumerate(readlines(drive_file))
 
   ### Run radiation
 
-  radiation(fsm)
+  radiation(fsm, year, month, day, hour, LW, Sdif, Sdir, Sf, Sf24h, Ta, Tv)
 
   fortran = readlines("../fortran/temp/test_radiation.txt")
 
@@ -153,8 +153,8 @@ for (index,data) in enumerate(readlines(drive_file))
   ### Run sfexch and ebalsrf
 
   for i in 1:fsm.Nitr
-    sfexch(fsm)
-    ebalsrf(fsm)
+    sfexch(fsm, Ta, Ps, Qa, Ua)
+    ebalsrf(fsm, LW, Ps, Qa, Ta)
   end
 
   fortran = readlines("../fortran/temp/test_sfexch.txt")
@@ -205,7 +205,7 @@ for (index,data) in enumerate(readlines(drive_file))
 
   # Run snow
 
-  snow(fsm)
+  snow(fsm, Rf, Sf, Ta, Ua)
 
   fortran = readlines("../fortran/temp/test_snow.txt")
 
