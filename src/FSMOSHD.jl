@@ -4,7 +4,7 @@ using Parameters
 
 include("parameters.jl")
 include("types.jl")
-include("setup_new.jl")
+include("setup.jl")
 
 
 export FSM, setup!
