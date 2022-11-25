@@ -38,29 +38,25 @@ function sfexch(fsm::FSM)
           zT1 = zT + hcan[i, j]
         end
 
-        if (Z0PERT == true)
-          z0g = z0P[i, j]
+        # Ground roughness length
+        if (TILE == "glacier")
+          z0loc = 0.0009
         else
-          # Ground roughness length
-          if (TILE == "glacier")
-            z0loc = 0.0009
-          else
-            if (OSHDTN == 0 || TILE == "forest")
-              z0loc = z0sn
-            else # OSHDTN == 1
-              if (dem[i, j] >= 2300)
-                z0loc = 0.003
-              elseif (dem[i, j] >= 1500)
-                z0loc = 0.03 + (dem[i, j] - 1500) / (2300 - 1500) * (0.003 - 0.03)
-              elseif (dem[i, j] >= 1200)  # simple linear b/w two above values
-                z0loc = 0.2 + (dem[i, j] - 1200) / (1500 - 1200) * (0.03 - 0.2)
-              else
-                z0loc = 0.2
-              end
+          if (OSHDTN == 0 || TILE == "forest")
+            z0loc = z0sn
+          else # OSHDTN == 1
+            if (dem[i, j] >= 2300)
+              z0loc = 0.003
+            elseif (dem[i, j] >= 1500)
+              z0loc = 0.03 + (dem[i, j] - 1500) / (2300 - 1500) * (0.003 - 0.03)
+            elseif (dem[i, j] >= 1200)  # simple linear b/w two above values
+              z0loc = 0.2 + (dem[i, j] - 1200) / (1500 - 1200) * (0.03 - 0.2)
+            else
+              z0loc = 0.2
             end
           end
-          z0g = z0loc
         end
+        z0g = z0loc
 
         # BC, stabilize the tuning point runs by using a Ds threshold instead of fsnow.
         # TODO: test the impact for the grid points.
