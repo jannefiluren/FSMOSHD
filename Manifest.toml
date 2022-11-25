@@ -2,10 +2,14 @@
 
 julia_version = "1.8.2"
 manifest_format = "2.0"
-project_hash = "32db3e8f5ddf7a3603be01051d49f95796c97ad4"
+project_hash = "988601d9ebb5b0b24942b4dbfbb78cf6c863f8d3"
 
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+
+[[deps.DelimitedFiles]]
+deps = ["Mmap"]
+uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
@@ -17,6 +21,9 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 [[deps.Markdown]]
 deps = ["Base64"]
 uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
+
+[[deps.Mmap]]
+uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[deps.OrderedCollections]]
 git-tree-sha1 = "85f8e6578bf1f9ee0d11e7bb1b1456435479d47c"

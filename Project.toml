@@ -4,5 +4,6 @@ authors = ["jannefiluren <magnusson@slf.ch>"]
 version = "0.1.0"
 
 [deps]
+DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
