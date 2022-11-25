@@ -41,11 +41,11 @@
    CLIST_STATE_RESULTS = 'tsfe', 'scfe',
 /
 &nam_location
-  fsky_terr = 0.9483,
-  slopemu = 0.0122,
+  fsky_terr = 0.94828,
+  slopemu = 0.012247,
   xi = 0,
   Ld = 1,
-  lat = 46.8296,
+  lat = 46.83,
   lon = 9.8092,
   dem = 2540,
   pmultf = 1,
