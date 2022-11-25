@@ -1,3 +1,5 @@
+@unpack Nx, Ny, Nsmax, Nsoil, albs = fsm
+
 # Radiation
 
 alb = similar(albs)   ### hack
@@ -56,3 +58,20 @@ Roff_bare = zeros(Nx, Ny)
 Roff_snow = zeros(Nx, Ny)
 fsnow_thres = zeros(Nx, Ny)
 unload = zeros(Nx, Ny)
+
+# Drive variables
+year = 0
+month = 0
+day = 0
+hour = 0
+Sdir = zeros(Nx,Ny)
+Sdif = zeros(Nx,Ny)
+LW = zeros(Nx,Ny)
+Sf = zeros(Nx,Ny)
+Rf = zeros(Nx,Ny)
+Ta = zeros(Nx,Ny)
+RH = zeros(Nx,Ny)
+Ua = zeros(Nx,Ny)
+Ps = zeros(Nx,Ny)
+Sf24h = zeros(Nx,Ny)
+Tv = zeros(Nx,Ny)

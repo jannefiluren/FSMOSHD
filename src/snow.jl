@@ -7,7 +7,21 @@
 # fsnow_thres = zeros(Nx, Ny)
 # unload = zeros(Nx, Ny)
 
-function snow()
+function snow(fsm::FSM)
+
+  @unpack HYDROL, DENSTY, OSHDTN, HN_ON, SNFRAC = fsm
+
+  @unpack tthresh = fsm
+
+  @unpack dt = fsm
+
+  @unpack Dzsnow, Dzsoil, Nsmax, Nsoil, Nx, Ny = fsm
+
+  @unpack a_eta, b_eta, c_eta, eta0, eta1, rgr0, rho0, rhob, rhoc, rhof, rcld, rmlt, snda, trho, Wirr = fsm
+
+  @unpack Ds, Nsnow, fsnow, rgrn, Sice, Sliq, Tsnow, Tsoil, Tsrf = fsm
+  
+  @unpack dem, tilefrac = fsm
 
   Gsoil[:, :] .= G[:, :]
   Roff[:, :] .= 0

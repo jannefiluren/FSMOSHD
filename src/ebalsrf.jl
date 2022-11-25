@@ -11,7 +11,21 @@
 # Rnet = zeros(Nx,Ny)
 # Rsrf = zeros(Nx,Ny)
 
-function ebalsrf()
+function ebalsrf(fsm::FSM)
+
+  @unpack CANMOD = fsm
+
+  @unpack TILE, tthresh = fsm
+
+  @unpack dt = fsm
+
+  @unpack Nx, Ny = fsm
+
+  @unpack trcn = fsm
+
+  @unpack Sice, Tcan, Tsrf, Tveg = fsm
+
+  @unpack fveg, tilefrac = fsm
 
   for j = 1:Ny
     for i = 1:Nx

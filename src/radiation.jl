@@ -8,7 +8,19 @@
 # LWt = similar(albs)   ### hack
 # SWtopo_out = similar(albs)   ### hack
 
-function radiation()
+function radiation(fsm::FSM)
+
+  @unpack Nx, Ny, dt = fsm
+  
+  @unpack tthresh, fsky_terr, fveg, dem, tilefrac = fsm
+
+  @unpack asmx, asmn, avg0, avgs, Talb, tcld, tmlt, adfs, adfl, fsar, Sfmin = fsm
+
+  @unpack alb0,fsky,scap, trcn = fsm
+
+  @unpack albs, Sice, Sliq, fsnow,Sveg, Tsnow, Tsrf = fsm
+
+  @unpack ALBEDO, OSHDTN, RADSBG, CANMOD = fsm
 
   # Snow albedo
   for j = 1:Ny

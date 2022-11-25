@@ -1,4 +1,14 @@
-function soil()
+function soil(fsm::FSM)
+
+  @unpack TILE, tthresh = fsm
+
+  @unpack dt = fsm
+
+  @unpack Dzsoil, Nsoil, Nx, Ny = fsm
+
+  @unpack Tsoil = fsm
+
+  @unpack tilefrac = fsm
 
   a = zeros(Nsoil)
   b = zeros(Nsoil)

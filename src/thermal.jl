@@ -7,7 +7,19 @@
 # ks1 = zeros(Nx, Ny)
 # Tveg0 = zeros(Nx, Ny)
 
-function thermal()
+function thermal(fsm::FSM)
+
+  @unpack Dzsoil, Nsmax, Nsoil, Nx, Ny = fsm
+
+  @unpack bthr, gsat, kfix, rhof = fsm
+
+  @unpack b, hcap_soil, hcon_soil, sathh, Vcrit, Vsat = fsm
+
+  @unpack Ds, Nsnow, fsnow, Sice, Sliq, theta, Tsnow, Tsoil, Tveg = fsm
+
+  @unpack tilefrac, tthresh = fsm
+
+  @unpack CONDCT, DENSTY, TILE = fsm
 
   # Thermal conductivity of snow
   for j = 1:Ny

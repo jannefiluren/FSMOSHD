@@ -1,4 +1,6 @@
-function drive(data)
+function drive(fsm, data)
+
+  @unpack dt = fsm
 
   tmp = parse.(Float64, split(data))
 

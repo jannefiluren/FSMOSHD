@@ -6,7 +6,23 @@
 # KWv = zeros(Nx, Ny)
 # Usc = zeros(Nx, Ny)
 
-function sfexch()
+function sfexch(fsm::FSM)
+
+  @unpack CANMOD, ZOFFST, EXCHNG, OSHDTN, SNFRAC = fsm
+
+  @unpack TILE, tthresh = fsm
+
+  @unpack zT, zU = fsm
+
+  @unpack Nx, Ny = fsm
+
+  @unpack bstb, cden, cveg, gsnf, rchd, rchz, z0sn, wcan, zsub, zgf, zgr, khcf = fsm
+
+  @unpack VAI, z0sf = fsm
+
+  @unpack Qcan, fsnow, Sice, Sveg, Tcan, Tsrf, Tveg, Ds = fsm
+
+  @unpack dem, fveg, fves, hcan, tilefrac = fsm
 
   for j = 1:Ny
     for i = 1:Nx
