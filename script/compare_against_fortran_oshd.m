@@ -61,7 +61,7 @@ clear
 %% compare 32 and 64 bit versions
 
 complete_32 = readmatrix("..\fortran\output_32\output_SLF_5WJ.txt");
-complete_64 = readmatrix("..\fortran\output_64\output_SLF_5WJ.txt");
+complete_64 = readmatrix("..\fortran\output_64\output_SLF_5WJ_run_from_julia.txt");
 
 disp("Check that all are the same: " + all(complete_32(:) == complete_64(:)))
 
