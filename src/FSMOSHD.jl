@@ -20,6 +20,7 @@ include("run_fsm.jl")
 export FSM, setup!
 export qsat, tridiag
 export radiation, thermal, sfexch, ebalsrf, snow, soil
+export drive, drive!
 export run_fsm
 
 end # module FSMOSHD
