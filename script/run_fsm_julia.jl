@@ -1,7 +1,10 @@
-state_file = ""
+using Pkg
+Pkg.activate("../.")
+
+using FSMOSHD
+using Parameters
 
 include("../src/parameters.jl")
-include("../src/setup.jl")
 include("../src/initialize.jl")
 include("../src/qsat.jl")
 include("../src/tridiag.jl")
@@ -20,18 +23,11 @@ function run_fsm_julia(station)
 
   drive_file = "../fortran/input/input_" * replace(station, "." => "_") * ".txt"
   output_file = "../fortran/output_julia/output_" * replace(station, "." => "_") * "_test.txt"
+  terrain_file = "../fortran/input/terrain_" * replace(station,"." => "_") * ".txt"
 
-  terrain = readline("../fortran/input/terrain_" * replace(station,"." => "_") * ".txt")
-  terrain = parse.(Float64,split(terrain,","))
+  fsm = FSM{Float64}()
+  setup!(fsm, terrain_file)
   
-  fsky_terr[:,:] .= terrain[1]
-  slopemu[:,:] .= terrain[2]
-  xi[:,:] .= terrain[3]
-  Ld[:,:] .= terrain[4]
-  lat[:,:] .= terrain[5]
-  lon[:,:] .= terrain[6]
-  dem[:,:] .= terrain[7]
-
   fout = open(output_file, "w")
 
   for (index, data) in enumerate(readlines(drive_file))
@@ -42,32 +38,32 @@ function run_fsm_julia(station)
 
     global year, month, day, hour
 
-    year, month, day, hour = drive(data)
+    year, month, day, hour = drive(fsm, data)
 
     ### Run radiation
 
-    radiation()
+    radiation(fsm)
 
     ### Run thermal
 
-    thermal()
+    thermal(fsm)
 
     ### Run sfexch and ebalsrf
 
-    for i in 1:Nitr
-      sfexch()
-      ebalsrf()
+    for i in 1:fsm.Nitr
+      sfexch(fsm)
+      ebalsrf(fsm)
     end
 
     # Run snow
 
-    snow()
+    snow(fsm)
 
     # Run soil
 
-    soil()
+    soil(fsm)
 
-    println(fout, "$(year) $(month) $(day) $(hour) $(sum(Ds[:,1,1])) $(fsnow[1,1]) $(sum(Sice[:,1,1]+Sliq[:,1,1])) $(Tsrf[1,1]) $(Nsnow[1,1])")
+    println(fout, "$(year) $(month) $(day) $(hour) $(sum(fsm.Ds[:,1,1])) $(fsm.fsnow[1,1]) $(sum(fsm.Sice[:,1,1]+fsm.Sliq[:,1,1])) $(fsm.Tsrf[1,1]) $(fsm.Nsnow[1,1])")
 
   end
 
