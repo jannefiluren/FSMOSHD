@@ -2,9 +2,13 @@ using Test
 using FSMOSHD
 using DelimitedFiles
 
+include("../script/run_fsm_fortran.jl")
+
 @testset "complete_season" begin
   
-  for station in ["SLF.5WJ", "MCH.BLS2", "MCH.OTE2"]
+  for station in ["SLF.5WJ", "MCH.BLS2", "MCH.MAG2", "MCH.OTE2", "MCH.SCD2", "MCH.LUN2", "MCH.JUN2"]
+
+    run_fsm_fortran(station)
 
     julia_run = run_fsm(station)
 
