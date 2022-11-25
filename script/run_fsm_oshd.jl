@@ -1,5 +1,13 @@
+using Pkg
+Pkg.activate("../.")
+
+using FSMOSHD
+using Parameters
+
+fsm = FSM{Float64}()
+setup!(fsm, terrain_file, state_file=state_file)
+
 include("../src/parameters.jl")
-include("../src/setup.jl")
 include("../src/initialize.jl")
 include("../src/qsat.jl")
 include("../src/tridiag.jl")
@@ -10,17 +18,6 @@ include("../src/sfexch.jl")
 include("../src/ebalsrf.jl")
 include("../src/snow.jl")
 include("../src/soil.jl")
-
-terrain = readline("../fortran/input/terrain_" * replace(station,"." => "_") * ".txt")
-terrain = parse.(Float64,split(terrain,","))
-
-fsky_terr[:,:] .= terrain[1]
-slopemu[:,:] .= terrain[2]
-xi[:,:] .= terrain[3]
-Ld[:,:] .= terrain[4]
-lat[:,:] .= terrain[5]
-lon[:,:] .= terrain[6]
-dem[:,:] .= terrain[7]
 
 fortran = readlines("../fortran/temp/test_setup.txt")
 
@@ -57,32 +54,32 @@ if check_final_vals
 
     println("\nTest setup")
 
-    println(maximum(abs.(albs_fortran - albs)))
-    println(maximum(abs.(Ds_fortran - Ds)))
-    println(maximum(abs.(Nsnow_fortran - Nsnow)))
-    println(maximum(abs.(Qcan_fortran - Qcan)))
-    println(maximum(abs.(Sice_fortran - Sice)))
-    println(maximum(abs.(Sliq_fortran - Sliq)))
-    println(maximum(abs.(Sveg_fortran - Sveg)))
-    println(maximum(abs.(Tcan_fortran - Tcan)))
-    println(maximum(abs.(theta_fortran - theta)))
-    println(maximum(abs.(Tsnow_fortran - Tsnow)))
-    println(maximum(abs.(Tsoil_fortran - Tsoil)))
-    println(maximum(abs.(Tsrf_fortran - Tsrf)))
-    println(maximum(abs.(fsnow_fortran - fsnow)))
-    println(maximum(abs.(Tveg_fortran - Tveg)))
-    println(maximum(abs.(snowdepthmin_fortran - snowdepthmin)))
-    println(maximum(abs.(snowdepthmax_fortran - snowdepthmax)))
-    println(maximum(abs.(snowdepthhist_fortran - snowdepthhist)))
-    println(maximum(abs.(swemin_fortran - swemin)))
-    println(maximum(abs.(swemax_fortran - swemax)))
-    println(maximum(abs.(swehist_fortran - swehist)))
-    println(maximum(abs.(fcly_fortran - fcly)))
-    println(maximum(abs.(b_fortran - b)))
-    println(maximum(abs.(hcap_soil_fortran - hcap_soil)))
-    println(maximum(abs.(sathh_fortran - sathh)))
-    println(maximum(abs.(Vsat_fortran - Vsat)))
-    println(maximum(abs.(Vcrit_fortran - Vcrit)))
+    println(maximum(abs.(albs_fortran - fsm.albs)))
+    println(maximum(abs.(Ds_fortran - fsm.Ds)))
+    println(maximum(abs.(Nsnow_fortran - fsm.Nsnow)))
+    println(maximum(abs.(Qcan_fortran - fsm.Qcan)))
+    println(maximum(abs.(Sice_fortran - fsm.Sice)))
+    println(maximum(abs.(Sliq_fortran - fsm.Sliq)))
+    println(maximum(abs.(Sveg_fortran - fsm.Sveg)))
+    println(maximum(abs.(Tcan_fortran - fsm.Tcan)))
+    println(maximum(abs.(theta_fortran - fsm.theta)))
+    println(maximum(abs.(Tsnow_fortran - fsm.Tsnow)))
+    println(maximum(abs.(Tsoil_fortran - fsm.Tsoil)))
+    println(maximum(abs.(Tsrf_fortran - fsm.Tsrf)))
+    println(maximum(abs.(fsnow_fortran - fsm.fsnow)))
+    println(maximum(abs.(Tveg_fortran - fsm.Tveg)))
+    println(maximum(abs.(snowdepthmin_fortran - fsm.snowdepthmin)))
+    println(maximum(abs.(snowdepthmax_fortran - fsm.snowdepthmax)))
+    println(maximum(abs.(snowdepthhist_fortran - fsm.snowdepthhist)))
+    println(maximum(abs.(swemin_fortran - fsm.swemin)))
+    println(maximum(abs.(swemax_fortran - fsm.swemax)))
+    println(maximum(abs.(swehist_fortran - fsm.swehist)))
+    println(maximum(abs.(fcly_fortran - fsm.fcly)))
+    println(maximum(abs.(b_fortran - fsm.b)))
+    println(maximum(abs.(hcap_soil_fortran - fsm.hcap_soil)))
+    println(maximum(abs.(sathh_fortran - fsm.sathh)))
+    println(maximum(abs.(Vsat_fortran - fsm.Vsat)))
+    println(maximum(abs.(Vcrit_fortran - fsm.Vcrit)))
 
 end
 
@@ -92,7 +89,6 @@ Qa = similar(Ta)
 if length(output_file) > 0
   fout = open(output_file, "w") 
 end
-
 
 for (index,data) in enumerate(readlines(drive_file))
 
@@ -104,11 +100,11 @@ for (index,data) in enumerate(readlines(drive_file))
 
   global year, month, day, hour
 
-  year, month, day, hour = drive(data)
+  year, month, day, hour = drive(fsm, data)
 
   ### Run radiation
 
-  radiation()
+  radiation(fsm)
 
   fortran = readlines("../fortran/temp/test_radiation.txt")
 
@@ -132,7 +128,7 @@ for (index,data) in enumerate(readlines(drive_file))
 
   ### Run thermal
 
-  thermal()
+  thermal(fsm)
 
   fortran = readlines("../fortran/temp/test_thermal.txt")
 
@@ -156,9 +152,9 @@ for (index,data) in enumerate(readlines(drive_file))
 
   ### Run sfexch and ebalsrf
 
-  for i in 1:Nitr
-    sfexch()
-    ebalsrf()
+  for i in 1:fsm.Nitr
+    sfexch(fsm)
+    ebalsrf(fsm)
   end
 
   fortran = readlines("../fortran/temp/test_sfexch.txt")
@@ -209,7 +205,7 @@ for (index,data) in enumerate(readlines(drive_file))
 
   # Run snow
 
-  snow()
+  snow(fsm)
 
   fortran = readlines("../fortran/temp/test_snow.txt")
 
@@ -241,7 +237,7 @@ for (index,data) in enumerate(readlines(drive_file))
 
   # Run soil
 
-  soil()
+  soil(fsm)
 
   fortran = readlines("../fortran/temp/test_soil.txt")
 
@@ -250,7 +246,7 @@ for (index,data) in enumerate(readlines(drive_file))
   Tsoil_fortran = parse.(Float64, split(fortran[1]))
 
   if length(output_file) > 0
-    println(fout,"$(year) $(month) $(day) $(hour) $(sum(Ds[:,1,1])) $(fsnow[1,1]) $(sum(Sice[:,1,1]+Sliq[:,1,1])) $(Tsrf[1,1]) $(Nsnow[1,1])")
+    println(fout,"$(year) $(month) $(day) $(hour) $(sum(fsm.Ds[:,1,1])) $(fsm.fsnow[1,1]) $(sum(fsm.Sice[:,1,1]+fsm.Sliq[:,1,1])) $(fsm.Tsrf[1,1]) $(fsm.Nsnow[1,1])")
   end
 
 end
@@ -324,15 +320,15 @@ if check_final_vals
   println(maximum(abs.(Roff_snow_fortran - Roff_snow)))
   println(maximum(abs.(fsnow_thres_fortran - fsnow_thres)))
   println(maximum(abs.(unload_fortran - unload)))
-  println(maximum(abs.(Tsnow_fortran - Tsnow[:, 1, 1])))
-  println(maximum(abs.(Sice_fortran - Sice[:, 1, 1])))
-  println(maximum(abs.(Sliq_fortran - Sliq[:, 1, 1])))
-  println(maximum(abs.(Ds_fortran - Ds[:, 1, 1])))
+  println(maximum(abs.(Tsnow_fortran - fsm.Tsnow[:, 1, 1])))
+  println(maximum(abs.(Sice_fortran - fsm.Sice[:, 1, 1])))
+  println(maximum(abs.(Sliq_fortran - fsm.Sliq[:, 1, 1])))
+  println(maximum(abs.(Ds_fortran - fsm.Ds[:, 1, 1])))
 
   # Test soil
 
   println("\nTest soil")
 
-  println(maximum(abs.(Tsoil_fortran - Tsoil)))
+  println(maximum(abs.(Tsoil_fortran - fsm.Tsoil)))
 
 end
