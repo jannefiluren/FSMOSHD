@@ -23,6 +23,12 @@ function snow(fsm::FSM)
   
   @unpack dem, tilefrac = fsm
 
+  @unpack ksnow, ksoil = fsm
+
+  @unpack Esrf, G, Melt = fsm
+
+  @unpack Gsoil, Roff, meltflux_out, Sbsrf, Roff_bare, Roff_snow, fsnow_thres, unload = fsm
+
   Gsoil[:, :] .= G[:, :]
   Roff[:, :] .= 0
   meltflux_out[:, :] .= 0

@@ -10,13 +10,16 @@ function soil(fsm::FSM)
 
   @unpack tilefrac = fsm
 
+  @unpack csoil, ksoil = fsm
+
+  @unpack Gsoil = fsm
+
   a = zeros(Nsoil)
   b = zeros(Nsoil)
   c = zeros(Nsoil)
   dTs = zeros(Nsoil)
   Gs = zeros(Nsoil)
   rhs = zeros(Nsoil)
-
 
   for j = 1:Ny
     for i = 1:Nx

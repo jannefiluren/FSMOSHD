@@ -21,6 +21,8 @@ function thermal(fsm::FSM)
 
   @unpack CONDCT, DENSTY, TILE = fsm
 
+  @unpack ksnow, csoil, ksoil, gs1, Ds1, Ts1, ks1, Tveg0 = fsm
+
   # Thermal conductivity of snow
   for j = 1:Ny
     for i = 1:Nx

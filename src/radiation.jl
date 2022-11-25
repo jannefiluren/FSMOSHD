@@ -22,6 +22,8 @@ function radiation(fsm::FSM)
 
   @unpack ALBEDO, OSHDTN, RADSBG, CANMOD = fsm
 
+  @unpack alb, asrf_out, Sdirt, Sdift, SWveg, SWsrf, SWsci, LWt, SWtopo_out = fsm
+  
   # Snow albedo
   for j = 1:Ny
     for i = 1:Nx

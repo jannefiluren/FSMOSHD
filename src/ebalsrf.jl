@@ -27,6 +27,14 @@ function ebalsrf(fsm::FSM)
 
   @unpack fveg, tilefrac = fsm
 
+  @unpack SWsrf = fsm
+
+  @unpack Ds1, Ts1, ks1 = fsm
+
+  @unpack Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf = fsm
+
+  @unpack KH, KWg = fsm
+
   for j = 1:Ny
     for i = 1:Nx
 

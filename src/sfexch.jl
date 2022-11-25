@@ -24,6 +24,10 @@ function sfexch(fsm::FSM)
 
   @unpack dem, fveg, fves, hcan, tilefrac = fsm
 
+  @unpack KH, KHa, KHg, KHv, KWg, KWv, Usc = fsm
+
+  @unpack gs1 = fsm
+  
   for j = 1:Ny
     for i = 1:Nx
       if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest

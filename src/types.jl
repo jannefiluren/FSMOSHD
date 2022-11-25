@@ -155,4 +155,63 @@
   swehist::Array{T} = zeros(14,Nx,Ny)
   fsky_terr::Array{T} = zeros(Nx,Ny)
 
+  # Radiation - temporary arrays
+
+  alb::Array{T} = zeros(Nx,Ny)
+  asrf_out::Array{T} = zeros(Nx,Ny)
+  Sdirt::Array{T} = zeros(Nx,Ny)
+  Sdift::Array{T} = zeros(Nx,Ny)
+  SWveg::Array{T} = zeros(Nx,Ny)
+  SWsrf::Array{T} = zeros(Nx,Ny)
+  SWsci::Array{T} = zeros(Nx,Ny)
+  LWt::Array{T} = zeros(Nx,Ny)
+  SWtopo_out::Array{T} = zeros(Nx,Ny)
+
+  # Thermal - temporary arrays
+
+  ksnow::Array{T} = zeros(Nsmax, Nx, Ny)
+  csoil::Array{T} = zeros(Nsoil, Nx, Ny)
+  ksoil::Array{T} = zeros(Nsoil, Nx, Ny)
+  gs1::Array{T} = zeros(Nx, Ny)
+  Ds1::Array{T} = zeros(Nx, Ny)
+  Ts1::Array{T} = zeros(Nx, Ny)
+  ks1::Array{T} = zeros(Nx, Ny)
+  Tveg0::Array{T} = zeros(Nx, Ny)
+
+  # Sfexch - temporary arrays
+
+  KH::Array{T} = zeros(Nx, Ny)
+  KHa::Array{T} = zeros(Nx, Ny)
+  KHg::Array{T} = zeros(Nx, Ny)
+  KHv::Array{T} = zeros(Nx, Ny)
+  KWg::Array{T} = zeros(Nx, Ny)
+  KWv::Array{T} = zeros(Nx, Ny)
+  Usc::Array{T} = zeros(Nx, Ny)
+
+  # Ebalsrf - temporary arrays
+
+  Esrf::Array{T} = zeros(Nx,Ny)
+  Eveg::Array{T} = zeros(Nx,Ny)
+  G::Array{T} = zeros(Nx,Ny)
+  H::Array{T} = zeros(Nx,Ny)
+  Hsrf::Array{T} = zeros(Nx,Ny)
+  LE::Array{T} = zeros(Nx,Ny)
+  LEsrf::Array{T} = zeros(Nx,Ny)
+  LWsci::Array{T} = zeros(Nx,Ny)
+  LWveg::Array{T} = zeros(Nx,Ny)
+  Melt::Array{T} = zeros(Nx,Ny)
+  Rnet::Array{T} = zeros(Nx,Ny)
+  Rsrf::Array{T} = zeros(Nx,Ny)
+
+  # Snow - temporary arrays
+
+  Gsoil::Array{T} = zeros(Nx, Ny)
+  Roff::Array{T} = zeros(Nx, Ny)
+  meltflux_out::Array{T} = zeros(Nx, Ny)
+  Sbsrf::Array{T} = zeros(Nx, Ny)
+  Roff_bare::Array{T} = zeros(Nx, Ny)
+  Roff_snow::Array{T} = zeros(Nx, Ny)
+  fsnow_thres::Array{T} = zeros(Nx, Ny)
+  unload::Array{T} = zeros(Nx, Ny)
+
 end
