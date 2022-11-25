@@ -1,6 +1,6 @@
 # ./run_all_whole_season.bat
 
-station = "SLF.5WJ"
+station = ARGS[1]
 
 drive_file = "../fortran/input/input_" * replace(station, "." => "_") * ".txt"
 output_file = "../fortran/output_julia/output_" * replace(station, "." => "_") * "_test.txt"
