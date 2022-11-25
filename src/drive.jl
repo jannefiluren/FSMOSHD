@@ -34,3 +34,20 @@ function drive(fsm, data)
   return year, month, day, hour
 
 end
+
+
+function drive!(fsm, Tc, es, Qa, Ua, Sf, Rf, Ta, RH, Ps)
+
+  @unpack dt = fsm
+
+  Ua .= max.(Ua, 0.1)
+
+  Sf .= Sf ./ dt
+  Rf .= Rf ./ dt
+  Tc .= Ta .- Tm
+  es .= e0 * exp.(17.5043 * Tc ./ (241.3 .+ Tc))
+  Qa .= (RH ./ 100) .* eps_fsm .* es ./ Ps
+
+end
+
+
