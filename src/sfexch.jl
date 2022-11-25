@@ -6,7 +6,7 @@
 # KWv = zeros(Nx, Ny)
 # Usc = zeros(Nx, Ny)
 
-function sfexch(fsm::FSM)
+function sfexch(fsm::FSM, Ta, Ps, Qa, Ua)
 
   @unpack CANMOD, ZOFFST, EXCHNG, OSHDTN, SNFRAC = fsm
 

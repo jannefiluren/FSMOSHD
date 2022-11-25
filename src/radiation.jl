@@ -8,7 +8,7 @@
 # LWt = similar(albs)   ### hack
 # SWtopo_out = similar(albs)   ### hack
 
-function radiation(fsm::FSM)
+function radiation(fsm::FSM, year, month, day, hour, LW, Sdif, Sdir, Sf, Sf24h, Ta, Tv)
 
   @unpack Nx, Ny, dt = fsm
   

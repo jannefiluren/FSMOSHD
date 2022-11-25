@@ -11,7 +11,7 @@
 # Rnet = zeros(Nx,Ny)
 # Rsrf = zeros(Nx,Ny)
 
-function ebalsrf(fsm::FSM)
+function ebalsrf(fsm::FSM, LW, Ps, Qa, Ta)
 
   @unpack CANMOD = fsm
 

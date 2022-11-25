@@ -7,7 +7,7 @@
 # fsnow_thres = zeros(Nx, Ny)
 # unload = zeros(Nx, Ny)
 
-function snow(fsm::FSM)
+function snow(fsm::FSM, Rf, Sf, Ta, Ua)
 
   @unpack HYDROL, DENSTY, OSHDTN, HN_ON, SNFRAC = fsm
 
