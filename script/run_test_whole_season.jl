@@ -4,6 +4,7 @@ station = "SLF.5WJ"
 
 drive_file = "../fortran/input/input_" * replace(station, "." => "_") * ".txt"
 output_file = "../fortran/output_julia/output_" * replace(station, "." => "_") * "_test.txt"
+terrain_file = "../fortran/input/terrain_" * replace(station, "." => "_") * ".txt"
 state_file = ""
 check_final_vals = false
 
