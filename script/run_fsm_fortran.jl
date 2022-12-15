@@ -3,7 +3,11 @@ function run_fsm_fortran(station)
 write_namelist(station)
 
 cd("../fortran")
-run(`FSM2_txt_64.exe nlst_from_julia.nam`)
+if Sys.iswindows()
+  run(`FSM2_txt_64.exe nlst_from_julia.nam`)
+else
+  run(`FSM2_txt_64 nlst_from_julia.nam`)
+end
 cd("../script")
 
 end
