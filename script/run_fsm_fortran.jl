@@ -6,7 +6,7 @@ cd("../fortran")
 if Sys.iswindows()
   run(`FSM2_txt_64.exe nlst_from_julia.nam`)
 else
-  run(`FSM2_txt_64 nlst_from_julia.nam`)
+  run(`./FSM2_TXT_64 nlst_from_julia.nam`)
 end
 cd("../script")
 

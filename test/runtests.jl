@@ -15,6 +15,8 @@ include("../script/compile_fsm.jl")
 
   cd(path)
 
+  mkdir("../fortran/output_64/")
+
   for station in ["SLF.5WJ", "MCH.BLS2", "MCH.MAG2", "MCH.OTE2", "MCH.SCD2", "MCH.LUN2", "MCH.JUN2"]
 
     run_fsm_fortran(station)
