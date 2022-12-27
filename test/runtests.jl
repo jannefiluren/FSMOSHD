@@ -7,15 +7,15 @@ include("../script/compile_fsm.jl")
 
 @testset "complete_season" begin
   
-  path = pwd()
+  path = @__DIR__
 
-  cd("../fortran/fsm_txt_64/")
+  cd(joinpath(path, "..", "fortran", "fsm_txt_64"))
 
   compile()
 
   cd(path)
 
-  mkpath("../fortran/output_64/")
+  mkpath(joinpath(path, "..", "fortran", "output_64"))
 
   for station in ["SLF.5WJ", "MCH.BLS2", "MCH.MAG2", "MCH.OTE2", "MCH.SCD2", "MCH.LUN2", "MCH.JUN2"]
 
