@@ -1,8 +1,8 @@
 @with_kw mutable struct FSM{T}
   
   # Maximum snow and soil layer thicknesses
-  Dzsnow = [0.1, 0.2, 0.4]
-  Dzsoil = [0.1, 0.2, 0.4, 0.8]
+  Dzsnow::Vector{T} = [0.1, 0.2, 0.4]
+  Dzsoil::Vector{T} = [0.1, 0.2, 0.4, 0.8]
   
   # Base variables
   Nx::Int = 1
@@ -30,7 +30,7 @@
   FOR_HN = true    # TODO add type
 
   tthresh::T = 0.1    # TODO check if this is the best handling
-  TILE = "open"    # TODO check if this is the best handling and type
+  TILE::String = "open"    # TODO check if this is the best handling and type
 
   # Numerical solution parameters
   Nitr = 4
