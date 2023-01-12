@@ -2,20 +2,23 @@ function run_fsm_fortran(station)
 
 write_namelist(station)
 
-cd("../fortran")
+projdir = dirname(dirname(@__FILE__))
+
+cd(joinpath(projdir, "fortran"))
 if Sys.iswindows()
   run(`FSM2_txt_64.exe nlst_from_julia.nam`)
 else
   run(`./FSM2_TXT_64 nlst_from_julia.nam`)
 end
-cd("../script")
+cd(joinpath(projdir, "script"))
 
 end
 
 
 function write_namelist(station; NALBEDO=2, NCANMOD=0, NCONDCT=1, NDENSTY=3, NEXCHNG=1, NHYDROL=2, NSNFRAC=3, NRADSBG=0, NZOFFST=0, NOSHDTN=1)
 
-  terrain = readline("../fortran/input/terrain_" * replace(station,"." => "_") * ".txt")
+  projdir = dirname(dirname(@__FILE__))
+  terrain = readline(joinpath(projdir, "fortran", "input", "terrain_") * replace(station,"." => "_") * ".txt")
   terrain = parse.(Float64,split(terrain,","))
   
   fsky_terr = terrain[1]
@@ -82,8 +85,8 @@ function write_namelist(station; NALBEDO=2, NCANMOD=0, NCONDCT=1, NDENSTY=3, NEX
     pmultf = 1,
   /
   """
-  
-  open("../fortran/nlst_from_julia.nam", "w") do io
+
+  open(joinpath(projdir, "fortran", "nlst_from_julia.nam"), "w") do io
     write(io,nlst)
   end;
   
