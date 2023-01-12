@@ -31,7 +31,7 @@ function ebalsrf(fsm::FSM, LW, Ps, Qa, Ta)
 
   @unpack Ds1, Ts1, ks1 = fsm
 
-  @unpack Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf = fsm
+  @unpack dTs, Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf = fsm
 
   @unpack KH, KWg = fsm
 
@@ -43,7 +43,7 @@ function ebalsrf(fsm::FSM, LW, Ps, Qa, Ta)
         if ((CANMOD == 1 && fveg[i, j] == 0) || CANMOD == 0)
 
           local D #### hack
-          global dTs #### hack
+          #global dTs #### hack
 
           Tveg[i, j] = Ta[i, j]
           Tcan[i, j] = Ta[i, j]
@@ -66,21 +66,21 @@ function ebalsrf(fsm::FSM, LW, Ps, Qa, Ta)
           Rnet[i, j] = SWsrf[i, j] + trcn[i, j] * LW[i, j] - sb * Tsrf[i, j]^4 + (1 - trcn[i, j]) * sb * Tveg[i, j]^4
 
           # Surface energy balance increments without melt
-          dTs = (Rnet[i, j] - G[i, j] - H[i, j] - LE[i, j]) / (4 * sb * Tsrf[i, j]^3 + 2 * ks1[i, j] / Ds1[i, j] + rho * (cp * KH[i, j] + Lh * D * KWg[i, j]))
-          dE = rho * KWg[i, j] * D * dTs
-          dG = 2 * ks1[i, j] * dTs / Ds1[i, j]
-          dH = cp * rho * KH[i, j] * dTs
-          dR = -4 * sb * Tsrf[i, j]^3 * dTs
+          dTs[i, j] = (Rnet[i, j] - G[i, j] - H[i, j] - LE[i, j]) / (4 * sb * Tsrf[i, j]^3 + 2 * ks1[i, j] / Ds1[i, j] + rho * (cp * KH[i, j] + Lh * D * KWg[i, j]))
+          dE = rho * KWg[i, j] * D * dTs[i, j]
+          dG = 2 * ks1[i, j] * dTs[i, j] / Ds1[i, j]
+          dH = cp * rho * KH[i, j] * dTs[i, j]
+          dR = -4 * sb * Tsrf[i, j]^3 * dTs[i, j]
 
           # Surface melting
-          if (Tsrf[i, j] + dTs > Tm && Sice[1, i, j] > eps(Float64))
+          if (Tsrf[i, j] + dTs[i, j] > Tm && Sice[1, i, j] > eps(Float64))
             Melt[i, j] = sum(Sice[:, i, j]) / dt
-            dTs = (Rnet[i, j] - G[i, j] - H[i, j] - LE[i, j] - Lf * Melt[i, j]) / (4 * sb * Tsrf[i, j]^3 + 2 * ks1[i, j] / Ds1[i, j] + rho * (cp * KH[i, j] + Ls * D * KWg[i, j]))
-            dE = rho * KWg[i, j] * D * dTs
-            dG = 2 * ks1[i, j] * dTs / Ds1[i, j]
-            dH = cp * rho * KH[i, j] * dTs
-            dR = -4 * sb * Tsrf[i, j]^3 * dTs
-            if (Tsrf[i, j] + dTs < Tm)
+            dTs[i, j] = (Rnet[i, j] - G[i, j] - H[i, j] - LE[i, j] - Lf * Melt[i, j]) / (4 * sb * Tsrf[i, j]^3 + 2 * ks1[i, j] / Ds1[i, j] + rho * (cp * KH[i, j] + Ls * D * KWg[i, j]))
+            dE = rho * KWg[i, j] * D * dTs[i, j]
+            dG = 2 * ks1[i, j] * dTs[i, j] / Ds1[i, j]
+            dH = cp * rho * KH[i, j] * dTs[i, j]
+            dR = -4 * sb * Tsrf[i, j]^3 * dTs[i, j]
+            if (Tsrf[i, j] + dTs[i, j] < Tm)
               Qs = qsat(Ps[i, j], Tm)  #call QSAT(Ps[i,j],Tm,Qs)
               Esrf[i, j] = rho * KWg[i, j] * (Qs - Qa[i, j])
               G[i, j] = 2 * ks1[i, j] * (Tm - Ts1[i, j]) / Ds1[i, j]
@@ -89,11 +89,11 @@ function ebalsrf(fsm::FSM, LW, Ps, Qa, Ta)
               Rnet[i, j] = SWsrf[i, j] + trcn[i, j] * LW[i, j] - sb * Tm^4 + (1 - trcn[i, j]) * sb * Tveg[i, j]^4
               Melt[i, j] = (Rnet[i, j] - H[i, j] - LE[i, j] - G[i, j]) / Lf
               Melt[i, j] = max(Melt[i, j], 0.0)
-              dE = 0
-              dG = 0
-              dH = 0
-              dR = 0
-              dTs = Tm - Tsrf[i, j]
+              dE = 0.0
+              dG = 0.0
+              dH = 0.0
+              dR = 0.0
+              dTs[i, j] = Tm - Tsrf[i, j]
             end
           end
 
@@ -103,18 +103,18 @@ function ebalsrf(fsm::FSM, LW, Ps, Qa, Ta)
           #     - does not conserve energy.
           # The excess energy would correspond to glacier melting, which we don't track.
           if (TILE == "glacier")
-            if (Tsrf[i, j] + dTs > Tm && Sice[1, i, j] <= eps(Float64))
+            if (Tsrf[i, j] + dTs[i, j] > Tm && Sice[1, i, j] <= eps(Float64))
               Qs = qsat(Ps[i, j], Tm)  #call QSAT(Ps[i,j],Tm,Qs)
               Esrf[i, j] = rho * KWg[i, j] * (Qs - Qa[i, j])
               G[i, j] = 2 * ks1[i, j] * (Tm - Ts1[i, j]) / Ds1[i, j]
               H[i, j] = cp * rho * KH[i, j] * (Tm - Ta[i, j])
               LE[i, j] = Ls * Esrf[i, j]
               Rnet[i, j] = SWsrf[i, j] + trcn[i, j] * LW[i, j] - sb * Tm^4 + (1 - trcn[i, j]) * sb * Tveg[i, j]^4
-              dE = 0
-              dG = 0
-              dH = 0
-              dR = 0
-              dTs = Tm - Tsrf[i, j]
+              dE = 0.0
+              dG = 0.0
+              dH = 0.0
+              dR = 0.0
+              dTs[i, j] = Tm - Tsrf[i, j]
             end
           end
 
@@ -124,7 +124,7 @@ function ebalsrf(fsm::FSM, LW, Ps, Qa, Ta)
           H[i, j] = H[i, j] + dH
           LE[i, j] = Lh * Esrf[i, j]
           Rnet[i, j] = Rnet[i, j] + dR
-          Tsrf[i, j] = Tsrf[i, j] + dTs
+          Tsrf[i, j] = Tsrf[i, j] + dTs[i, j]
 
           # Sublimation limited by amount of snow after melt
           Ssub = sum(Sice[:, i, j]) - Melt[i, j] * dt
