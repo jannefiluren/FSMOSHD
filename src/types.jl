@@ -190,7 +190,7 @@
   Usc::Array{T,2} = zeros(Nx, Ny)
 
   # Ebalsrf - temporary arrays
-
+  dTs::Array{T, 2} = zeros(Nx,Ny)
   Esrf::Array{T,2} = zeros(Nx,Ny)
   Eveg::Array{T,2} = zeros(Nx,Ny)
   G::Array{T,2} = zeros(Nx,Ny)
