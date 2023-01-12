@@ -64,7 +64,7 @@ function sfexch(fsm::FSM, Ta, Ps, Qa, Ua)
 
         # BC, stabilize the tuning point runs by using a Ds threshold instead of fsnow.
         # TODO: test the impact for the grid points.
-        if (SNFRAC == 3)
+        if (SNFRAC == 3) 
           if (sum(Ds[:, i, j]) <= 0.05)
             z0g = z0sf[i, j]
           end
@@ -104,8 +104,8 @@ function sfexch(fsm::FSM, Ta, Ps, Qa, Ua)
 
         if (EXCHNG == 0)
           # No stability adjustment
-          fh = 1
-          Ric = 0
+          fh = 1.0
+          Ric = 0.0
         end
         if (EXCHNG == 1)
           # Stability adjustment (Louis et al. 1982, quoted by Beljaars 1992)
