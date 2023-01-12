@@ -96,122 +96,123 @@
   khcf::T = 3
 
   # Surface properties
-  alb0::Array{T} = 0.2*ones(Nx,Ny)
-  z0sf::Array{T} = 0.2*ones(Nx,Ny)
-  fcly::Array{T} = 0.3*ones(Nx,Ny)
-  fsnd::Array{T} = 0.6*ones(Nx,Ny)
+  alb0::Array{T,2} = 0.2*ones(Nx,Ny)
+  z0sf::Array{T, 2} = 0.2*ones(Nx,Ny)
+  fcly::Array{T, 2} = 0.3*ones(Nx,Ny)
+  fsnd::Array{T, 2} = 0.6*ones(Nx,Ny)
 
   # Canopy parameters
-  canh::Array{T} = zeros(Nx,Ny)   # todo may need to change
-  fsky::Array{T} = zeros(Nx,Ny)   # todo may need to change
-  fveg::Array{T} = zeros(Nx,Ny)   # todo may need to change
-  fves::Array{T} = zeros(Nx,Ny)   # todo may need to change
-  hcan::Array{T} = zeros(Nx,Ny)   # todo may need to change
-  lai::Array{T} = zeros(Nx,Ny)   # todo may need to change
-  pmultf::Array{T} = zeros(Nx,Ny)   # todo may need to change
-  scap::Array{T} = zeros(Nx,Ny)   # todo may need to change
-  trcn::Array{T} = zeros(Nx,Ny)   # todo may need to change
-  VAI::Array{T} = zeros(Nx,Ny)   # todo may need to change
-  vfhp::Array{T} = zeros(Nx,Ny)   # todo may need to change
+  canh::Array{T, 2} = zeros(Nx,Ny)   # todo may need to change
+  fsky::Array{T, 2} = zeros(Nx,Ny)   # todo may need to change
+  fveg::Array{T, 2} = zeros(Nx,Ny)   # todo may need to change
+  fves::Array{T, 2} = zeros(Nx,Ny)   # todo may need to change
+  hcan::Array{T, 2} = zeros(Nx,Ny)   # todo may need to change
+  lai::Array{T, 2} = zeros(Nx,Ny)   # todo may need to change
+  pmultf::Array{T, 2} = zeros(Nx,Ny)   # todo may need to change
+  scap::Array{T, 2} = zeros(Nx,Ny)   # todo may need to change
+  trcn::Array{T, 2} = zeros(Nx,Ny)   # todo may need to change
+  VAI::Array{T, 2} = zeros(Nx,Ny)   # todo may need to change
+  vfhp::Array{T, 2} = zeros(Nx,Ny)   # todo may need to change
 
   # Terrain properties
-  slopemu::Array{T} = zeros(Nx,Ny)
-  xi::Array{T} = zeros(Nx,Ny)
-  Ld::Array{T} = zeros(Nx,Ny)
-  lat::Array{T} = zeros(Nx,Ny)
-  lon::Array{T} = zeros(Nx,Ny)
-  dem::Array{T} = zeros(Nx,Ny)
-  tilefrac::Array{T} = zeros(Nx,Ny)
+  slopemu::Array{T, 2} = zeros(Nx,Ny)
+  xi::Array{T, 2} = zeros(Nx,Ny)
+  Ld::Array{T, 2} = zeros(Nx,Ny)
+  lat::Array{T, 2} = zeros(Nx,Ny)
+  lon::Array{T, 2} = zeros(Nx,Ny)
+  dem::Array{T, 2} = zeros(Nx,Ny)
+  tilefrac::Array{T,2} = zeros(Nx,Ny)
 
   # Derived soil parameters
-  b::Array{T} = zeros(Nx,Ny)
-  hcap_soil::Array{T} = zeros(Nx,Ny)
-  hcon_soil::Array{T} = zeros(Nx,Ny)
-  sathh::Array{T} = zeros(Nx,Ny)
-  Vsat::Array{T} = zeros(Nx,Ny)
-  Vcrit::Array{T} = zeros(Nx,Ny)
+  b::Array{T, 2} = zeros(Nx,Ny)
+  hcap_soil::Array{T, 2} = zeros(Nx,Ny)
+  hcon_soil::Array{T, 2} = zeros(Nx,Ny)
+  sathh::Array{T, 2} = zeros(Nx,Ny)
+  Vsat::Array{T, 2} = zeros(Nx,Ny)
+  Vcrit::Array{T, 2} = zeros(Nx,Ny)
 
   # State variables
-  albs::Array{T} = 0.85.*ones(Nx,Ny)
-  Ds::Array{T} = zeros(Nsmax,Nx,Ny)
-  Nsnow::Array{Int} = zeros(Nx,Ny)
-  Qcan::Array{T} = zeros(Nx,Ny)
-  rgrn::Array{T} = zeros(Nsmax,Nx,Ny)
-  Sice::Array{T} = zeros(Nsmax,Nx,Ny)
-  Sliq::Array{T} = zeros(Nsmax,Nx,Ny)
-  Sveg::Array{T} = zeros(Nx,Ny)
-  Tcan::Array{T} = 273.15.*ones(Nx,Ny)
-  theta::Array{T} = zeros(Nsoil,Nx,Ny)
-  Tsnow::Array{T} = 273.15.*ones(Nsmax,Nx,Ny)
-  Tsoil::Array{T} = 273.15.*ones(Nsoil,Nx,Ny)
-  Tsrf::Array{T} = zeros(Nx,Ny)
-  fsnow::Array{T} = zeros(Nx,Ny)
-  Tveg::Array{T} = 273.15.*ones(Nx,Ny)
-  snowdepthmin::Array{T} = zeros(Nx,Ny)
-  snowdepthmax::Array{T} = zeros(Nx,Ny)
-  snowdepthhist::Array{T} = zeros(14,Nx,Ny)
-  swemin::Array{T} = zeros(Nx,Ny)
-  swemax::Array{T} = zeros(Nx,Ny)
-  swehist::Array{T} = zeros(14,Nx,Ny)
-  fsky_terr::Array{T} = zeros(Nx,Ny)
+  albs::Array{T, 2} = 0.85.*ones(Nx,Ny)
+  Ds::Array{T,3} = zeros(Nsmax,Nx,Ny)
+  Nsnow::Array{Int,2} = zeros(Nx,Ny)
+  Qcan::Array{T, 2} = zeros(Nx,Ny)
+  rgrn::Array{T,3} = zeros(Nsmax,Nx,Ny)
+  Sice::Array{T,3} = zeros(Nsmax,Nx,Ny)
+  Sliq::Array{T,3} = zeros(Nsmax,Nx,Ny)
+  Sveg::Array{T, 2} = zeros(Nx,Ny)
+  Tcan::Array{T, 2} = 273.15.*ones(Nx,Ny)
+  theta::Array{T,3} = zeros(Nsoil,Nx,Ny)
+  Tsnow::Array{T,3} = 273.15.*ones(Nsmax,Nx,Ny)
+  Tsoil::Array{T,3} = 273.15.*ones(Nsoil,Nx,Ny)
+  Tsrf::Array{T, 2} = zeros(Nx,Ny)
+  fsnow::Array{T, 2} = zeros(Nx,Ny)
+  Tveg::Array{T, 2} = 273.15.*ones(Nx,Ny)
+  snowdepthmin::Array{T, 2} = zeros(Nx,Ny)
+  snowdepthmax::Array{T, 2} = zeros(Nx,Ny)
+  snowdepthhist::Array{T,3} = zeros(14,Nx,Ny)
+  swemin::Array{T, 2} = zeros(Nx,Ny)
+  swemax::Array{T, 2} = zeros(Nx,Ny)
+  swehist::Array{T,3} = zeros(14,Nx,Ny)
+  fsky_terr::Array{T, 2} = zeros(Nx,Ny)
 
   # Radiation - temporary arrays
 
-  alb::Array{T} = zeros(Nx,Ny)
-  asrf_out::Array{T} = zeros(Nx,Ny)
-  Sdirt::Array{T} = zeros(Nx,Ny)
-  Sdift::Array{T} = zeros(Nx,Ny)
-  SWveg::Array{T} = zeros(Nx,Ny)
-  SWsrf::Array{T} = zeros(Nx,Ny)
-  SWsci::Array{T} = zeros(Nx,Ny)
-  LWt::Array{T} = zeros(Nx,Ny)
-  SWtopo_out::Array{T} = zeros(Nx,Ny)
+  afs::Array{T,2} = zeros(Nx, Ny)
+  alb::Array{T,2} = zeros(Nx,Ny)
+  asrf_out::Array{T,2} = zeros(Nx,Ny)
+  Sdirt::Array{T,2} = zeros(Nx,Ny)
+  Sdift::Array{T,2} = zeros(Nx,Ny)
+  SWveg::Array{T,2} = zeros(Nx,Ny)
+  SWsrf::Array{T,2} = zeros(Nx,Ny)
+  SWsci::Array{T,2} = zeros(Nx,Ny)
+  LWt::Array{T,2} = zeros(Nx,Ny)
+  SWtopo_out::Array{T,2} = zeros(Nx,Ny)
 
   # Thermal - temporary arrays
 
-  ksnow::Array{T} = zeros(Nsmax, Nx, Ny)
-  csoil::Array{T} = zeros(Nsoil, Nx, Ny)
-  ksoil::Array{T} = zeros(Nsoil, Nx, Ny)
-  gs1::Array{T} = zeros(Nx, Ny)
-  Ds1::Array{T} = zeros(Nx, Ny)
-  Ts1::Array{T} = zeros(Nx, Ny)
-  ks1::Array{T} = zeros(Nx, Ny)
-  Tveg0::Array{T} = zeros(Nx, Ny)
+  ksnow::Array{T,3} = zeros(Nsmax, Nx, Ny)
+  csoil::Array{T,3} = zeros(Nsoil, Nx, Ny)
+  ksoil::Array{T,3} = zeros(Nsoil, Nx, Ny)
+  gs1::Array{T,2} = zeros(Nx, Ny)
+  Ds1::Array{T,2} = zeros(Nx, Ny)
+  Ts1::Array{T,2} = zeros(Nx, Ny)
+  ks1::Array{T,2} = zeros(Nx, Ny)
+  Tveg0::Array{T,2} = zeros(Nx, Ny)
 
   # Sfexch - temporary arrays
 
-  KH::Array{T} = zeros(Nx, Ny)
-  KHa::Array{T} = zeros(Nx, Ny)
-  KHg::Array{T} = zeros(Nx, Ny)
-  KHv::Array{T} = zeros(Nx, Ny)
-  KWg::Array{T} = zeros(Nx, Ny)
-  KWv::Array{T} = zeros(Nx, Ny)
-  Usc::Array{T} = zeros(Nx, Ny)
+  KH::Array{T,2} = zeros(Nx, Ny)
+  KHa::Array{T,2} = zeros(Nx, Ny)
+  KHg::Array{T,2} = zeros(Nx, Ny)
+  KHv::Array{T,2} = zeros(Nx, Ny)
+  KWg::Array{T,2} = zeros(Nx, Ny)
+  KWv::Array{T,2} = zeros(Nx, Ny)
+  Usc::Array{T,2} = zeros(Nx, Ny)
 
   # Ebalsrf - temporary arrays
 
-  Esrf::Array{T} = zeros(Nx,Ny)
-  Eveg::Array{T} = zeros(Nx,Ny)
-  G::Array{T} = zeros(Nx,Ny)
-  H::Array{T} = zeros(Nx,Ny)
-  Hsrf::Array{T} = zeros(Nx,Ny)
-  LE::Array{T} = zeros(Nx,Ny)
-  LEsrf::Array{T} = zeros(Nx,Ny)
-  LWsci::Array{T} = zeros(Nx,Ny)
-  LWveg::Array{T} = zeros(Nx,Ny)
-  Melt::Array{T} = zeros(Nx,Ny)
-  Rnet::Array{T} = zeros(Nx,Ny)
-  Rsrf::Array{T} = zeros(Nx,Ny)
+  Esrf::Array{T,2} = zeros(Nx,Ny)
+  Eveg::Array{T,2} = zeros(Nx,Ny)
+  G::Array{T,2} = zeros(Nx,Ny)
+  H::Array{T,2} = zeros(Nx,Ny)
+  Hsrf::Array{T,2} = zeros(Nx,Ny)
+  LE::Array{T,2} = zeros(Nx,Ny)
+  LEsrf::Array{T,2} = zeros(Nx,Ny)
+  LWsci::Array{T,2} = zeros(Nx,Ny)
+  LWveg::Array{T,2} = zeros(Nx,Ny)
+  Melt::Array{T,2} = zeros(Nx,Ny)
+  Rnet::Array{T,2} = zeros(Nx,Ny)
+  Rsrf::Array{T,2} = zeros(Nx,Ny)
 
   # Snow - temporary arrays
 
-  Gsoil::Array{T} = zeros(Nx, Ny)
-  Roff::Array{T} = zeros(Nx, Ny)
-  meltflux_out::Array{T} = zeros(Nx, Ny)
-  Sbsrf::Array{T} = zeros(Nx, Ny)
-  Roff_bare::Array{T} = zeros(Nx, Ny)
-  Roff_snow::Array{T} = zeros(Nx, Ny)
-  fsnow_thres::Array{T} = zeros(Nx, Ny)
-  unload::Array{T} = zeros(Nx, Ny)
+  Gsoil::Array{T,2} = zeros(Nx, Ny)
+  Roff::Array{T,2} = zeros(Nx, Ny)
+  meltflux_out::Array{T,2} = zeros(Nx, Ny)
+  Sbsrf::Array{T,2} = zeros(Nx, Ny)
+  Roff_bare::Array{T, 2} = zeros(Nx, Ny)
+  Roff_snow::Array{T, 2} = zeros(Nx, Ny)
+  fsnow_thres::Array{T, 2} = zeros(Nx, Ny)
+  unload::Array{T, 2} = zeros(Nx, Ny)
 
 end

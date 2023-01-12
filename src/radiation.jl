@@ -22,7 +22,7 @@ function radiation(fsm::FSM, year, month, day, hour, LW, Sdif, Sdir, Sf, Sf24h, 
 
   @unpack ALBEDO, OSHDTN, RADSBG, CANMOD = fsm
 
-  @unpack alb, asrf_out, Sdirt, Sdift, SWveg, SWsrf, SWsci, LWt, SWtopo_out = fsm
+  @unpack afs, alb, asrf_out, Sdirt, Sdift, SWveg, SWsrf, SWsci, LWt, SWtopo_out = fsm
   
   # Snow albedo
   for j = 1:Ny
@@ -32,27 +32,27 @@ function radiation(fsm::FSM, year, month, day, hour, LW, Sdif, Sdir, Sf, Sf24h, 
 
         # New Snow albedo 
         if (OSHDTN == 0)
-          global afs ### hack
-          afs = asmx
+          #global afs ### hack
+          afs[i, j] = asmx
         else # OSHDTN == 1
           # 11/2021 tuning: high elevation afs changed from 0.86 to 0.92
           if (dem[i, j] >= 2300)
-            afs = 0.92
+            afs[i,j] = 0.92
           elseif (dem[i, j] <= 1500)
-            afs = 0.80
+            afs[i,j] = 0.80
           else
-            afs = 0.92 + (2300 - dem[i, j]) / (2300 - 1500) * (0.80 - 0.92)
+            afs[i,j] = 0.92 + (2300 - dem[i, j]) / (2300 - 1500) * (0.80 - 0.92)
           end
         end
 
         if (ALBEDO == 0)
           # Diagnostic
-          albs[i, j] = asmn + (afs - asmn) * (Tsrf[i, j] - Tm) / Talb
-          if (albs[i, j] < min(afs, asmn))
-            albs[i, j] = min(afs, asmn)
+          albs[i, j] = asmn + (afs[i,j] - asmn) * (Tsrf[i, j] - Tm) / Talb
+          if (albs[i, j] < min(afs[i,j], asmn))
+            albs[i, j] = min(afs[i,j], asmn)
           end
-          if (albs[i, j] > max(afs, asmn))
-            albs[i, j] = max(afs, asmn)
+          if (albs[i, j] > max(afs[i,j], asmn))
+            albs[i, j] = max(afs[i,j], asmn)
           end
 
         elseif (ALBEDO == 1)
@@ -63,7 +63,7 @@ function radiation(fsm::FSM, year, month, day, hour, LW, Sdif, Sdir, Sf, Sf24h, 
           end
           # Forest adjustments -> not yet properly tested for OSHD but option currently unused
           if (month > 4 && month < 10)
-            tau = 70 * 3600
+            tau = 70.0 * 3600.0
           end
 
           if fveg[i, j] > 0 && Sdir[i, j] > eps(Float64)
@@ -71,22 +71,25 @@ function radiation(fsm::FSM, year, month, day, hour, LW, Sdif, Sdir, Sf, Sf24h, 
           elseif fveg[i, j] > 0 && Sdif[i, j] > eps(Float64)
             tau = tau / ((1 - trcn[i, j] * fsky[i, j]) + adfs * trcn[i, j] * fsky[i, j])
           elseif (fveg[i, j] > 0 && (Sdir[i, j] + Sdif[i, j] <= eps(Float64)))
-            tau = tau / (2 - trcn[i, j] * fsky[i, j])
+            tau = tau / (2.0 - trcn[i, j] * fsky[i, j])
           end
 
           rt = 1 / tau + Sf[i, j] / Sfmin
-          alim = (asmn / tau + Sf[i, j] * afs / Sfmin) / rt
+          alim = (asmn / tau + Sf[i, j] * afs[i,j] / Sfmin) / rt
           albs[i, j] = alim + (albs[i, j] - alim) * exp(-rt * dt)
-          if (albs[i, j] < min(afs, asmn))
-            albs[i, j] = min(afs, asmn)
+          if (albs[i, j] < min(afs[i,j], asmn))
+            albs[i, j] = min(afs[i,j], asmn)
           end
-          if (albs[i, j] > max(afs, asmn))
-            albs[i, j] = max(afs, asmn)
+          if (albs[i, j] > max(afs[i,j], asmn))
+            albs[i, j] = max(afs[i,j], asmn)
           end
 
         else # ALBEDO == 2
           # Prognostic, tuned, copied from JIM
-          SWEtmp = sum(Sice[:, i, j] + Sliq[:, i, j])
+          SWEtmp = 0.0
+          for si in 1:size(Sice, 1)
+            SWEtmp += Sice[si, i, j] + Sliq[si, i, j]
+          end
           ## DECAY RATES
           # Melting and cold snow decay times
           if (OSHDTN == 0)
@@ -106,17 +109,17 @@ function radiation(fsm::FSM, year, month, day, hour, LW, Sdif, Sdir, Sf, Sf24h, 
             albs[i, j] = albs[i, j] - (dt / 3600) / adc
           end
           if (SWEtmp < 75.0) # more stuff showing on and up through snow
-            afs = afs * 0.80
+            afs[i,j] *= 0.80
           end
           # Reset to fresh snow albedo (wasn't originally available; only else term)
           if ((Sf[i, j] * dt) > 0.0 && Sf24h[i, j] > Sfmin)
-            albs[i, j] = afs
+            albs[i, j] = afs[i,j]
           else
-            albs[i, j] = albs[i, j] + (afs - albs[i, j]) * Sf[i, j] * dt / Sfmin
+            albs[i, j] = albs[i, j] + (afs[i,j] - albs[i, j]) * Sf[i, j] * dt / Sfmin
           end
           ## End Adjustments
-          if (albs[i, j] > afs)
-            albs[i, j] = afs
+          if (albs[i, j] > afs[i,j])
+            albs[i, j] = afs[i,j]
           end
           if (albs[i, j] < asmn)
             albs[i, j] = asmn
@@ -139,7 +142,7 @@ function radiation(fsm::FSM, year, month, day, hour, LW, Sdif, Sdir, Sf, Sf24h, 
         end
 
         # Partial snowcover on canopy
-        fcans = 0
+        fcans = 0.0
         if (scap[i, j] > eps(Float64))
           fcans = Sveg[i, j] / scap[i, j]
         end
@@ -158,8 +161,8 @@ function radiation(fsm::FSM, year, month, day, hour, LW, Sdif, Sdir, Sf, Sf24h, 
         #   end
 
         if (RADSBG == 0)
-          global SWtopo_out  ### hack
-          SWtopo_out = alb[i, j] * (Sdir[i, j] + Sdif[i, j])
+          #global SWtopo_out  ### hack
+          SWtopo_out[i,j] = alb[i, j] * (Sdir[i, j] + Sdif[i, j])
           Sdirt[i, j] = Sdir[i, j]
           Sdift[i, j] = Sdif[i, j]
         end
