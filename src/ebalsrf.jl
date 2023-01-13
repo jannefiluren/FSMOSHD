@@ -31,7 +31,7 @@ function ebalsrf(fsm::FSM, LW, Ps, Qa, Ta)
 
   @unpack Ds1, Ts1, ks1 = fsm
 
-  @unpack dTs, Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf = fsm
+  @unpack dTs, Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf, Ssub = fsm
 
   @unpack KH, KWg = fsm
 
@@ -127,7 +127,11 @@ function ebalsrf(fsm::FSM, LW, Ps, Qa, Ta)
           Tsrf[i, j] = Tsrf[i, j] + dTs[i, j]
 
           # Sublimation limited by amount of snow after melt
-          Ssub = sum(Sice[:, i, j]) - Melt[i, j] * dt
+          Ssub = 0.0
+          for si in 1:size(Sice, 1)
+            Ssub += Sice[si, i, j]
+          end
+          Ssub -= Melt[i, j] * dt
           if (Ssub > eps(Float64) && Esrf[i, j] * dt > Ssub)
             Esrf[i, j] = Ssub / dt
             LE[i, j] = Ls * Esrf[i, j]

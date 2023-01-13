@@ -24,7 +24,7 @@ function sfexch(fsm::FSM, Ta, Ps, Qa, Ua)
 
   @unpack dem, fveg, fves, hcan, tilefrac = fsm
 
-  @unpack KH, KHa, KHg, KHv, KWg, KWv, Usc = fsm
+  @unpack KH, KHa, KHg, KHv, KWg, KWv, Usc, sumtmp = fsm
 
   @unpack gs1 = fsm
   
@@ -64,8 +64,13 @@ function sfexch(fsm::FSM, Ta, Ps, Qa, Ua)
 
         # BC, stabilize the tuning point runs by using a Ds threshold instead of fsnow.
         # TODO: test the impact for the grid points.
-        if (SNFRAC == 3) 
-          if (sum(Ds[:, i, j]) <= 0.05)
+        if (SNFRAC == 3)
+          sumtmp = 0.0
+          for si in 1:size(Ds, 1)
+            sumtmp += Ds[si, i, j]
+          end
+
+          if (sumtmp <= 0.05)
             z0g = z0sf[i, j]
           end
         else

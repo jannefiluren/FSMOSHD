@@ -188,6 +188,7 @@
   KWg::Array{T,2} = zeros(Nx, Ny)
   KWv::Array{T,2} = zeros(Nx, Ny)
   Usc::Array{T,2} = zeros(Nx, Ny)
+  sumtmp::T = zero(T)
 
   # Ebalsrf - temporary arrays
   dTs::Array{T, 2} = zeros(Nx,Ny)
@@ -203,6 +204,7 @@
   Melt::Array{T,2} = zeros(Nx,Ny)
   Rnet::Array{T,2} = zeros(Nx,Ny)
   Rsrf::Array{T,2} = zeros(Nx,Ny)
+  Ssub::T = zero(T)
 
   # Snow - temporary arrays
 
