@@ -26,8 +26,8 @@
   RADSBG::Int = 0
   ZOFFST::Int = 0
   OSHDTN::Int = 1
-  HN_ON = false    # TODO add type
-  FOR_HN = true    # TODO add type
+  HN_ON::Bool = false
+  FOR_HN::Bool = true
 
   tthresh::T = 0.1    # TODO check if this is the best handling
   TILE::String = "open"    # TODO check if this is the best handling and type
@@ -214,5 +214,19 @@
   Roff_snow::Array{T, 2} = zeros(Nx, Ny)
   fsnow_thres::Array{T, 2} = zeros(Nx, Ny)
   unload::Array{T, 2} = zeros(Nx, Ny)
+
+  a::Vector{T} = zeros(Nsmax)
+  bsnow::Vector{T} = zeros(Nsmax)
+  c::Vector{T} = zeros(Nsmax)
+  csnow::Vector{T} = zeros(Nsmax)
+  dTssnow::Vector{T} = zeros(Nsmax)
+  D::Vector{T} = zeros(Nsmax)
+  E::Vector{T} = zeros(Nsmax)
+  Gs::Vector{T} = zeros(Nsmax)
+  rhs::Vector{T} = zeros(Nsmax)
+  R::Vector{T} = zeros(Nsmax)
+  S::Vector{T} = zeros(Nsmax)
+  U::Vector{T} = zeros(Nsmax)
+  W::Vector{T} = zeros(Nsmax)
 
 end
