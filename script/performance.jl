@@ -31,13 +31,13 @@ Tv = zeros(fsm.Nx, fsm.Ny)
 
 drive!(fsm, Tc, es, Qa, Ua, Sf, Rf, Ta, RH, Ps)
 
-@code_warntype radiation(fsm, year, month, day, hour, LW, Sdif, Sdir, Sf, Sf24h, Ta, Tv)
+@code_warntype ebalsrf(fsm, LW, Ps, Qa, Ta)
 
 using BenchmarkTools
-@btime radiation(fsm, year, month, day, hour, LW, Sdif, Sdir, Sf, Sf24h, Ta, Tv)
+@btime ebalsrf(fsm, LW, Ps, Qa, Ta)
 
 using Profile, PProf
 Profile.Allocs.clear()
-Profile.Allocs.@profile sample_rate=1 radiation(fsm, year, month, day, hour, LW, Sdif, Sdir, Sf, Sf24h, Ta, Tv)
+Profile.Allocs.@profile sample_rate=1 ebalsrf(fsm, LW, Ps, Qa, Ta)
 results = Profile.Allocs.fetch();
 PProf.Allocs.pprof(results; from_c=false)
