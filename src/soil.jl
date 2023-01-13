@@ -14,14 +14,16 @@ function soil(fsm::FSM)
 
   @unpack Gsoil = fsm
 
+  @unpack asoil, bsoil, cssoil, dTssoil, Gssoil, rhssoil = fsm
+
   @unpack gammasoil = fsm
 
-  a = zeros(Nsoil)
-  b = zeros(Nsoil)
-  c = zeros(Nsoil)
-  dTs = zeros(Nsoil)
-  Gs = zeros(Nsoil)
-  rhs = zeros(Nsoil)
+  asoil .= 0.0
+  bsoil .= 0.0
+  cssoil .= 0.0
+  dTssoil .= 0.0
+  Gssoil .= 0.0
+  rhssoil .= 0.0
 
   for j = 1:Ny
     for i = 1:Nx
@@ -29,28 +31,28 @@ function soil(fsm::FSM)
       if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
 
         for k = 1:Nsoil-1
-          Gs[k] = 2 / (Dzsoil[k] / ksoil[k, i, j] + Dzsoil[k+1] / ksoil[k+1, i, j])
+          Gssoil[k] = 2 / (Dzsoil[k] / ksoil[k, i, j] + Dzsoil[k+1] / ksoil[k+1, i, j])
         end
-        a[1] = 0
-        b[1] = csoil[1, i, j] + Gs[1] * dt
-        c[1] = -Gs[1] * dt
-        rhs[1] = (Gsoil[i, j] - Gs[1] * (Tsoil[1, i, j] - Tsoil[2, i, j])) * dt
+        asoil[1] = 0
+        bsoil[1] = csoil[1, i, j] + Gssoil[1] * dt
+        cssoil[1] = -Gssoil[1] * dt
+        rhssoil[1] = (Gsoil[i, j] - Gssoil[1] * (Tsoil[1, i, j] - Tsoil[2, i, j])) * dt
         for k = 2:Nsoil-1
-          a[k] = c[k-1]
-          b[k] = csoil[k, i, j] + (Gs[k-1] + Gs[k]) * dt
-          c[k] = -Gs[k] * dt
-          rhs[k] = Gs[k-1] * (Tsoil[k-1, i, j] - Tsoil[k, i, j]) * dt + Gs[k] * (Tsoil[k+1, i, j] - Tsoil[k, i, j]) * dt
+          asoil[k] = cssoil[k-1]
+          bsoil[k] = csoil[k, i, j] + (Gssoil[k-1] + Gssoil[k]) * dt
+          cssoil[k] = -Gssoil[k] * dt
+          rhssoil[k] = Gssoil[k-1] * (Tsoil[k-1, i, j] - Tsoil[k, i, j]) * dt + Gssoil[k] * (Tsoil[k+1, i, j] - Tsoil[k, i, j]) * dt
         end
         k = Nsoil
-        Gs[k] = ksoil[k, i, j] / Dzsoil[k]
-        a[k] = c[k-1]
-        b[k] = csoil[k, i, j] + (Gs[k-1] + Gs[k]) * dt
-        c[k] = 0
-        rhs[k] = Gs[k-1] * (Tsoil[k-1, i, j] - Tsoil[k, i, j]) * dt
-        tridiag!(dTs, Nsoil, gammasoil, Nsoil, a, b, c, rhs)
-        ###call TRIDIAG(Nsoil,Nsoil,a,b,c,rhs,dTs)
+        Gssoil[k] = ksoil[k, i, j] / Dzsoil[k]
+        asoil[k] = cssoil[k-1]
+        bsoil[k] = csoil[k, i, j] + (Gssoil[k-1] + Gssoil[k]) * dt
+        cssoil[k] = 0
+        rhssoil[k] = Gssoil[k-1] * (Tsoil[k-1, i, j] - Tsoil[k, i, j]) * dt
+        tridiag!(dTssoil, Nsoil, gammasoil, Nsoil, asoil, bsoil, cssoil, rhssoil)
+        ###call TRIDIAG(Nsoil,Nsoil,asoil,bsoil,cssoil,rhssoil,dTssoil)
         for k = 1:Nsoil
-          Tsoil[k, i, j] = Tsoil[k, i, j] + dTs[k]
+          Tsoil[k, i, j] = Tsoil[k, i, j] + dTssoil[k]
         end
 
         # Cap glacier temperatures to 0°C

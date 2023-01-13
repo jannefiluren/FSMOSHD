@@ -229,6 +229,15 @@
   U::Vector{T} = zeros(Nsmax)
   W::Vector{T} = zeros(Nsmax)
 
+  # Soil - temporary vectors
+
+  asoil::Vector{T} = zeros(Nsoil)
+  bsoil::Vector{T} = zeros(Nsoil)
+  cssoil::Vector{T} = zeros(Nsoil)
+  dTssoil::Vector{T} = zeros(Nsoil)
+  Gssoil::Vector{T} = zeros(Nsoil)
+  rhssoil::Vector{T} = zeros(Nsoil)
+
   # Tridiag - temporary vectors
 
   gammasnow::Vector{T} = zeros(Nsmax)
