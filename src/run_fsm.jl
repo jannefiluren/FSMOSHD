@@ -1,7 +1,9 @@
 function run_fsm(station)
 
-  drive_file = "../fortran/input/input_" * replace(station, "." => "_") * ".txt"
-  terrain_file = "../fortran/input/terrain_" * replace(station,"." => "_") * ".txt"
+  projdir = dirname(dirname(@__FILE__))
+
+  drive_file = joinpath(projdir, "fortran", "input", "input_") * replace(station, "." => "_") * ".txt"
+  terrain_file = joinpath(projdir, "fortran", "input", "terrain_") * replace(station,"." => "_") * ".txt"
 
   drive_data = readdlm(drive_file)
 

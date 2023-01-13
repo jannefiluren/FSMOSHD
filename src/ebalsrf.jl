@@ -74,7 +74,11 @@ function ebalsrf(fsm::FSM, LW, Ps, Qa, Ta)
 
           # Surface melting
           if (Tsrf[i, j] + dTs[i, j] > Tm && Sice[1, i, j] > eps(Float64))
-            Melt[i, j] = sum(Sice[:, i, j]) / dt
+            Melt[i, j] = 0.0
+            for si in 1:size(Sice, 1)
+              Melt[i, j] += Sice[si, i, j]
+            end
+            Melt[i, j] /= dt
             dTs[i, j] = (Rnet[i, j] - G[i, j] - H[i, j] - LE[i, j] - Lf * Melt[i, j]) / (4 * sb * Tsrf[i, j]^3 + 2 * ks1[i, j] / Ds1[i, j] + rho * (cp * KH[i, j] + Ls * D * KWg[i, j]))
             dE = rho * KWg[i, j] * D * dTs[i, j]
             dG = 2 * ks1[i, j] * dTs[i, j] / Ds1[i, j]
@@ -143,11 +147,11 @@ function ebalsrf(fsm::FSM, LW, Ps, Qa, Ta)
 
           # Ensure LWsci and LWveg exist as variable even in open runs
           LWsci[i, j] = LW[i, j]
-          LWveg[i, j] = 0
+          LWveg[i, j] = 0.0
 
           if (CANMOD == 0)
             # Add fluxes from canopy in zero-layer model
-            Eveg[i, j] = 0
+            Eveg[i, j] = 0.0
             if (fveg[i, j] > eps(Float64))
               Eveg[i, j] = -KWv[i, j] * Esrf[i, j] / (KHa[i, j] + KWv[i, j])
               H[i, j] = KHa[i, j] * H[i, j] / (KHa[i, j] + KHv[i, j])
