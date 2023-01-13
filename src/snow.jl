@@ -31,6 +31,8 @@ function snow(fsm::FSM, Rf, Sf, Ta, Ua)
 
   @unpack a, bsnow, c, csnow, dTssnow, D, E, Gs, rhs, R, S, U, W = fsm
 
+  @unpack gammasnow = fsm
+
   Gsoil .= G
   Roff .= 0.0
   meltflux_out .= 0.0
@@ -97,7 +99,7 @@ function snow(fsm::FSM, Rf, Sf, Ta, Ua)
             c[k] = 0
             rhs[k] = Gs[k-1] * (Tsnow[k-1, i, j] - Tsnow[k, i, j]) * dt + Gs[k] * (Tsoil[1, i, j] - Tsnow[k, i, j]) * dt
             ### call TRIDIAG(Nsnow(i,j),Nsmax,a,bsnow,c,rhs,dTssnow)
-            tridiag!(Nsnow[i, j], Nsmax, a, bsnow, c, rhs, dTssnow)
+            tridiag!(dTssnow, Nsnow[i, j], gammasnow, Nsmax, a, bsnow, c, rhs)
           end
           for k = 1:Nsnow[i, j]
             Tsnow[k, i, j] = Tsnow[k, i, j] + dTssnow[k]

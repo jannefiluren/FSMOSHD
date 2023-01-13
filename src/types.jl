@@ -229,4 +229,9 @@
   U::Vector{T} = zeros(Nsmax)
   W::Vector{T} = zeros(Nsmax)
 
+  # Tridiag - temporary vectors
+
+  gammasnow::Vector{T} = zeros(Nsmax)
+  gammasoil::Vector{T} = zeros(Nsoil)
+
 end

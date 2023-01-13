@@ -14,6 +14,8 @@ function soil(fsm::FSM)
 
   @unpack Gsoil = fsm
 
+  @unpack gammasoil = fsm
+
   a = zeros(Nsoil)
   b = zeros(Nsoil)
   c = zeros(Nsoil)
@@ -45,7 +47,7 @@ function soil(fsm::FSM)
         b[k] = csoil[k, i, j] + (Gs[k-1] + Gs[k]) * dt
         c[k] = 0
         rhs[k] = Gs[k-1] * (Tsoil[k-1, i, j] - Tsoil[k, i, j]) * dt
-        tridiag!(Nsoil, Nsoil, a, b, c, rhs, dTs)
+        tridiag!(dTs, Nsoil, gammasoil, Nsoil, a, b, c, rhs)
         ###call TRIDIAG(Nsoil,Nsoil,a,b,c,rhs,dTs)
         for k = 1:Nsoil
           Tsoil[k, i, j] = Tsoil[k, i, j] + dTs[k]

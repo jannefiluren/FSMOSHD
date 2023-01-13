@@ -1,6 +1,6 @@
-function tridiag!(Nvec, Nmax, a, b, c, r, x)   # x should come first
+function tridiag!(x, Nvec, gamma, Nmax, a, b, c, r)
 
-  gamma = zeros(Nvec)
+  fill!(gamma, zero(Float64))
 
   beta = b[1]
   x[1] = r[1] / beta
