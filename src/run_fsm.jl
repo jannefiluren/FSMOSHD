@@ -69,12 +69,19 @@ function run_fsm(station)
     output_data[istep, 2] = month
     output_data[istep, 3] = day
     output_data[istep, 4] = hour
-    output_data[istep, 5] = sum(fsm.Ds[:,1,1])
+    tmpsum = 0.0
+    for si in 1:size(fsm.Ds, 1)
+        tmpsum += fsm.Ds[si,1,1]
+    end
+    output_data[istep, 5] = tmpsum
     output_data[istep, 6] = fsm.fsnow[1,1]
-    output_data[istep, 7] = sum(fsm.Sice[:,1,1]+fsm.Sliq[:,1,1])
+    tmpsum = 0.0
+    for si in 1:size(fsm.Sice, 1)
+        tmpsum += fsm.Sice[si,1,1]+fsm.Sliq[si,1,1]
+    end
+    output_data[istep, 7] = tmpsum
     output_data[istep, 8] = fsm.Tsrf[1,1]
     output_data[istep, 9] = fsm.Nsnow[1,1]
-
   end
   
   return output_data
