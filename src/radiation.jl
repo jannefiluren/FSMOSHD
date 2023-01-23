@@ -8,7 +8,7 @@
 # LWt = similar(albs)   ### hack
 # SWtopo_out = similar(albs)   ### hack
 
-function radiation(fsm::FSM, year, month, day, hour, meteo::MET)
+function radiation(fsm::FSM, meteo::MET, t)
 
   @unpack Nx, Ny, dt = fsm
   
@@ -64,7 +64,7 @@ function radiation(fsm::FSM, year, month, day, hour, meteo::MET)
             tau = tmlt
           end
           # Forest adjustments -> not yet properly tested for OSHD but option currently unused
-          if (month > 4 && month < 10)
+          if (Dates.value(Month(t)) > 4 && Dates.value(Month(t)) < 10)
             tau = 70.0 * 3600.0
           end
 
@@ -98,7 +98,7 @@ function radiation(fsm::FSM, year, month, day, hour, meteo::MET)
             adm = 100
             adc = 1000
           else
-            if (month > 6 && month < 10)
+            if (Dates.value(Month(t)) > 6 && Dates.value(Month(t)) < 10)
               adm = 50
             else
               adm = 130
@@ -159,7 +159,7 @@ function radiation(fsm::FSM, year, month, day, hour, meteo::MET)
         #   hack not used
         #   if (RADSBG == 1)
         #     # Call Subgrid parameterization for SW radiation to compute SWtopo,netto SWtn
-        #     call SWRADTOPO(alb[i,j],Sdir[i,j],Sdif[i,j],SWsrf[i,j],Sdirt[i,j],Sdift[i,j],SWtopo_out,Sun_elev,year,month,day,hour,i,j)
+        #     call SWRADTOPO(alb[i,j],Sdir[i,j],Sdif[i,j],SWsrf[i,j],Sdirt[i,j],Sdift[i,j],SWtopo_out,Sun_elev,Dates.value(Year(t)),Dates.value(Month(t)),Dates.value(Day(t)),Dates.value(Hour(t)),i,j)
         #   end
 
         if (RADSBG == 0)

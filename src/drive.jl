@@ -52,6 +52,8 @@ function drive!(fsm::FSM, meteo::MET)
 
 end
 
+searchdir(path, key) = filter(x -> occursin(key, x), readdir(path))
+
 function compute_psolid(ptot, ta, thres_prec=274.19, m_prec=0.1500)
 
   p_corr = 1.0
@@ -72,22 +74,33 @@ function compute_pliquid(ptot, ta, thres_prec=274.19, m_prec=0.1500)
 
 end
 
-function read_meteo!(Sdir, Sdif, LW, Sf, Rf, Ta, RH, Ua, Ps, Sf24h, year, month, day, hour)
+function drive_grid!(meteo::MET, fsm::FSM, t::DateTime)
 
-  folder = joinpath("K:/DATA_COSMO/OUTPUT_GRID_OSHD_0250/PROCESSED_ANALYSIS/COSMO_1EFA", Dates.format(t, "yyyy.mm"))
+  folder = joinpath("home", "haugened", "Documents", "data", "FSM_input", "grid", "DATA_COSMO", "OUTPUT_GRID_OSHD_0250", "PROCESSED_ANALYSIS", "COSMO_1EFA", Dates.format(t, "yyyy.mm"))
   filename = searchdir(folder, "COSMODATA_" * Dates.format(t, "yyyymmddHHMM") * "_C1EFA_")
 
-  meteo = matread(joinpath(folder, filename[1]))
+  meteo_in = matread(joinpath(folder, filename[1]))
 
-  Ta = meteo["tais"]["data"]
-  RH = meteo["rhus"]["data"]
-  Ua = meteo["wnsc"]["data"]
-  SW = meteo["sdrd"]["data"] .+ meteo["sdfd"]["data"]
-  LW = meteo["lwrc"]["data"]
-  Sf = compute_psolid(meteo["prcs"]["data"], meteo["tais"]["data"]) ./ 3600
-  Rf = compute_pliquid(meteo["prcs"]["data"], meteo["tais"]["data"]) ./ 3600
-  Ps = meteo["pail"]["data"]
+  meteo.Ta = meteo_in["tais"]["data"]
+  meteo.RH = meteo_in["rhus"]["data"]
+  meteo.Ua = maximum.(meteo_in["wnsc"]["data"], 0.1)
+  meteo.Sdir = meteo_in["sdrd"]["data"]
+  meteo.Sdif = meteo_in["sdfd"]["data"]
+  meteo.LW = meteo_in["lwrc"]["data"]
+  meteo.Sf = compute_psolid(meteo_in["prcs"]["data"], meteo_in["tais"]["data"]) ./ fsm.dt
+  meteo.Rf = compute_pliquid(meteo_in["prcs"]["data"], meteo_in["tais"]["data"]) ./ fsm.dt
+  meteo.Tc .= meteo.Ta .- Tm
+  meteo.Ps = meteo_in["pail"]["data"]
 
-  return Ta, RH, Ua, SW, LW, Sf, Rf, Ps
+  meteo.es .= e0 .* exp.(17.5043 .* meteo.Tc ./ (241.3 .+ meteo.Tc))
+  meteo.Qa .= (meteo.RH ./ 100) .* eps_fsm .* meteo.es ./ meteo.Ps
+
+  #computation of Sf24h assuming hourly input
+  curr_hour = Dates.value(Hour(t))
+  Sf_sum .-= Sf_history[:,:,curr_hour]
+  Sf_sum .+= meteo.Sf
+  Sf_history[:,:,curr_hour] = meteo.Sf
+
+  #TODO: missing: Tv
 
 end

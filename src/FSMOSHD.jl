@@ -2,6 +2,8 @@ module FSMOSHD
 
 using Parameters
 using DelimitedFiles
+using MAT
+using Dates
 
 include("parameters.jl")
 include("types.jl")
@@ -20,7 +22,7 @@ include("run_fsm.jl")
 export FSM, MET, setup_point!, setup_grid!
 export qsat, tridiag!
 export radiation, thermal, sfexch, ebalsrf, snow, soil
-export drive, drive!
+export drive, drive!, drive_grid!
 export run_fsm_point, run_fsm_grid
 
 end # module FSMOSHD
