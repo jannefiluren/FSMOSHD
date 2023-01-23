@@ -10,20 +10,7 @@ function run_fsm_point(station)
   fsm = FSM{Float64}()
   setup_point!(fsm, terrain_file)
 
-  Sdir = zeros(fsm.Nx, fsm.Ny)
-  Sdif = zeros(fsm.Nx, fsm.Ny)
-  LW = zeros(fsm.Nx, fsm.Ny)
-  Sf = zeros(fsm.Nx, fsm.Ny)
-  Rf = zeros(fsm.Nx, fsm.Ny)
-  Ta = zeros(fsm.Nx, fsm.Ny)
-  RH = zeros(fsm.Nx, fsm.Ny)
-  Ua = zeros(fsm.Nx, fsm.Ny)
-  Ps = zeros(fsm.Nx, fsm.Ny)
-  Sf24h = zeros(fsm.Nx, fsm.Ny)
-  Tc = zeros(fsm.Nx, fsm.Ny)
-  es = zeros(fsm.Nx, fsm.Ny)
-  Qa = zeros(fsm.Nx, fsm.Ny)
-  Tv = zeros(fsm.Nx, fsm.Ny)
+  meteo = MET{Float64}()
 
   output_data = zeros(size(drive_data, 1), 9)
 
@@ -35,31 +22,31 @@ function run_fsm_point(station)
     month = indata[2]
     day = indata[3]
     hour = indata[4]
-    Sdir[:, :] .= indata[5]
-    Sdif[:, :] .= indata[6]
-    LW[:, :] .= indata[7]
-    Sf[:, :] .= indata[8]
-    Rf[:, :] .= indata[9]
-    Ta[:, :] .= indata[10]
-    RH[:, :] .= indata[11]
-    Ua[:, :] .= indata[12]
-    Ps[:, :] .= indata[13]
-    Sf24h[:, :] .= indata[14]
+    meteo.Sdir[:, :] .= indata[5]
+    meteo.Sdif[:, :] .= indata[6]
+    meteo.LW[:, :] .= indata[7]
+    meteo.Sf[:, :] .= indata[8]
+    meteo.Rf[:, :] .= indata[9]
+    meteo.Ta[:, :] .= indata[10]
+    meteo.RH[:, :] .= indata[11]
+    meteo.Ua[:, :] .= indata[12]
+    meteo.Ps[:, :] .= indata[13]
+    meteo.Sf24h[:, :] .= indata[14]
 
     # Run model
 
-    drive!(fsm, Tc, es, Qa, Ua, Sf, Rf, Ta, RH, Ps)
+    drive!(fsm, meteo)
 
-    radiation(fsm, year, month, day, hour, LW, Sdif, Sdir, Sf, Sf24h, Ta, Tv)
+    radiation(fsm, year, month, day, hour, meteo)
 
     thermal(fsm)
  
     for i in 1:fsm.Nitr
-      sfexch(fsm, Ta, Ps, Qa, Ua)
-      ebalsrf(fsm, LW, Ps, Qa, Ta)
+      sfexch(fsm, meteo)
+      ebalsrf(fsm, meteo)
     end
 
-    snow(fsm, Rf, Sf, Ta, Ua)
+    snow(fsm, meteo)
     
     soil(fsm)
 

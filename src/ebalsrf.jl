@@ -11,7 +11,7 @@
 # Rnet = zeros(Nx,Ny)
 # Rsrf = zeros(Nx,Ny)
 
-function ebalsrf(fsm::FSM, LW, Ps, Qa, Ta)
+function ebalsrf(fsm::FSM, meteo::MET)
 
   @unpack CANMOD = fsm
 
@@ -34,6 +34,8 @@ function ebalsrf(fsm::FSM, LW, Ps, Qa, Ta)
   @unpack dTs, Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf, Ssub = fsm
 
   @unpack KH, KWg = fsm
+
+  @unpack LW, Ps, Qa, Ta = meteo
 
   for j = 1:Ny
     for i = 1:Nx

@@ -8,7 +8,7 @@
 # LWt = similar(albs)   ### hack
 # SWtopo_out = similar(albs)   ### hack
 
-function radiation(fsm::FSM, year, month, day, hour, LW, Sdif, Sdir, Sf, Sf24h, Ta, Tv)
+function radiation(fsm::FSM, year, month, day, hour, meteo::MET)
 
   @unpack Nx, Ny, dt = fsm
   
@@ -23,6 +23,8 @@ function radiation(fsm::FSM, year, month, day, hour, LW, Sdif, Sdir, Sf, Sf24h, 
   @unpack ALBEDO, OSHDTN, RADSBG, CANMOD = fsm
 
   @unpack afs, alb, asrf_out, Sdirt, Sdift, SWveg, SWsrf, SWsci, LWt, SWtopo_out = fsm
+
+  @unpack LW, Sdif, Sdir, Sf, Sf24h, Ta, Tv = meteo
   
   # Snow albedo
   for j = 1:Ny

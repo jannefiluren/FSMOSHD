@@ -7,7 +7,7 @@
 # fsnow_thres = zeros(Nx, Ny)
 # unload = zeros(Nx, Ny)
 
-function snow(fsm::FSM, Rf, Sf, Ta, Ua)
+function snow(fsm::FSM, meteo::MET)
 
   @unpack HYDROL, DENSTY, OSHDTN, HN_ON, SNFRAC = fsm
 
@@ -32,6 +32,8 @@ function snow(fsm::FSM, Rf, Sf, Ta, Ua)
   @unpack a, bsnow, c, csnow, dTssnow, D, E, Gs, rhs, R, S, U, W = fsm
 
   @unpack gammasnow = fsm
+
+  @unpack Rf, Sf, Ta, Ua = meteo
 
   Gsoil .= G
   Roff .= 0.0

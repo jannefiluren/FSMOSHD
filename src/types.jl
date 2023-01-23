@@ -246,3 +246,24 @@
   gammasoil::Vector{T} = zeros(Nsoil)
 
 end
+
+@with_kw mutable struct MET{T}
+  #base variables
+  Nx::Int = 1
+  Ny::Int = 1
+
+  Sdir::Array{T, 2} = zeros(Nx, Ny)
+  Sdif::Array{T, 2} = zeros(Nx, Ny)
+  LW::Array{T, 2} = zeros(Nx, Ny)
+  Sf::Array{T, 2} = zeros(Nx, Ny)
+  Rf::Array{T, 2} = zeros(Nx, Ny)
+  Ta::Array{T, 2} = zeros(Nx, Ny)
+  RH::Array{T, 2} = zeros(Nx, Ny)
+  Ua::Array{T, 2} = zeros(Nx, Ny)
+  Ps::Array{T, 2} = zeros(Nx, Ny)
+  Sf24h::Array{T, 2} = zeros(Nx, Ny)
+  Tc::Array{T, 2} = zeros(Nx, Ny)
+  es::Array{T, 2} = zeros(Nx, Ny)
+  Qa::Array{T, 2} = zeros(Nx, Ny)
+  Tv::Array{T, 2} = zeros(Nx, Ny)
+end

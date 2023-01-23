@@ -6,7 +6,7 @@
 # KWv = zeros(Nx, Ny)
 # Usc = zeros(Nx, Ny)
 
-function sfexch(fsm::FSM, Ta, Ps, Qa, Ua)
+function sfexch(fsm::FSM, meteo::MET)
 
   @unpack CANMOD, ZOFFST, EXCHNG, OSHDTN, SNFRAC = fsm
 
@@ -27,6 +27,8 @@ function sfexch(fsm::FSM, Ta, Ps, Qa, Ua)
   @unpack KH, KHa, KHg, KHv, KWg, KWv, Usc, sumtmp = fsm
 
   @unpack gs1 = fsm
+
+  @unpack Ta, Ps, Qa, Ua = meteo
   
   for j = 1:Ny
     for i = 1:Nx
