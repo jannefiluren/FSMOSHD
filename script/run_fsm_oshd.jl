@@ -5,7 +5,7 @@ using FSMOSHD
 using Parameters
 
 fsm = FSM{Float64}()
-setup!(fsm, terrain_file, state_file=state_file)
+setup_point!(fsm, terrain_file, state_file=state_file)
 
 include("../src/parameters.jl")
 include("../src/initialize.jl")

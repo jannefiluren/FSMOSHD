@@ -20,7 +20,7 @@ include(joinpath(projdir, "script", "compile_fsm.jl"))
 
     run_fsm_fortran(station)
 
-    julia_run = run_fsm(station)
+    julia_run = run_fsm_point(station)
 
     fortran_run = readdlm(joinpath(projdir, "fortran", "output_64", "output_") * replace(station, "." => "_") * "_run_from_julia.txt")
 

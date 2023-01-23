@@ -8,7 +8,7 @@ terrain_file = joinpath(projdir, "fortran", "input", "terrain_SLF_5WJ.txt")
 state_file = joinpath(projdir, "fortran", "temp", "states_end_64.txt")
 
 fsm = FSM{Float64}()
-setup!(fsm, terrain_file) #, state_file=state_file)
+setup_point!(fsm, terrain_file) #, state_file=state_file)
 
 year = 2022
 month = 3
