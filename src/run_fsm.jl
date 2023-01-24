@@ -88,9 +88,9 @@ function run_fsm_grid(starttime::DateTime=DateTime(2021,10,01,00,00,00), endtime
 
   meteo = MET{Float64}(Nx=Nx, Ny=Ny)
 
-  times = collect(starttime, endtime)
+  times = collect(starttime:Hour(1):endtime)
 
-  output_data = zeros(size(drive_data, 1), 9)
+  output_data = zeros(size(times, 1), 9)
 
   for (istep, t) in enumerate(times)
 

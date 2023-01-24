@@ -115,9 +115,9 @@ function setup_grid!(fsm::FSM, landuse; state_file="")
     fsm.VAI[:,:]  .= 0
     fsm.hcan[:,:] .= 0
     fsm.fsky[:,:] .= 1
-    fsm.trcn[:,:] .= exp(-fsm.kdif.*fsm.VAI[:,:])
-    fsm.fveg[:,:] .= 1 .- exp(-fsm.kveg.*fsm.VAI[:,:])
-    fsm.fves[:,:] .= 1 .- exp(-fsm.kveg.*fsm.VAI[:,:])
+    fsm.trcn[:,:] .= exp.(-fsm.kdif.*fsm.VAI[:,:])
+    fsm.fveg[:,:] .= 1 .- exp.(-fsm.kveg.*fsm.VAI[:,:])
+    fsm.fves[:,:] .= 1 .- exp.(-fsm.kveg.*fsm.VAI[:,:])
   end
 
   # Adjust parameters depending on configuration
@@ -153,10 +153,6 @@ function setup_grid!(fsm::FSM, landuse; state_file="")
   # Derived canopy parameters
   fsm.canh[:,:] .= 12500*fsm.VAI[:,:]
   fsm.scap[:,:] .= fsm.cvai*fsm.VAI[:,:]
-
-  # Read terrain parameters from file
-  terrain = readline(terrain_file)
-  terrain = parse.(Float64,split(terrain,","))
 
   #skyview-factor
   fsm.fsky_terr = landuse["res_skyvf"]

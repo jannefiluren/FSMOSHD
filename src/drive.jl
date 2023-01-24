@@ -76,14 +76,15 @@ end
 
 function drive_grid!(meteo::MET, fsm::FSM, t::DateTime)
 
-  folder = joinpath("home", "haugened", "Documents", "data", "FSM_input", "grid", "DATA_COSMO", "OUTPUT_GRID_OSHD_0250", "PROCESSED_ANALYSIS", "COSMO_1EFA", Dates.format(t, "yyyy.mm"))
+  folder = joinpath("/home", "haugened", "Documents", "data", "FSM_input", "grid", "DATA_COSMO", "OUTPUT_GRID_OSHD_0250", "PROCESSED_ANALYSIS", "COSMO_1EFA", Dates.format(t, "yyyy.mm"))
   filename = searchdir(folder, "COSMODATA_" * Dates.format(t, "yyyymmddHHMM") * "_C1EFA_")
 
   meteo_in = matread(joinpath(folder, filename[1]))
 
   meteo.Ta = meteo_in["tais"]["data"]
   meteo.RH = meteo_in["rhus"]["data"]
-  meteo.Ua = maximum.(meteo_in["wnsc"]["data"], 0.1)
+  meteo.Ua = meteo_in["wnsc"]["data"]
+  meteo.Ua[meteo.Ua .< 0.1] .= 0.1
   meteo.Sdir = meteo_in["sdrd"]["data"]
   meteo.Sdif = meteo_in["sdfd"]["data"]
   meteo.LW = meteo_in["lwrc"]["data"]
@@ -96,10 +97,10 @@ function drive_grid!(meteo::MET, fsm::FSM, t::DateTime)
   meteo.Qa .= (meteo.RH ./ 100) .* eps_fsm .* meteo.es ./ meteo.Ps
 
   #computation of Sf24h assuming hourly input
-  curr_hour = Dates.value(Hour(t))
-  Sf_sum .-= Sf_history[:,:,curr_hour]
-  Sf_sum .+= meteo.Sf
-  Sf_history[:,:,curr_hour] = meteo.Sf
+  curr_hour = Dates.value(Hour(t)) + 1 #0h -> 1; 23h -> 24
+  meteo.Sf_sum .-= meteo.Sf_history[:,:,curr_hour]
+  meteo.Sf_sum .+= meteo.Sf
+  meteo.Sf_history[:,:,curr_hour] = meteo.Sf
 
   #TODO: missing: Tv
 

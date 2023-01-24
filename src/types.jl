@@ -269,5 +269,5 @@ end
 
   #arrays to calculate Sf24h
   Sf_history::Array{T, 3} = zeros(Nx, Ny, 24)
-  Sf_sum::Array{T, 3} = zeros(Nx, Ny)
+  Sf_sum::Array{T, 2} = zeros(Nx, Ny)
 end
