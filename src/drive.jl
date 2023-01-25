@@ -54,23 +54,17 @@ end
 
 searchdir(path, key) = filter(x -> occursin(key, x), readdir(path))
 
-function compute_psolid(ptot, ta, thres_prec=274.19, m_prec=0.1500)
+function compute_psolid!(Sf, ptot, ta, thres_prec=274.19, m_prec=0.1500)
 
   p_corr = 1.0
-  tp = @. (ta - thres_prec) / m_prec
-  p_multi = @. p_corr / (1 + exp(tp))
-
-  return @. p_multi * ptot
+  Sf .= ptot .* p_corr ./ (1 .+ exp.((ta .- thres_prec) ./ m_prec))
 
 end
 
-function compute_pliquid(ptot, ta, thres_prec=274.19, m_prec=0.1500)
+function compute_pliquid!(Rf, ptot, ta, thres_prec=274.19, m_prec=0.1500)
 
-  p_corr = 1.0
-
-  Tp = @. (ta - thres_prec) / m_prec
-  p_multi = @. p_corr * exp(Tp) / (1 + exp(Tp))
-  return @. p_multi * ptot
+  p_corr = 1.0 
+  Rf .= ptot .* p_corr .* exp.((ta .- thres_prec) ./ m_prec) ./ (1 .+ exp.((ta .- thres_prec) ./ m_prec))
 
 end
 
@@ -88,8 +82,8 @@ function drive_grid!(meteo::MET, fsm::FSM, t::DateTime)
   meteo.Sdir = meteo_in["sdrd"]["data"]
   meteo.Sdif = meteo_in["sdfd"]["data"]
   meteo.LW = meteo_in["lwrc"]["data"]
-  meteo.Sf = compute_psolid(meteo_in["prcs"]["data"], meteo_in["tais"]["data"]) ./ fsm.dt
-  meteo.Rf = compute_pliquid(meteo_in["prcs"]["data"], meteo_in["tais"]["data"]) ./ fsm.dt
+  compute_psolid!(meteo.Sf, meteo_in["prcs"]["data"], meteo.Ta) ./ fsm.dt
+  compute_pliquid!(meteo.Rf, meteo_in["prcs"]["data"], meteo.Ta) ./ fsm.dt
   meteo.Tc .= meteo.Ta .- Tm
   meteo.Ps = meteo_in["pail"]["data"]
 
@@ -98,8 +92,8 @@ function drive_grid!(meteo::MET, fsm::FSM, t::DateTime)
 
   #computation of Sf24h assuming hourly input
   curr_hour = Dates.value(Hour(t)) + 1 #0h -> 1; 23h -> 24
-  meteo.Sf_sum .-= meteo.Sf_history[:,:,curr_hour]
-  meteo.Sf_sum .+= meteo.Sf
+  meteo.Sf24h .+= meteo.Sf .* fsm.dt
+  meteo.Sf24h .-= meteo.Sf_history[:,:,curr_hour] .* fsm.dt
   meteo.Sf_history[:,:,curr_hour] = meteo.Sf
 
   #TODO: missing: Tv

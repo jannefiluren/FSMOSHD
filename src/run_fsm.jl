@@ -90,9 +90,12 @@ function run_fsm_grid(starttime::DateTime=DateTime(2021,10,01,00,00,00), endtime
 
   times = collect(starttime:Hour(1):endtime)
 
-  output_data = zeros(size(times, 1), 9)
+  output_time = zeros(DateTime, size(times, 1))
+  output_data = zeros(size(times, 1), fsm.Nx, fsm.Ny, 9)
 
   for (istep, t) in enumerate(times)
+
+    @show t
 
     # Run model
 
@@ -113,23 +116,20 @@ function run_fsm_grid(starttime::DateTime=DateTime(2021,10,01,00,00,00), endtime
 
     # Output data
 
-    output_data[istep, 1] = Dates.value(Year(t))
-    output_data[istep, 2] = Dates.value(Month(t))
-    output_data[istep, 3] = Dates.value(Day(t))
-    output_data[istep, 4] = Dates.value(Hour(t))
-    tmpsum = 0.0
+    output_time[istep] = t
+    tmpsum = zeros(Float64, fsm.Nx, fsm.Ny)
     for si in 1:size(fsm.Ds, 1)
-      tmpsum += fsm.Ds[si, 1, 1]
+      tmpsum[:,:] .+= fsm.Ds[si, :, :]
     end
-    output_data[istep, 5] = tmpsum
-    output_data[istep, 6] = fsm.fsnow[1, 1]
-    tmpsum = 0.0
+    output_data[istep, :, :, 5] = tmpsum
+    output_data[istep, :, :, 6] = fsm.fsnow
+    tmpsum = zeros(Float64, fsm.Nx, fsm.Ny)
     for si in 1:size(fsm.Sice, 1)
-      tmpsum += fsm.Sice[si, 1, 1] + fsm.Sliq[si, 1, 1]
+      tmpsum[:,:] .+= fsm.Sice[si, :, :] + fsm.Sliq[si, :, :]
     end
-    output_data[istep, 7] = tmpsum
-    output_data[istep, 8] = fsm.Tsrf[1, 1]
-    output_data[istep, 9] = fsm.Nsnow[1, 1]
+    output_data[istep, :, :, 7] = tmpsum
+    output_data[istep, :, :, 8] = fsm.Tsrf
+    output_data[istep, :, :, 9] = fsm.Nsnow
   end
 
   return output_data
