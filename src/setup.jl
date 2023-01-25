@@ -165,7 +165,7 @@ function setup_grid!(fsm::FSM, landuse; state_file="")
 
   latlon!(fsm, landuse)
 
-  fsm.dem .= 1234.0 #landuse["dem"] #TODO: what to do with NaNs in DEM?
+  fsm.dem .= landuse["dem"] #TODO: what to do with NaNs in DEM?
 
   fsm.tilefrac .= 1   # TODO read this variable from file...
 
