@@ -82,8 +82,9 @@ function drive_grid!(meteo::MET, fsm::FSM, t::DateTime)
   meteo.Sdir = meteo_in["sdrd"]["data"]
   meteo.Sdif = meteo_in["sdfd"]["data"]
   meteo.LW = meteo_in["lwrc"]["data"]
-  compute_psolid!(meteo.Sf, meteo_in["prcs"]["data"], meteo.Ta) ./ fsm.dt
-  compute_pliquid!(meteo.Rf, meteo_in["prcs"]["data"], meteo.Ta) ./ fsm.dt
+  ptot = meteo_in["prcs"]["data"] ./ fsm.dt
+  compute_psolid!(meteo.Sf, ptot, meteo.Ta)
+  compute_pliquid!(meteo.Rf, ptot, meteo.Ta)
   meteo.Tc .= meteo.Ta .- Tm
   meteo.Ps = meteo_in["pail"]["data"]
 
