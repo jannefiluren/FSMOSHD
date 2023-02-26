@@ -79,7 +79,7 @@ function drive_grid!(meteo::MET, fsm::FSM, t::DateTime)
   meteo.RH = meteo_in["rhus"]["data"]
   meteo.Ua = meteo_in["wnsc"]["data"]
   meteo.Ua[meteo.Ua .< 0.1] .= 0.1
-  meteo.Sdir = meteo_in["sdrd"]["data"]
+  meteo.Sdir = meteo_in["sdri"]["data"]
   meteo.Sdif = meteo_in["sdfd"]["data"]
   meteo.LW = meteo_in["lwrc"]["data"]
   ptot = meteo_in["prcs"]["data"] ./ fsm.dt
