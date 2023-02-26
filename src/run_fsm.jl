@@ -90,9 +90,6 @@ function run_fsm_grid(starttime::DateTime=DateTime(2021,10,01,00,00,00), endtime
 
   times = collect(starttime:Hour(1):endtime)
 
-  output_time = zeros(DateTime, size(times, 1))
-  output_data = zeros(size(times, 1), fsm.Nx, fsm.Ny, 9)
-
   for (istep, t) in enumerate(times)
 
     @show t
@@ -116,22 +113,27 @@ function run_fsm_grid(starttime::DateTime=DateTime(2021,10,01,00,00,00), endtime
 
     # Output data
 
-    output_time[istep] = t
-    tmpsum = zeros(Float64, fsm.Nx, fsm.Ny)
-    for si in 1:size(fsm.Ds, 1)
-      tmpsum[:,:] .+= fsm.Ds[si, :, :]
-    end
-    output_data[istep, :, :, 5] = tmpsum
-    output_data[istep, :, :, 6] = fsm.fsnow
-    tmpsum = zeros(Float64, fsm.Nx, fsm.Ny)
-    for si in 1:size(fsm.Sice, 1)
-      tmpsum[:,:] .+= fsm.Sice[si, :, :] + fsm.Sliq[si, :, :]
-    end
-    output_data[istep, :, :, 7] = tmpsum
-    output_data[istep, :, :, 8] = fsm.Tsrf
-    output_data[istep, :, :, 9] = fsm.Nsnow
-  end
+    if hour(t) == 6
 
-  return output_data
+      hs = zeros(Float64, fsm.Nx, fsm.Ny)
+      for si in 1:size(fsm.Ds, 1)
+        hs[:,:] .+= fsm.Ds[si, :, :]
+      end
+
+      swe = zeros(Float64, fsm.Nx, fsm.Ny)
+      for ilayer in 1:size(fsm.Sice, 1)
+        swe[:,:] .+= fsm.Sice[ilayer, :, :] + fsm.Sliq[ilayer, :, :]
+      end
+
+      matwrite(joinpath("D:/FSM_JULIA", Dates.format(t, "yyyymmddHHMM") * "_output.mat"),
+        Dict(
+        "swe" => swe,
+        "hs" => hs,
+        "Nsnow" => fsm.Nsnow
+      ); compress = true)
+      
+    end
+
+  end
 
 end
