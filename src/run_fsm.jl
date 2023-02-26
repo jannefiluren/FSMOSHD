@@ -73,7 +73,7 @@ end
 
 function run_fsm_grid(starttime::DateTime=DateTime(2021,10,01,00,00,00), endtime::DateTime=DateTime(2022,09,30,23,00,00))
 
-  landuse_file_loc = string("/home/haugened/Documents/data/FSM_input/grid/", "BAFU_LUS_2022_250.mat")
+  landuse_file_loc = "D:/jim_operational/SOURCE/BAFU_LUS_0250_2023a.mat"
 
   #read landuse from .mat-file
   landuse_file = matopen(landuse_file_loc)
