@@ -148,7 +148,13 @@ function setup_grid!(fsm::FSM, landuse; state_file="")
     fsm.theta[k,:,:] .= fsat[k]*fsm.Vsat[:,:]
     fsm.Tsoil[k,:,:] .= Tprof[k]
   end
-  fsm.Tsrf[:,:] .= fsm.Tsoil[1,:,:]
+  
+  # HACK - use same initialization as in matlab
+
+  # fsm.Tsrf[:,:] .= fsm.Tsoil[1,:,:]
+  fsm.Tsrf[:,:] .= 273.15
+
+
 
   # Derived canopy parameters
   fsm.canh[:,:] .= 12500*fsm.VAI[:,:]
