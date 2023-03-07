@@ -401,16 +401,23 @@ function snow(fsm::FSM, meteo::MET)
         end
         ### call SNOWCOVERFRACTION(snowdepth,SWEtmp,i,j)
 
+        
+        
+        # HACK - snow cover fraction scheme 3
 
-
-        ##### hachachkacshdfdasfsdafdf
-
-        if SWEtmp > eps(Float64)
-          fsnow[i, j] = 1
+        if snowdepth > eps(Float64)
+          fsnow[i,j] = 1
         else
-          fsnow[i, j] = 0
+          fsnow[i,j] = 0
         end
 
+        if snowdepth < eps(Float64)
+          fsnow[i,j] = 0
+        else
+          fsnow[i,j] = min(fsnow[i,j], 1.)
+        end
+        
+        # HACK - snow cover fraction scheme 3
 
 
 
