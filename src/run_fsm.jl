@@ -71,7 +71,7 @@ function run_fsm_point(station)
 
 end
 
-function run_fsm_grid(starttime::DateTime=DateTime(2021,10,01,00,00,00), endtime::DateTime=DateTime(2022,09,30,23,00,00))
+function run_fsm_grid(starttime::DateTime=DateTime(2022,09,01,06,00,00), endtime::DateTime=DateTime(2023,07,01,06,00,00))
 
   landuse_file_loc = "D:/jim_operational/SOURCE/BAFU_LUS_0250_2023a.mat"
 
@@ -94,44 +94,48 @@ function run_fsm_grid(starttime::DateTime=DateTime(2021,10,01,00,00,00), endtime
 
     @show t
 
-    # Run model
+    @time begin
 
-    drive_grid!(meteo, fsm, t)
+      # Run model
 
-    radiation(fsm, meteo, t)
+      drive_grid!(meteo, fsm, t)
 
-    thermal(fsm)
+      radiation(fsm, meteo, t)
 
-    for i in 1:fsm.Nitr
-      sfexch(fsm, meteo)
-      ebalsrf(fsm, meteo)
-    end
+      thermal(fsm)
 
-    snow(fsm, meteo)
-
-    soil(fsm)
-
-    # Output data
-
-    if hour(t) == 6
-
-      hs = zeros(Float64, fsm.Nx, fsm.Ny)
-      for si in 1:size(fsm.Ds, 1)
-        hs[:,:] .+= fsm.Ds[si, :, :]
+      for i in 1:fsm.Nitr
+        sfexch(fsm, meteo)
+        ebalsrf(fsm, meteo)
       end
 
-      swe = zeros(Float64, fsm.Nx, fsm.Ny)
-      for ilayer in 1:size(fsm.Sice, 1)
-        swe[:,:] .+= fsm.Sice[ilayer, :, :] + fsm.Sliq[ilayer, :, :]
+      snow(fsm, meteo)
+
+      soil(fsm)
+
+      # Output data
+
+      if hour(t) == 6
+
+        hs = zeros(Float64, fsm.Nx, fsm.Ny)
+        for si in 1:size(fsm.Ds, 1)
+          hs[:,:] .+= fsm.Ds[si, :, :]
+        end
+
+        swe = zeros(Float64, fsm.Nx, fsm.Ny)
+        for ilayer in 1:size(fsm.Sice, 1)
+          swe[:,:] .+= fsm.Sice[ilayer, :, :] + fsm.Sliq[ilayer, :, :]
+        end
+
+        matwrite(joinpath("D:/FSM_JULIA", Dates.format(t, "yyyymmddHHMM") * "_output.mat"),
+          Dict(
+          "swe" => swe,
+          "hs" => hs,
+          "Nsnow" => fsm.Nsnow
+        ); compress = true)
+        
       end
 
-      matwrite(joinpath("D:/FSM_JULIA", Dates.format(t, "yyyymmddHHMM") * "_output.mat"),
-        Dict(
-        "swe" => swe,
-        "hs" => hs,
-        "Nsnow" => fsm.Nsnow
-      ); compress = true)
-      
     end
 
   end

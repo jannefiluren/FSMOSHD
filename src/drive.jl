@@ -70,7 +70,7 @@ end
 
 function drive_grid!(meteo::MET, fsm::FSM, t::DateTime)
 
-  folder = joinpath("/home", "haugened", "Documents", "data", "FSM_input", "grid", "DATA_COSMO", "OUTPUT_GRID_OSHD_0250", "PROCESSED_ANALYSIS", "COSMO_1EFA", Dates.format(t, "yyyy.mm"))
+  folder = joinpath("K:/DATA_COSMO/OUTPUT_GRID_OSHD_0250/PROCESSED_ANALYSIS/COSMO_1EFA", Dates.format(t, "yyyy.mm"))
   filename = searchdir(folder, "COSMODATA_" * Dates.format(t, "yyyymmddHHMM") * "_C1EFA_")
 
   meteo_in = matread(joinpath(folder, filename[1]))
