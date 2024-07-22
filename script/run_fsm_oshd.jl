@@ -3,9 +3,15 @@ Pkg.activate("../.")
 
 using FSMOSHD
 using Parameters
+using Dates
+using DelimitedFiles
+
+drive_data = readdlm(drive_file)
 
 fsm = FSM{Float64}()
 setup_point!(fsm, terrain_file, state_file=state_file)
+
+meteo = MET{Float64}()
 
 include("../src/parameters.jl")
 include("../src/initialize.jl")
@@ -90,21 +96,41 @@ if length(output_file) > 0
   fout = open(output_file, "w") 
 end
 
-for (index,data) in enumerate(readlines(drive_file))
+for (istep, indata) in enumerate(eachrow(drive_data))
 
   global fortran
 
-  println("Time step: ", index)
+  println("Time step: ", istep)
 
-  ### Run drive
+  # Time information
 
   global year, month, day, hour
 
-  year, month, day, hour = drive(fsm, data)
+  year = indata[1]
+  month = indata[2]
+  day = indata[3]
+  hour = indata[4]
+
+  # Forcing data
+  t = DateTime(indata[1], indata[2], indata[3], indata[4], 00, 00)
+  meteo.Sdir[:, :] .= indata[5]
+  meteo.Sdif[:, :] .= indata[6]
+  meteo.LW[:, :] .= indata[7]
+  meteo.Sf[:, :] .= indata[8]
+  meteo.Rf[:, :] .= indata[9]
+  meteo.Ta[:, :] .= indata[10]
+  meteo.RH[:, :] .= indata[11]
+  meteo.Ua[:, :] .= indata[12]
+  meteo.Ps[:, :] .= indata[13]
+  meteo.Sf24h[:, :] .= indata[14]
+
+  ### Run drive
+
+  drive!(fsm, meteo)
 
   ### Run radiation
 
-  radiation(fsm, year, month, day, hour, LW, Sdif, Sdir, Sf, Sf24h, Ta, Tv)
+  radiation(fsm, meteo, t)
 
   fortran = readlines("../fortran/temp/test_radiation.txt")
 
@@ -153,8 +179,8 @@ for (index,data) in enumerate(readlines(drive_file))
   ### Run sfexch and ebalsrf
 
   for i in 1:fsm.Nitr
-    sfexch(fsm, Ta, Ps, Qa, Ua)
-    ebalsrf(fsm, LW, Ps, Qa, Ta)
+    sfexch(fsm, meteo)
+    ebalsrf(fsm, meteo)
   end
 
   fortran = readlines("../fortran/temp/test_sfexch.txt")
@@ -205,7 +231,7 @@ for (index,data) in enumerate(readlines(drive_file))
 
   # Run snow
 
-  snow(fsm, Rf, Sf, Ta, Ua)
+  snow(fsm, meteo)
 
   fortran = readlines("../fortran/temp/test_snow.txt")
 
