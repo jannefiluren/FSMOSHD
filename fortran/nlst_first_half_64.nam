@@ -43,10 +43,10 @@
 &nam_location
   fsky_terr = 0.94828,
   slopemu = 0.012247,
-  xi = 0,
-  Ld = 1,
+  xi = 0.0,
+  Ld = 1.0,
   lat = 46.83,
   lon = 9.8092,
-  dem = 2540,
+  dem = 2540.0,
   pmultf = 1,
 /

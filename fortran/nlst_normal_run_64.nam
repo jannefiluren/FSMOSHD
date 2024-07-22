@@ -13,6 +13,7 @@
   zzU = 10,
   met_file = 'input/input_SLF_5WJ.txt',
   out_file = 'output_64/output_SLF_5WJ.txt',
+  dump_data = 1,
 /
 &nam_modconf
   NALBEDO = 2,
@@ -40,12 +41,12 @@
    CLIST_STATE_RESULTS = 'tsfe', 'scfe',
 /
 &nam_location
-  fsky_terr = 0.9483,
-  slopemu = 0.0122,
-  xi = 0,
-  Ld = 1,
-  lat = 46.8296,
+  fsky_terr = 0.94828,
+  slopemu = 0.012247,
+  xi = 0.0,
+  Ld = 1.0,
+  lat = 46.83,
   lon = 9.8092,
-  dem = 2540,
+  dem = 2540.0,
   pmultf = 1,
 /
