@@ -32,16 +32,14 @@
   EXCHNG::Ti = 1                                           # Turbulent exchange (0, 1)
   HYDROL::Ti = 2                                           # Snow hydraulics (0, 1, 2)
   SNFRAC::Ti = 3                                           # Snow cover fraction (0, 1, 2, 3, 4)
-  RADSBG::Ti = 0                                           # Subgrid radiation param (0, 1)
   ZOFFST::Ti = 0                                           # Measurement height offset (0, 1)
-  OSHDTN::Ti = 1                                           # OSHD-specific tuning options (0, 1)
-  ALRADT::Ti = 0                                           # Activate tuning of albedo decay as function of incoming direct SWR (0, 1)
+  FSNRHO::Ti = 2                                           # Fresh snow density (0=fixed, 1=climate-dependent, 2=climate+elevation)
+  ALRADT::Ti = 1                                           # Activate tuning of albedo decay as function of incoming direct SWR (0, 1)
+  SNOPRP::Ti = 1                                           # Snow surface properties (0=constant, 1=elevation-dependent)
   SNTRAN::Ti = 0                                           # Snow transport (0, 1)
   SNSLID::Ti = 0                                           # Snow slides (0, 1)
   SNOLAY::Ti = 0                                           # Density-dependent layering (0, 1)
-  CHECKS::Ti = 0                                           # Check state variables at every time step (0, 1, 2)
   HN_ON::Bool = false                                      # TODO remove? Activate the new snow model
-  FOR_HN::Bool = true                                      # TODO remove? Write 18h states for the HN model
   Z0PERT::Bool = false                                     # TODO remove? Activate z0 perturbations
   WCPERT::Bool = false                                     # TODO remove? Activate liquid water capacity perturbations
   FSPERT::Bool = false                                     # TODO remove? Activate fresh snow density perturbations

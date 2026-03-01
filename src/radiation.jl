@@ -22,7 +22,7 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti
 
   @unpack albs, Sice, Sliq, fsnow,Sveg, Tsnow, Tsrf = fsm
 
-  @unpack ALBEDO, OSHDTN, RADSBG, CANMOD, ALRADT, ALPERT = fsm
+  @unpack ALBEDO, CANMOD, ALRADT, ALPERT = fsm
 
   @unpack alb, asrf_out, SWveg, SWsrf, SWsci, LWt = fsm
 
@@ -88,7 +88,7 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti
 
           # BC 08.23: aspect-dependent albedo tuning. Activated for oper season 2024
           # or optionally.
-          if ((ALRADT == 1) || (OSHDTN == 1))
+          if (ALRADT == 1)
             # BC Oct 23: Jan's suggestion: modify only when the decay rate should be increased (ad* DECREASE), not decreased
             if ((Sdir[i,j] > eps(Tf)) && (Sdird[i,j] < Sdir[i,j]))
               adm_loc = adm_loc * (Sdird[i,j])/(Sdir[i,j])

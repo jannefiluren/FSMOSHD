@@ -11,7 +11,7 @@ function sfexch!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Inte
 
   @unpack_constants(Tf)
 
-  @unpack CANMOD, ZOFFST, EXCHNG, OSHDTN, SNFRAC = fsm
+  @unpack CANMOD, ZOFFST, EXCHNG, SNFRAC = fsm
 
   @unpack TILE, tthresh = fsm
 

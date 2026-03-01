@@ -12,7 +12,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
 
   @unpack_constants(Tf)
 
-  @unpack HYDROL, DENSTY, OSHDTN, HN_ON, SNFRAC, SNTRAN, SNSLID = fsm
+  @unpack HYDROL, DENSTY, HN_ON, SNFRAC, SNTRAN, SNSLID = fsm
 
   @unpack tthresh = fsm
 
