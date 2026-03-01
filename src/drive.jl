@@ -18,8 +18,6 @@ function drive!(fsm::FSM, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer}
   Ua .= wind_scaling .* Ua
   Ua .= max.(Ua, Tf(0.1))
 
-  Sf .= Sf ./ dt
-  Rf .= Rf ./ dt
   es .= e0 .* exp.(Tf(17.5043) .* (Ta .- Tm) ./ (Tf(241.3) .+ (Ta .- Tm)))
   Qa .= (RH ./ 100) .* eps_fsm .* es ./ Ps
 

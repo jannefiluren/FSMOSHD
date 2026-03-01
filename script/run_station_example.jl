@@ -51,8 +51,8 @@ function run_fsm(fsm, met, df_meteo)
         met.Sdif .= row["Sdif"]
         met.Sdird .= row["Sdir"]
         met.LW .= row["LW"]
-        met.Sf .= row["Sf"]
-        met.Rf .= row["Rf"]
+        met.Sf .= row["Sf"] / fsm.dt  # Convert accumulation (kg/m^2) to rate (kg/m^2/s)
+        met.Rf .= row["Rf"] / fsm.dt  # Convert accumulation (kg/m^2) to rate (kg/m^2/s)
         met.Ta .= row["Ta"]
         met.RH .= row["RH"]
         met.Ua .= row["Ua"]

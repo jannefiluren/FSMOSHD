@@ -115,8 +115,8 @@ function run_simulations(settings, Tf=Float32, Ti=Int32)
         met.Sdif[:, :] = data_meteo["Sdif"][:, :, timestep]
         met.Sdird[:, :] = data_meteo["Sdird"][:, :, timestep]
         met.LW[:, :] = data_meteo["LW"][:, :, timestep]
-        met.Sf[:, :] = data_meteo["Sf"][:, :, timestep]
-        met.Rf[:, :] = data_meteo["Rf"][:, :, timestep]
+        met.Sf[:, :] = data_meteo["Sf"][:, :, timestep] ./ fsm.dt  # Convert accumulation to rate (kg/m^2/s)
+        met.Rf[:, :] = data_meteo["Rf"][:, :, timestep] ./ fsm.dt  # Convert accumulation to rate (kg/m^2/s)
         met.Ta[:, :] = data_meteo["Ta"][:, :, timestep]
         met.RH[:, :] = data_meteo["RH"][:, :, timestep]
         met.Ua[:, :] = data_meteo["Ua"][:, :, timestep]
@@ -127,9 +127,9 @@ function run_simulations(settings, Tf=Float32, Ti=Int32)
 
         # Update snowfall tracking
         curr_hour = Dates.value(Hour(t)) + 1
-        met.Sf24h_f64 .+= met.Sf
+        met.Sf24h_f64 .+= met.Sf .* fsm.dt  # Convert rate back to accumulation for 24h sum
         met.Sf24h_f64 .-= met.Sf_history_f64[:, :, curr_hour]
-        met.Sf_history_f64[:, :, curr_hour] = met.Sf
+        met.Sf_history_f64[:, :, curr_hour] .= met.Sf .* fsm.dt
         met.Sf24h[:, :] .= met.Sf24h_f64
 
         # Run model
