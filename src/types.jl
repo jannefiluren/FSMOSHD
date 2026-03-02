@@ -21,7 +21,6 @@
   zT::Tf = 10                                              # Temperature measurement height (m)
   zU::Tf = 10                                              # Wind speed measurement height (m)
   zRH::Tf = 10                                             # Relative humidity measurement height (m)
-  wind_scaling = 1                                         # Wind speed scaling factor (-)
 
   # Model configuration
 

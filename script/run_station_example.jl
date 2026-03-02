@@ -18,7 +18,7 @@ function setup_example()
     lus["prec_multi"] = Dict("data" => [1.0;;])
     
     # define custom settings
-    settings = Dict("tile" => "open", "params" => Dict("wind_scaling" => 0.7))
+    settings = Dict("tile" => "open")
     
     # create fsm struct
     fsm = setup(Float32, Int32, lus, 1, 1, settings)

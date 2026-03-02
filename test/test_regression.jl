@@ -87,6 +87,9 @@ function run_simulations(settings, Tf=Float32, Ti=Int32)
     # Generate meteo data
     times, data_meteo = interpolate_meteo(Tf, landuse)
 
+    # Pre-scale wind speed (replaces former wind_scaling=0.7 parameter)
+    data_meteo["Ua"] .= Tf(0.7) .* data_meteo["Ua"]
+
     # Setup
     Nx = size(landuse["elevation"]["data"], 1)
     Ny = size(landuse["elevation"]["data"], 2)
@@ -178,17 +181,15 @@ settings = [
     Dict(
         "tile" => "open",
         "config" => Dict("SNFRAC" => 0),
-        "params" => Dict("wind_scaling" => 0.7)
         ),
     Dict(
         "tile" => "forest",
         "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
-        "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01, "wind_scaling" => 0.7)
+        "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01)
         ),
     Dict(
         "tile" => "glacier",
         "config" => Dict("SNFRAC" => 0),
-        "params" => Dict("wind_scaling" => 0.7)
     )
 ]
 
