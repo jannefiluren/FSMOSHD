@@ -87,6 +87,9 @@ function run_simulations(settings, Tf=Float32, Ti=Int32)
     # Generate meteo data
     times, data_meteo = interpolate_meteo(Tf, landuse)
 
+    # Pre-scale wind speed (replaces former wind_scaling=0.7 parameter)
+    data_meteo["Ua"] .= Tf(0.7) .* data_meteo["Ua"]
+
     # Setup
     Nx = size(landuse["elevation"]["data"], 1)
     Ny = size(landuse["elevation"]["data"], 2)
@@ -115,8 +118,8 @@ function run_simulations(settings, Tf=Float32, Ti=Int32)
         met.Sdif[:, :] = data_meteo["Sdif"][:, :, timestep]
         met.Sdird[:, :] = data_meteo["Sdird"][:, :, timestep]
         met.LW[:, :] = data_meteo["LW"][:, :, timestep]
-        met.Sf[:, :] = data_meteo["Sf"][:, :, timestep]
-        met.Rf[:, :] = data_meteo["Rf"][:, :, timestep]
+        met.Sf[:, :] = data_meteo["Sf"][:, :, timestep] ./ fsm.dt  # Convert accumulation to rate (kg/m^2/s)
+        met.Rf[:, :] = data_meteo["Rf"][:, :, timestep] ./ fsm.dt  # Convert accumulation to rate (kg/m^2/s)
         met.Ta[:, :] = data_meteo["Ta"][:, :, timestep]
         met.RH[:, :] = data_meteo["RH"][:, :, timestep]
         met.Ua[:, :] = data_meteo["Ua"][:, :, timestep]
@@ -127,9 +130,9 @@ function run_simulations(settings, Tf=Float32, Ti=Int32)
 
         # Update snowfall tracking
         curr_hour = Dates.value(Hour(t)) + 1
-        met.Sf24h_f64 .+= met.Sf
+        met.Sf24h_f64 .+= met.Sf .* fsm.dt  # Convert rate back to accumulation for 24h sum
         met.Sf24h_f64 .-= met.Sf_history_f64[:, :, curr_hour]
-        met.Sf_history_f64[:, :, curr_hour] = met.Sf
+        met.Sf_history_f64[:, :, curr_hour] .= met.Sf .* fsm.dt
         met.Sf24h[:, :] .= met.Sf24h_f64
 
         # Run model
@@ -178,17 +181,15 @@ settings = [
     Dict(
         "tile" => "open",
         "config" => Dict("SNFRAC" => 0),
-        "params" => Dict("wind_scaling" => 0.7)
         ),
     Dict(
         "tile" => "forest",
         "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
-        "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01, "wind_scaling" => 0.7)
+        "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01)
         ),
     Dict(
         "tile" => "glacier",
         "config" => Dict("SNFRAC" => 0),
-        "params" => Dict("wind_scaling" => 0.7)
     )
 ]
 

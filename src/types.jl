@@ -21,7 +21,6 @@
   zT::Tf = 10                                              # Temperature measurement height (m)
   zU::Tf = 10                                              # Wind speed measurement height (m)
   zRH::Tf = 10                                             # Relative humidity measurement height (m)
-  wind_scaling = 1                                         # Wind speed scaling factor (-)
 
   # Model configuration
 
@@ -32,16 +31,14 @@
   EXCHNG::Ti = 1                                           # Turbulent exchange (0, 1)
   HYDROL::Ti = 2                                           # Snow hydraulics (0, 1, 2)
   SNFRAC::Ti = 3                                           # Snow cover fraction (0, 1, 2, 3, 4)
-  RADSBG::Ti = 0                                           # Subgrid radiation param (0, 1)
   ZOFFST::Ti = 0                                           # Measurement height offset (0, 1)
-  OSHDTN::Ti = 1                                           # OSHD-specific tuning options (0, 1)
-  ALRADT::Ti = 0                                           # Activate tuning of albedo decay as function of incoming direct SWR (0, 1)
+  FSNRHO::Ti = 2                                           # Fresh snow density (0=fixed, 1=climate-dependent, 2=climate+elevation)
+  ALRADT::Ti = 1                                           # Activate tuning of albedo decay as function of incoming direct SWR (0, 1)
+  SNOPRP::Ti = 1                                           # Snow surface properties (0=constant, 1=elevation-dependent)
   SNTRAN::Ti = 0                                           # Snow transport (0, 1)
   SNSLID::Ti = 0                                           # Snow slides (0, 1)
   SNOLAY::Ti = 0                                           # Density-dependent layering (0, 1)
-  CHECKS::Ti = 0                                           # Check state variables at every time step (0, 1, 2)
   HN_ON::Bool = false                                      # TODO remove? Activate the new snow model
-  FOR_HN::Bool = true                                      # TODO remove? Write 18h states for the HN model
   Z0PERT::Bool = false                                     # TODO remove? Activate z0 perturbations
   WCPERT::Bool = false                                     # TODO remove? Activate liquid water capacity perturbations
   FSPERT::Bool = false                                     # TODO remove? Activate fresh snow density perturbations
@@ -219,13 +216,10 @@
 
   alb::Array{Tf,2} = zeros(Nx,Ny)
   asrf_out::Array{Tf,2} = zeros(Nx,Ny)
-  Sdirt::Array{Tf,2} = zeros(Nx,Ny)
-  Sdift::Array{Tf,2} = zeros(Nx,Ny)
   SWveg::Array{Tf,2} = zeros(Nx,Ny)
   SWsrf::Array{Tf,2} = zeros(Nx,Ny)
   SWsci::Array{Tf,2} = zeros(Nx,Ny)
   LWt::Array{Tf,2} = zeros(Nx,Ny)
-  SWtopo_out::Array{Tf,2} = zeros(Nx,Ny)
 
   # Thermal - temporary arrays
 
@@ -250,7 +244,6 @@
 
   # Ebalsrf - temporary arrays
 
-  dTs::Array{Tf, 2} = zeros(Nx,Ny)
   Esrf::Array{Tf,2} = zeros(Nx,Ny)
   Eveg::Array{Tf,2} = zeros(Nx,Ny)
   G::Array{Tf,2} = zeros(Nx,Ny)
@@ -288,7 +281,6 @@
   Sbsrf::Array{Tf,2} = zeros(Nx, Ny)
   Roff_bare::Array{Tf, 2} = zeros(Nx, Ny)
   Roff_snow::Array{Tf, 2} = zeros(Nx, Ny)
-  fsnow_thres::Array{Tf, 2} = zeros(Nx, Ny)
   snowdepth0::Array{Tf, 2} = zeros(Nx, Ny)
   Sice0::Array{Tf, 2} = zeros(Nx, Ny)
 
@@ -374,7 +366,6 @@ end
   Udir::Array{Tf, 2} = zeros(Nx, Ny)                       # Wind direction (degrees, clockwise from N)
   Ps::Array{Tf, 2} = zeros(Nx, Ny)                         # Surface pressure (Pa)
   Sf24h::Array{Tf, 2} = zeros(Nx, Ny)                      # Snowfall 24hr (kg/m^2)
-  Tc::Array{Tf, 2} = zeros(Nx, Ny)                         # Canopy temperature (K)
   es::Array{Tf, 2} = zeros(Nx, Ny)                         # Saturation vapour pressure (Pa)
   Qa::Array{Tf, 2} = zeros(Nx, Ny)                         # Specific humidity (kg/kg)
   Tv::Array{Tf, 2} = ones(Nx, Ny)                          # Time-varying transmissivity for direct SWR (-)

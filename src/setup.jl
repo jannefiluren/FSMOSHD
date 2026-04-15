@@ -47,8 +47,8 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
     end
   end
 
-  # Settings specific for DENSITY=0
-  if (fsm.DENSTY == 0)
+  # Settings specific for FSNRHO=0 (fixed fresh snow density)
+  if (fsm.FSNRHO == 0)
     fsm.rhof = fsm.rho0
   end
 
@@ -142,7 +142,7 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
 
   # Tuned snow surface properties
 
-  if fsm.OSHDTN == 0
+  if fsm.SNOPRP == 0
 
     fsm.adm = Tf(100)
     fsm.adc[:, :] .= Tf(1000)

@@ -18,7 +18,7 @@ function setup_example()
     lus["prec_multi"] = Dict("data" => [1.0;;])
     
     # define custom settings
-    settings = Dict("tile" => "open", "params" => Dict("wind_scaling" => 0.7))
+    settings = Dict("tile" => "open")
     
     # create fsm struct
     fsm = setup(Float32, Int32, lus, 1, 1, settings)
@@ -51,8 +51,8 @@ function run_fsm(fsm, met, df_meteo)
         met.Sdif .= row["Sdif"]
         met.Sdird .= row["Sdir"]
         met.LW .= row["LW"]
-        met.Sf .= row["Sf"]
-        met.Rf .= row["Rf"]
+        met.Sf .= row["Sf"] / fsm.dt  # Convert accumulation (kg/m^2) to rate (kg/m^2/s)
+        met.Rf .= row["Rf"] / fsm.dt  # Convert accumulation (kg/m^2) to rate (kg/m^2/s)
         met.Ta .= row["Ta"]
         met.RH .= row["RH"]
         met.Ua .= row["Ua"]

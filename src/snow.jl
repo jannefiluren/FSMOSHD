@@ -12,7 +12,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
 
   @unpack_constants(Tf)
 
-  @unpack HYDROL, DENSTY, OSHDTN, HN_ON, SNFRAC, SNTRAN, SNSLID = fsm
+  @unpack HYDROL, DENSTY, HN_ON, SNFRAC, SNTRAN, SNSLID = fsm
 
   @unpack tthresh = fsm
 
@@ -30,7 +30,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
 
   @unpack Esrf, G, Melt = fsm
 
-  @unpack Gsoil, Roff, meltflux_out, Sbsrf, Roff_bare, Roff_snow, fsnow_thres, unload = fsm
+  @unpack Gsoil, Roff, meltflux_out, Sbsrf, Roff_bare, Roff_snow, unload = fsm
 
   @unpack a, bsnow, c, csnow, dTssnow, D, E, Gs, rhs, R, S, U, W = fsm
 
@@ -79,9 +79,9 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
           # Except for point case, apply a minimum threshold of 0.1 to fsnow
           # to avoid 'long tails' in SWE due to slowing down depletion rates
           if (SNFRAC == 3)
-            fsnow_thres[i, j] = fsnow[i, j]
+            fsnow_thres = fsnow[i, j]
           else
-            fsnow_thres[i,j] = min(fsnow[i,j]+ Tf(0.25), Tf(1.0))
+            fsnow_thres = min(fsnow[i,j]+ Tf(0.25), Tf(1.0))
           end
 
           # Heat conduction
@@ -123,7 +123,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
           Gsoil[i, j] = Gs[k] * (Tsnow[k, i, j] - Tsoil[1, i, j])
 
           # Convert melting ice to liquid water
-          dSice = Melt[i, j] * fsnow_thres[i, j] * dt
+          dSice = Melt[i, j] * fsnow_thres * dt
 
           meltflux_out[i, j] = dSice
 
@@ -149,7 +149,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
           end
 
           # Remove snow by sublimation 
-          dSice = max(Esrf[i, j] * fsnow_thres[i, j], Tf(0.0)) * dt
+          dSice = max(Esrf[i, j] * fsnow_thres, Tf(0.0)) * dt
           if (dSice > eps(Tf))
             for k = 1:Nsnow[i, j]
               if (dSice > Sice[k, i, j])  # Layer sublimates completely
