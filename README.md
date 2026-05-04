@@ -25,7 +25,7 @@ The model is designed for operational snow forecasting applications and supports
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/jannefiluren/FlexibleSnowModelOSHD
+   git clone https://github.com/jannefiluren/FlexibleSnowModelOSHD.jl
    cd FlexibleSnowModelOSHD
    ```
 
@@ -43,7 +43,17 @@ The model is designed for operational snow forecasting applications and supports
 
 ## Examples
 
-See the `script/` directory for complete simulation workflows.
+A simulation representing an open site can be run from the terminal by:
+
+```julia
+include("script/run_open_station_example.jl")
+```
+
+while a corresponding simulation for a forested site can be run by:
+
+```julia
+include("script/run_forest_station_example.jl")
+```
 
 ## Package Structure
 
