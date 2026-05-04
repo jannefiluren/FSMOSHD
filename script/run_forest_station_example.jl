@@ -1,10 +1,9 @@
-cd(@__DIR__)
-
 using Dates
 using CSV
 using DataFrames
 using FlexibleSnowModelOSHD
 
+const path = dirname(@__FILE__)
 
 function setup_example()
 
@@ -16,9 +15,17 @@ function setup_example()
     lus["xi"] = Dict("data" => [1.0;;])
     lus["Ld"] = Dict("data" => [1.0;;])
     lus["prec_multi"] = Dict("data" => [1.0;;])
-    
+
+    # add forest properties
+    lus["forest"] = Dict("data" => [1;;]) # Forest cover fraction
+    lus["fveg"] = Dict("data" => [0.6;;]) # Canopy cover fraction 
+    lus["fves"] = Dict("data" => [0.6;;]) # Stand-scale canopy cover fraction
+    lus["hcan"] = Dict("data" => [20;;])  # Canopy height (m)
+    lus["lai"] = Dict("data" => [2.5;;])  # Leaf area index
+    lus["vfhp"] = Dict("data" => [0.5;;]) # Hemispherical sky-view fraction including canopy
+
     # define custom settings
-    settings = Dict("tile" => "open")
+    settings = Dict("tile" => "forest", "config" => Dict("CANMOD" => 1,"EXCHNG" => 2, "ZOFFST" => 1))
     
     # create fsm struct
     fsm = setup(Float32, Int32, lus, 1, 1, settings)
@@ -27,7 +34,7 @@ function setup_example()
     met = MET{Float32,Int32}()
     
     # read meteo file
-    df_meteo = CSV.read("../data/input_SLF_5WJ.txt", DataFrame)
+    df_meteo = CSV.read(joinpath(path, "../data/input_SLF_5WJ.txt"), DataFrame)
 
     return fsm, met, df_meteo
 
@@ -58,6 +65,7 @@ function run_fsm(fsm, met, df_meteo)
         met.Ua .= row["Ua"]
         met.Ps .= row["Ps"]
         met.Sf24h .= row["Sf24h"]
+        met.Tv .= row["Tv"]
     
         # set time 
         t = DateTime(row["year"], row["month"], row["day"], row["hour"])
@@ -82,4 +90,4 @@ fsm, met, df_meteo = setup_example()
 
 df_results = run_fsm(fsm, met, df_meteo)
 
-CSV.write("../data/output_SLF_5WJ.txt", df_results)
+describe(df_results)
