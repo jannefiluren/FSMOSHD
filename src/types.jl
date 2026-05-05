@@ -214,121 +214,121 @@
 
   # Radiation - temporary arrays
 
-  alb::Array{Tf,2} = zeros(Nx,Ny)
-  asrf_out::Array{Tf,2} = zeros(Nx,Ny)
-  SWveg::Array{Tf,2} = zeros(Nx,Ny)
-  SWsrf::Array{Tf,2} = zeros(Nx,Ny)
-  SWsci::Array{Tf,2} = zeros(Nx,Ny)
-  LWt::Array{Tf,2} = zeros(Nx,Ny)
+  alb::Array{Tf,2} = zeros(Nx,Ny)                          # Albedo (-)
+  asrf_out::Array{Tf,2} = zeros(Nx,Ny)                     # Surface albedo (-)
+  SWveg::Array{Tf,2} = zeros(Nx,Ny)                        # Net short wave radiation absorbed by vegetation (W/m^2)
+  SWsrf::Array{Tf,2} = zeros(Nx,Ny)                        # Net short wave radiation absorbed by the surface (W/m^2)
+  SWsci::Array{Tf,2} = zeros(Nx,Ny)                        # Subcanopy incoming shortwave radiation (W/m^2)
+  LWt::Array{Tf,2} = zeros(Nx,Ny)                          # Incoming longwave radiation corrected for subgrid topography (W/m^2)
 
   # Thermal - temporary arrays
 
-  ksnow::Array{Tf,3} = zeros(Nsmax, Nx, Ny)
-  csoil::Array{Tf,3} = zeros(Nsoil, Nx, Ny)
-  ksoil::Array{Tf,3} = zeros(Nsoil, Nx, Ny)
-  gs1::Array{Tf,2} = zeros(Nx, Ny)
-  Ds1::Array{Tf,2} = zeros(Nx, Ny)
-  Ts1::Array{Tf,2} = zeros(Nx, Ny)
-  ks1::Array{Tf,2} = zeros(Nx, Ny)
-  Tveg0::Array{Tf,2} = zeros(Nx, Ny)
+  ksnow::Array{Tf,3} = zeros(Nsmax, Nx, Ny)                # Thermal conductivity of snow (W/m/K)
+  csoil::Array{Tf,3} = zeros(Nsoil, Nx, Ny)                # Areal heat capacity of soil (J/K/m^2)
+  ksoil::Array{Tf,3} = zeros(Nsoil, Nx, Ny)                # Thermal conductivity of soil (W/m/K)
+  gs1::Array{Tf,2} = zeros(Nx, Ny)                         # Surface moisture conductance (m/s)
+  Ds1::Array{Tf,2} = zeros(Nx, Ny)                         # Surface layer thickness (m)
+  Ts1::Array{Tf,2} = zeros(Nx, Ny)                         # Surface layer temperature (K)
+  ks1::Array{Tf,2} = zeros(Nx, Ny)                         # Surface thermal conductivity (W/m/K)
+  Tveg0::Array{Tf,2} = zeros(Nx, Ny)                       # Vegetation temperature at start of timestep (K)
 
   # Sfexch - temporary arrays
 
-  KH::Array{Tf,2} = zeros(Nx, Ny)
-  KHa::Array{Tf,2} = zeros(Nx, Ny)
-  KHg::Array{Tf,2} = zeros(Nx, Ny)
-  KHv::Array{Tf,2} = zeros(Nx, Ny)
-  KWg::Array{Tf,2} = zeros(Nx, Ny)
-  KWv::Array{Tf,2} = zeros(Nx, Ny)
-  Usc::Array{Tf,2} = zeros(Nx, Ny)
+  KH::Array{Tf,2} = zeros(Nx, Ny)                          # Eddy diffusivity for heat to the atmosphere (m/s)
+  KHa::Array{Tf,2} = zeros(Nx, Ny)                         # Eddy diffusivity from the canopy air space (m/s)
+  KHg::Array{Tf,2} = zeros(Nx, Ny)                         # Eddy diffusivity for heat from the ground (m/s)
+  KHv::Array{Tf,2} = zeros(Nx, Ny)                         # Eddy diffusivity for heat from vegetation (m/s)
+  KWg::Array{Tf,2} = zeros(Nx, Ny)                         # Eddy diffusivity for water from the ground (m/s)
+  KWv::Array{Tf,2} = zeros(Nx, Ny)                         # Eddy diffusivity for water from vegetation (m/s)
+  Usc::Array{Tf,2} = zeros(Nx, Ny)                         # Wind speed in canopy layer (m/s)
 
   # Ebalsrf - temporary arrays
 
-  Esrf::Array{Tf,2} = zeros(Nx,Ny)
-  Eveg::Array{Tf,2} = zeros(Nx,Ny)
-  G::Array{Tf,2} = zeros(Nx,Ny)
-  H::Array{Tf,2} = zeros(Nx,Ny)
-  Hsrf::Array{Tf,2} = zeros(Nx,Ny)
-  LE::Array{Tf,2} = zeros(Nx,Ny)
-  LEsrf::Array{Tf,2} = zeros(Nx,Ny)
-  LWsci::Array{Tf,2} = zeros(Nx,Ny)
-  LWveg::Array{Tf,2} = zeros(Nx,Ny)
-  Melt::Array{Tf,2} = zeros(Nx,Ny)
-  Rnet::Array{Tf,2} = zeros(Nx,Ny)
-  Rsrf::Array{Tf,2} = zeros(Nx,Ny)
-  Ssub::Tf = zero(Tf)
+  Esrf::Array{Tf,2} = zeros(Nx,Ny)                         # Moisture flux from the surface (kg/m^2/s)
+  Eveg::Array{Tf,2} = zeros(Nx,Ny)                         # Moisture flux from vegetation (kg/m^2/s)
+  G::Array{Tf,2} = zeros(Nx,Ny)                            # Heat flux into the surface (W/m^2)
+  H::Array{Tf,2} = zeros(Nx,Ny)                            # Sensible heat flux to the atmosphere (W/m^2)
+  Hsrf::Array{Tf,2} = zeros(Nx,Ny)                         # Sensible heat flux from the surface (W/m^2)
+  LE::Array{Tf,2} = zeros(Nx,Ny)                           # Latent heat flux to the atmosphere (W/m^2)
+  LEsrf::Array{Tf,2} = zeros(Nx,Ny)                        # Latent heat flux from the surface (W/m^2)
+  LWsci::Array{Tf,2} = zeros(Nx,Ny)                        # Subcanopy incoming longwave radiation (W/m^2)
+  LWveg::Array{Tf,2} = zeros(Nx,Ny)                        # Net longwave radiation absorbed by vegetation (W/m^2)
+  Melt::Array{Tf,2} = zeros(Nx,Ny)                         # Surface melt rate (kg/m^2/s)
+  Rnet::Array{Tf,2} = zeros(Nx,Ny)                         # Net radiation (W/m^2)
+  Rsrf::Array{Tf,2} = zeros(Nx,Ny)                         # Net radiation at surface (W/m^2)
+  Ssub::Tf = zero(Tf)                                      # Sublimation rate (kg/m^2/s)
 
   # Ebalfor - temporary arrays
 
-  A_ebal::Array{Tf,2} = zeros(4, 4)
-  Acp_ebal::Array{Tf,2} = zeros(4, 4)
-  b_ebal::Vector{Tf} = zeros(4)
-  x_ebal::Vector{Tf} = zeros(4)
-  vv_ebal::Vector{Tf} = zeros(4)
-  indx_ebal::Vector{Ti} = zeros(4)
+  A_ebal::Array{Tf,2} = zeros(4, 4)                        # Energy balance matrix for forest
+  Acp_ebal::Array{Tf,2} = zeros(4, 4)                      # Copy of energy balance matrix for LU decomposition
+  b_ebal::Vector{Tf} = zeros(4)                            # Right-hand side vector for energy balance
+  x_ebal::Vector{Tf} = zeros(4)                            # Solution vector for energy balance
+  vv_ebal::Vector{Tf} = zeros(4)                           # Scaling vector for LU decomposition
+  indx_ebal::Vector{Ti} = zeros(4)                         # Pivot indices for LU decomposition
 
   # Canopy - temporary arrays
 
-  intcpt::Array{Tf,2} = zeros(Nx, Ny)
-  Sbveg::Array{Tf,2} = zeros(Nx, Ny)
-  unload::Array{Tf, 2} = zeros(Nx, Ny)
+  intcpt::Array{Tf,2} = zeros(Nx, Ny)                      # Canopy interception (kg/m^2)
+  Sbveg::Array{Tf,2} = zeros(Nx, Ny)                       # Sublimation from vegetation (kg/m^2)
+  unload::Array{Tf, 2} = zeros(Nx, Ny)                     # Snow mass unloaded from canopy (kg/m^2)
 
   # Snow - temporary arrays
 
-  Gsoil::Array{Tf,2} = zeros(Nx, Ny)
-  Roff::Array{Tf,2} = zeros(Nx, Ny)
-  meltflux_out::Array{Tf,2} = zeros(Nx, Ny)
-  Sbsrf::Array{Tf,2} = zeros(Nx, Ny)
-  Roff_bare::Array{Tf, 2} = zeros(Nx, Ny)
-  Roff_snow::Array{Tf, 2} = zeros(Nx, Ny)
-  snowdepth0::Array{Tf, 2} = zeros(Nx, Ny)
-  Sice0::Array{Tf, 2} = zeros(Nx, Ny)
+  Gsoil::Array{Tf,2} = zeros(Nx, Ny)                       # Heat flux into soil (W/m^2)
+  Roff::Array{Tf,2} = zeros(Nx, Ny)                        # Total runoff (kg/m^2)
+  meltflux_out::Array{Tf,2} = zeros(Nx, Ny)                # Runoff from snowmelt at base of snow (kg/m^2)
+  Sbsrf::Array{Tf,2} = zeros(Nx, Ny)                       # Sublimation from the snow surface (kg/m^2)
+  Roff_bare::Array{Tf, 2} = zeros(Nx, Ny)                  # Bare soil runoff (kg/m^2)
+  Roff_snow::Array{Tf, 2} = zeros(Nx, Ny)                  # Runoff at base of snow (kg/m^2)
+  snowdepth0::Array{Tf, 2} = zeros(Nx, Ny)                 # Snow depth at start of timestep (m)
+  Sice0::Array{Tf, 2} = zeros(Nx, Ny)                      # Ice content at start of timestep (kg/m^2)
 
-  a::Vector{Tf} = zeros(Nsmax)
-  bsnow::Vector{Tf} = zeros(Nsmax)
-  c::Vector{Tf} = zeros(Nsmax)
-  csnow::Vector{Tf} = zeros(Nsmax)
-  dTssnow::Vector{Tf} = zeros(Nsmax)
-  D::Vector{Tf} = zeros(Nsmax)
-  E::Vector{Tf} = zeros(Nsmax)
-  Gs::Vector{Tf} = zeros(Nsmax)
-  rhs::Vector{Tf} = zeros(Nsmax)
-  R::Vector{Tf} = zeros(Nsmax)
-  S::Vector{Tf} = zeros(Nsmax)
-  U::Vector{Tf} = zeros(Nsmax)
-  W::Vector{Tf} = zeros(Nsmax)
+  a::Vector{Tf} = zeros(Nsmax)                             # Tridiagonal matrix lower diagonal
+  bsnow::Vector{Tf} = zeros(Nsmax)                         # Tridiagonal matrix main diagonal
+  c::Vector{Tf} = zeros(Nsmax)                             # Tridiagonal matrix upper diagonal
+  csnow::Vector{Tf} = zeros(Nsmax)                         # Areal heat capacity of snow layers (J/K/m^2)
+  dTssnow::Vector{Tf} = zeros(Nsmax)                       # Snow layer temperature increments (K)
+  D::Vector{Tf} = zeros(Nsmax)                             # Layer thickness (m)
+  E::Vector{Tf} = zeros(Nsmax)                             # Energy flux (W/m^2)
+  Gs::Vector{Tf} = zeros(Nsmax)                            # Inter-layer thermal conductance (W/m^2/K)
+  rhs::Vector{Tf} = zeros(Nsmax)                           # Right-hand side for tridiagonal solver
+  R::Vector{Tf} = zeros(Nsmax)                             # Liquid water flux between layers (kg/m^2/s)
+  S::Vector{Tf} = zeros(Nsmax)                             # Layer source term (W/m^2)
+  U::Vector{Tf} = zeros(Nsmax)                             # Layer internal energy (J/m^2)
+  W::Vector{Tf} = zeros(Nsmax)                             # Layer liquid water content (kg/m^2)
 
-  SWEbuffer::Vector{Tf} = zeros(15)
-  snowdepthbuffer::Vector{Tf} = zeros(15)
-  diffSWEbuffer::Vector{Tf} = zeros(14)
+  SWEbuffer::Vector{Tf} = zeros(15)                        # Buffer for SWE history (kg/m^2)
+  snowdepthbuffer::Vector{Tf} = zeros(15)                  # Buffer for snow depth history (m)
+  diffSWEbuffer::Vector{Tf} = zeros(14)                    # Buffer for SWE differences (kg/m^2)
 
   # Snow layering - temporary arrays
 
-  Ds0::Array{Tf, 2} = zeros(Nx, Ny)
-  hw::Vector{Tf} = zeros(Nsmax)
-  rho::Vector{Tf} = zeros(Nsmax + 1)
-  diff_rho::Vector{Tf} = zeros(Nsmax)
-  csnow_loc::Vector{Tf} = zeros(Nsmax + 1)
-  Sice_loc::Vector{Tf} = zeros(Nsmax + 1)
-  Sliq_loc::Vector{Tf} = zeros(Nsmax + 1)
-  Ds_loc::Vector{Tf} = zeros(Nsmax + 1)
-  histowet_loc::Vector{Tf} = zeros(Nsmax + 1)
-  U_loc::Vector{Tf} = zeros(Nsmax + 1)
-  Tsnow_loc::Vector{Tf} = zeros(Nsmax + 1)
+  Ds0::Array{Tf, 2} = zeros(Nx, Ny)                        # Snow layer thickness at start of timestep (m)
+  hw::Vector{Tf} = zeros(Nsmax)                            # Liquid water equivalent height (m)
+  rho::Vector{Tf} = zeros(Nsmax + 1)                       # Snow density (kg/m^3)
+  diff_rho::Vector{Tf} = zeros(Nsmax)                      # Density difference between layers (kg/m^3)
+  csnow_loc::Vector{Tf} = zeros(Nsmax + 1)                 # Local heat capacity of snow layers (J/K/m^2)
+  Sice_loc::Vector{Tf} = zeros(Nsmax + 1)                  # Local ice content of snow layers (kg/m^2)
+  Sliq_loc::Vector{Tf} = zeros(Nsmax + 1)                  # Local liquid content of snow layers (kg/m^2)
+  Ds_loc::Vector{Tf} = zeros(Nsmax + 1)                    # Local snow layer thicknesses (m)
+  histowet_loc::Vector{Tf} = zeros(Nsmax + 1)              # Local historical wetting variable (-)
+  U_loc::Vector{Tf} = zeros(Nsmax + 1)                     # Local layer internal energy (J/m^2)
+  Tsnow_loc::Vector{Tf} = zeros(Nsmax + 1)                 # Local snow layer temperatures (K)
 
   # Soil - temporary vectors
 
-  asoil::Vector{Tf} = zeros(Nsoil)
-  bsoil::Vector{Tf} = zeros(Nsoil)
-  cssoil::Vector{Tf} = zeros(Nsoil)
-  dTssoil::Vector{Tf} = zeros(Nsoil)
-  Gssoil::Vector{Tf} = zeros(Nsoil)
-  rhssoil::Vector{Tf} = zeros(Nsoil)
+  asoil::Vector{Tf} = zeros(Nsoil)                         # Tridiagonal matrix lower diagonal for soil
+  bsoil::Vector{Tf} = zeros(Nsoil)                         # Tridiagonal matrix main diagonal for soil
+  cssoil::Vector{Tf} = zeros(Nsoil)                        # Tridiagonal matrix upper diagonal for soil
+  dTssoil::Vector{Tf} = zeros(Nsoil)                       # Soil layer temperature increments (K)
+  Gssoil::Vector{Tf} = zeros(Nsoil)                        # Inter-layer thermal conductance for soil (W/m^2/K)
+  rhssoil::Vector{Tf} = zeros(Nsoil)                       # Right-hand side for soil tridiagonal solver
 
   # Tridiag - temporary vectors
 
-  gammasnow::Vector{Tf} = zeros(Nsmax)
-  gammasoil::Vector{Tf} = zeros(Nsoil)
+  gammasnow::Vector{Tf} = zeros(Nsmax)                     # Tridiagonal solver work array for snow
+  gammasoil::Vector{Tf} = zeros(Nsoil)                     # Tridiagonal solver work array for soil
 
   # SnowSlide variables     TODO where to place these?
   slope::Matrix{Tf} = Matrix{Tf}(undef, 0, 0)             # Slope angles (deg)    TODO move to terrain params
