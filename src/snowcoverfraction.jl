@@ -20,8 +20,6 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
     @unpack fsnow, swehist, swemin, swemax = fsm
     @unpack snowdepthhist, snowdepthmin, snowdepthmax = fsm
     @unpack slopemu, xi, Ld = fsm
-
-    snowdepth_threshold = Tf(0.005714286)  # Converted from swe_threshold = 2 using density = 350
     
     if SNFRAC == 0
 
@@ -246,10 +244,6 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
         sd_snowdepth0 = sd_snowdepth1 * sd_snowdepth2 * sd_snowdepth3
 
         fsnow[i,j] = tanh(Tf(1.3) * snowdepth / sd_snowdepth0)
-        
-        if snowdepth < snowdepth_threshold
-            fsnow[i,j] = Tf(0.0)
-        end
 
     elseif SNFRAC == 2
         # HelbigHS0
@@ -267,10 +261,6 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
         sd_snowdepth0 = sd_snowdepth1 * sd_snowdepth2 * sd_snowdepth3
 
         fsnow[i,j] = tanh(Tf(1.3) * snowdepth / sd_snowdepth0)
-        
-        if snowdepth < snowdepth_threshold
-            fsnow[i,j] = Tf(0.0)
-        end
 
     elseif SNFRAC == 3
         # Point model
