@@ -256,7 +256,6 @@
   Melt::Array{Tf,2} = zeros(Nx,Ny)                         # Surface melt rate (kg/m^2/s)
   Rnet::Array{Tf,2} = zeros(Nx,Ny)                         # Net radiation (W/m^2)
   Rsrf::Array{Tf,2} = zeros(Nx,Ny)                         # Net radiation at surface (W/m^2)
-  Ssub::Tf = zero(Tf)                                      # Sublimation rate (kg/m^2/s)
 
   # Ebalfor - temporary arrays
 
