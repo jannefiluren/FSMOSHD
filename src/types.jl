@@ -212,7 +212,7 @@
   dSWE_tot_salt::Array{Tf, 2} = zeros(Nx,Ny)               # Cumulated SWE change due to saltation (kg/m^2)
   dSWE_tot_susp::Array{Tf, 2} = zeros(Nx,Ny)               # Cumulated SWE change due to suspension (kg/m^2)
 
-  # Radiation - temporary arrays
+  # Radiation variables
 
   alb::Array{Tf,2} = zeros(Nx,Ny)                          # Albedo (-)
   asrf_out::Array{Tf,2} = zeros(Nx,Ny)                     # Surface albedo (-)
@@ -221,7 +221,7 @@
   SWsci::Array{Tf,2} = zeros(Nx,Ny)                        # Subcanopy incoming shortwave radiation (W/m^2)
   LWt::Array{Tf,2} = zeros(Nx,Ny)                          # Incoming longwave radiation corrected for subgrid topography (W/m^2)
 
-  # Thermal - temporary arrays
+  # Thermal variables
 
   ksnow::Array{Tf,3} = zeros(Nsmax, Nx, Ny)                # Thermal conductivity of snow (W/m/K)
   csoil::Array{Tf,3} = zeros(Nsoil, Nx, Ny)                # Areal heat capacity of soil (J/K/m^2)
@@ -232,7 +232,7 @@
   ks1::Array{Tf,2} = zeros(Nx, Ny)                         # Surface thermal conductivity (W/m/K)
   Tveg0::Array{Tf,2} = zeros(Nx, Ny)                       # Vegetation temperature at start of timestep (K)
 
-  # Sfexch - temporary arrays
+  # Sfexch variables
 
   KH::Array{Tf,2} = zeros(Nx, Ny)                          # Eddy diffusivity for heat to the atmosphere (m/s)
   KHa::Array{Tf,2} = zeros(Nx, Ny)                         # Eddy diffusivity from the canopy air space (m/s)
@@ -242,7 +242,7 @@
   KWv::Array{Tf,2} = zeros(Nx, Ny)                         # Eddy diffusivity for water from vegetation (m/s)
   Usc::Array{Tf,2} = zeros(Nx, Ny)                         # Wind speed in canopy layer (m/s)
 
-  # Ebalsrf - temporary arrays
+  # Ebalsrf variables
 
   Esrf::Array{Tf,2} = zeros(Nx,Ny)                         # Moisture flux from the surface (kg/m^2/s)
   Eveg::Array{Tf,2} = zeros(Nx,Ny)                         # Moisture flux from vegetation (kg/m^2/s)
@@ -257,7 +257,7 @@
   Rnet::Array{Tf,2} = zeros(Nx,Ny)                         # Net radiation (W/m^2)
   Rsrf::Array{Tf,2} = zeros(Nx,Ny)                         # Net radiation at surface (W/m^2)
 
-  # Ebalfor - temporary arrays
+  # Ebalfor variables
 
   A_ebal::Array{Tf,2} = zeros(4, 4)                        # Energy balance matrix for forest
   Acp_ebal::Array{Tf,2} = zeros(4, 4)                      # Copy of energy balance matrix for LU decomposition
@@ -266,13 +266,13 @@
   vv_ebal::Vector{Tf} = zeros(4)                           # Scaling vector for LU decomposition
   indx_ebal::Vector{Ti} = zeros(4)                         # Pivot indices for LU decomposition
 
-  # Canopy - temporary arrays
+  # Canopy variables
 
   intcpt::Array{Tf,2} = zeros(Nx, Ny)                      # Canopy interception (kg/m^2)
   Sbveg::Array{Tf,2} = zeros(Nx, Ny)                       # Sublimation from vegetation (kg/m^2)
   unload::Array{Tf, 2} = zeros(Nx, Ny)                     # Snow mass unloaded from canopy (kg/m^2)
 
-  # Snow - temporary arrays
+  # Snow variables
 
   Gsoil::Array{Tf,2} = zeros(Nx, Ny)                       # Heat flux into soil (W/m^2)
   Roff::Array{Tf,2} = zeros(Nx, Ny)                        # Total runoff (kg/m^2)
@@ -301,7 +301,7 @@
   snowdepthbuffer::Vector{Tf} = zeros(15)                  # Buffer for snow depth history (m)
   diffSWEbuffer::Vector{Tf} = zeros(14)                    # Buffer for SWE differences (kg/m^2)
 
-  # Snow layering - temporary arrays
+  # Snow layering variables
 
   Ds0::Array{Tf, 2} = zeros(Nx, Ny)                        # Snow layer thickness at start of timestep (m)
   hw::Vector{Tf} = zeros(Nsmax)                            # Liquid water equivalent height (m)
