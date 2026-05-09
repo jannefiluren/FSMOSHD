@@ -193,7 +193,7 @@
   rgrn::Array{Tf,3} = -999999*ones(Nsmax,Nx,Ny)            # TODO defaults? Snow layer grain radius (m)
   Sice::Array{Tf,3} = zeros(Nsmax,Nx,Ny)                   # Ice content of snow layers (kg/m^2)
   Sliq::Array{Tf,3} = zeros(Nsmax,Nx,Ny)                   # Liquid content of snow layers (kg/m^2)
-  Sveg::Array{Tf, 2} = -999999*ones(Nx,Ny)                 # TODO defaults? Snow mass on vegetation (kg/m^2)
+  Sveg::Array{Tf, 2} = zeros(Nx,Ny)                        # TODO defaults? Snow mass on vegetation (kg/m^2)
   Tcan::Array{Tf, 2} = -999999*ones(Nx,Ny)                 # TODO defaults? Canopy air space temperature (K)
   theta::Array{Tf,3} = zeros(Nsoil,Nx,Ny)                  # Volumetric moisture content of soil layers
   Tsnow::Array{Tf,3} = Tf(273.15)*ones(Nsmax,Nx,Ny)        # Snow layer temperatures (K)

@@ -74,6 +74,14 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
 
         Sbsrf[i, j] = Tf(0)
 
+        # Handle snow unloading above freezing
+        if (Ta[i, j] >= Tm)
+          # Unloading on bare ground fraction is added to runoff
+          Roff_bare[i, j] = Roff_bare[i, j] + unload[i, j] * (Tf(1) - fsnow[i, j])
+          # Unloading on snow covered fraction is later added to snow liquid water (see hydraulics) 
+          Roff_snow[i, j] = Roff_snow[i, j] + unload[i, j] * fsnow[i, j]
+        end
+
         if (fsnow[i, j] > eps(Tf)) # This condition should be equivalent to Nsnow[i,j] > 0
 
           # Except for point case, apply a minimum threshold of 0.1 to fsnow
@@ -167,11 +175,6 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
           end
 
           # Snow hydraulics
-          # First, unloading snow is added to liquid water if Ta above freezing point
-          if (Ta[i, j] >= Tm)
-            Roff_bare[i, j] = Roff_bare[i, j] + unload[i, j] * (Tf(1) - fsnow[i, j]) # Bare soil fraction
-            Roff_snow[i, j] = Roff_snow[i, j] + unload[i, j] * fsnow[i, j] # Snow covered ground fraction
-          end
           if (HYDROL == 0)
             # Free-draining snow 
             meltflux_out[i, j] = Tf(0)
