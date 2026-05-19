@@ -50,10 +50,6 @@ function run_fsm(fsm, met, df_meteo)
     for (i, row) in zip(1:nrow(df_meteo), eachrow(df_meteo))
     
         # assign input
-        met.year .= row["year"]
-        met.month .= row["month"]
-        met.day .= row["day"]
-        met.hour .= row["hour"]
         met.Sdir .= row["Sdir"]
         met.Sdif .= row["Sdif"]
         met.Sdird .= row["Sdir"]
