@@ -97,10 +97,6 @@ function run_fsm(fsm, met, df_meteo)
         prec[i] = row["Sf"] + row["Rf"]
     
         # assign input
-        met.year .= row["year"]
-        met.month .= row["month"]
-        met.day .= row["day"]
-        met.hour .= row["hour"]
         met.Sdir .= row["Sdir"]
         met.Sdif .= row["Sdif"]
         met.Sdird .= row["Sdir"]
@@ -112,6 +108,7 @@ function run_fsm(fsm, met, df_meteo)
         met.Ua .= row["Ua"]
         met.Ps .= row["Ps"]
         met.Sf24h .= row["Sf24h"]
+        met.Tv .= 1
     
         # set time 
         t = DateTime(row["year"], row["month"], row["day"], row["hour"])
