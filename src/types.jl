@@ -98,7 +98,7 @@
   trho::Tf = 3600*200                                      # Snow compaction time scale (s)
   Wirr::Tf = 0.03                                          # Irreducible liquid water content of snow (-)
   z0sn::Tf = 0.002                                         # Snow roughness length (m)
-  Sfmin::Tf = 10                                           # Minimum snowfall over 24h to refresh albedo (kg/m^2)
+  Sfmin::Tf = 10                                           # Minimum snowfall over 24h needed to refresh albedo (kg/m^2)
 
   # Snow layering parameters
 
