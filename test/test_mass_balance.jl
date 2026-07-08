@@ -154,7 +154,6 @@ function test_results(results, verbose = false)
     end
 
     @test isapprox(mass_actual_change, mass_expected_change, atol = 1.0e-1)
-    
     return nothing
 
 end
