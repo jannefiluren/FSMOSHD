@@ -24,17 +24,17 @@ met = MET{Float32, Int32}(Nx=Nx, Ny=Ny)
 step!(fsm, met, DateTime(2023, 12, 1, 12))
 ```
 """
-function step!(fsm::FSM{Tf,Ti}, met::MET{Tf,Ti}, t) where {Tf,Ti}
-    
+function step!(fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, t) where {Tf, Ti}
+
     # 1. Meteorological data processing
     drive!(fsm, met)
-    
+
     # 2. Radiation calculations
     radiation!(fsm, met, t)
-    
+
     # 3. Thermal property updates
     thermal!(fsm)
-    
+
     # 4. Iterative energy balance solution
     tile_type = fsm.TILE
     for _ in 1:fsm.Nitr
@@ -45,17 +45,17 @@ function step!(fsm::FSM{Tf,Ti}, met::MET{Tf,Ti}, t) where {Tf,Ti}
             ebalsrf!(fsm, met)
         end
     end
-    
+
     # 5. Forest-specific canopy processing
     if tile_type == "forest"
         canopy!(fsm, met)
     end
-    
+
     # 6. Snow processes
     snow!(fsm, met, t)
-    
+
     # 7. Soil thermal processes
     soil!(fsm)
-    
+
     return nothing
 end

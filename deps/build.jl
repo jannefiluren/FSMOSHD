@@ -3,17 +3,17 @@ using Libdl
 # Build standalone SnowSlide routines
 snowslide_routines = [
     "SNOWSLIDE.F90",
-    "SNOW_ABLATION.F90", 
-    "SWE_FROM_HS.F90"
+    "SNOW_ABLATION.F90",
+    "SWE_FROM_HS.F90",
 ]
 
-# Build standalone SnowTran3D routines  
+# Build standalone SnowTran3D routines
 snowtran3d_routines = [
     "MODULES.F90",
     "SNOWTRAN3D.F90",
     "HS_FROM_SWE.F90",
     "SNOW_ABLATION.F90",
-    "SWE_FROM_HS.F90"
+    "SWE_FROM_HS.F90",
 ]
 
 if Sys.iswindows()

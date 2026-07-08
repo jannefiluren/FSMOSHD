@@ -88,7 +88,7 @@ end
 
         # The energy change should be very close to the top flux
         # (small deviations due to bottom boundary treatment)
-        @test isapprox(E_actual_change, E_expected_from_top, rtol=1e-4)
+        @test isapprox(E_actual_change, E_expected_from_top, rtol = 1.0e-4)
 
         # Check that top layer warmed (physics sanity check)
         @test fsm.Tsoil[1, 1, 1] > T_init
@@ -120,7 +120,7 @@ end
         E_actual_change = E_final - E_initial
 
         # The energy change should be very close to the top flux
-        @test isapprox(E_actual_change, E_expected_from_top, rtol=1e-4)
+        @test isapprox(E_actual_change, E_expected_from_top, rtol = 1.0e-4)
 
         # Check that top layer cooled (physics sanity check)
         @test fsm.Tsoil[1, 1, 1] < T_init
@@ -144,7 +144,7 @@ end
 
         # Check that temperatures didn't change much (isothermal should stay isothermal)
         for k in 1:fsm.Nsoil
-            @test isapprox(fsm.Tsoil[k, 1, 1], T_init, atol=1e-4)
+            @test isapprox(fsm.Tsoil[k, 1, 1], T_init, atol = 1.0e-4)
         end
     end
 
@@ -188,7 +188,7 @@ end
 
         # Energy change should be approximately equal to top flux
         # (allow slightly larger tolerance due to temperature gradient)
-        @test isapprox(E_actual_change, E_expected_from_top, rtol=1e-3)
+        @test isapprox(E_actual_change, E_expected_from_top, rtol = 1.0e-3)
     end
 
     # Test 5: Multiple timesteps with cumulative energy tracking
@@ -217,7 +217,7 @@ end
         E_actual_change = E_final - E_initial
 
         # Check energy conservation over multiple steps
-        @test isapprox(E_actual_change, E_expected_from_top, rtol=1e-4)
+        @test isapprox(E_actual_change, E_expected_from_top, rtol = 1.0e-4)
     end
 
     # Test 6: Physics sanity checks
@@ -258,12 +258,12 @@ end
         fsm.ksoil[:, 1, 1] .= 0.0  # W/m/K
 
         # Add a heat flux to increase the top layer soil temperature by one degree
-        fsm.Gsoil[1, 1] = 2e5 / fsm.dt
+        fsm.Gsoil[1, 1] = 2.0e5 / fsm.dt
 
         # Run soil routine
         soil!(fsm)
 
         # Top soil layer temperature should have increased by one degree
-        @test isapprox(fsm.Tsoil[1, 1, 1], T_init + 1, atol=1e-4)
+        @test isapprox(fsm.Tsoil[1, 1, 1], T_init + 1, atol = 1.0e-4)
     end
 end

@@ -15,16 +15,16 @@ function setup_example()
     lus["xi"] = Dict("data" => [1.0;;])
     lus["Ld"] = Dict("data" => [1.0;;])
     lus["prec_multi"] = Dict("data" => [1.0;;])
-    
+
     # define custom settings
     settings = Dict("tile" => "open")
-    
+
     # create fsm struct
     fsm = setup(Float32, Int32, lus, 1, 1, settings)
-    
+
     # define meteo data struct
-    met = MET{Float32,Int32}()
-    
+    met = MET{Float32, Int32}()
+
     # read meteo file
     df_meteo = CSV.read(joinpath(path, "../data/input_SLF_5WJ.txt"), DataFrame)
 
@@ -37,10 +37,10 @@ function run_fsm(fsm, met, df_meteo)
 
     # allocate output variable-wise
     hs = zeros(nrow(df_meteo))
-    
+
     # time loop
     for (i, row) in zip(1:nrow(df_meteo), eachrow(df_meteo))
-    
+
         # assign input
         met.Sdir .= row["Sdir"]
         met.Sdif .= row["Sdif"]
@@ -53,21 +53,21 @@ function run_fsm(fsm, met, df_meteo)
         met.Ua .= row["Ua"]
         met.Ps .= row["Ps"]
         met.Sf24h .= row["Sf24h"]
-    
-        # set time 
+
+        # set time
         t = DateTime(row["year"], row["month"], row["day"], row["hour"])
-    
+
         # run model and update states
         step!(fsm, met, t)
-    
+
         # write output
-        hs[i] = dropdims(sum(fsm.Ds, dims=1), dims=1)[1, 1]
-    
+        hs[i] = dropdims(sum(fsm.Ds, dims = 1), dims = 1)[1, 1]
+
     end
-    
+
     # write results to dataframe
     time = DateTime.(df_meteo[!, "year"], df_meteo[!, "month"], df_meteo[!, "day"], df_meteo[!, "hour"])
-    df_results = DataFrame(time=time, hs=hs)
+    df_results = DataFrame(time = time, hs = hs)
 
     return df_results
 

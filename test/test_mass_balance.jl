@@ -16,19 +16,19 @@ function setup_open_example(SNFRAC)
     lus["xi"] = Dict("data" => [1.0;;])
     lus["Ld"] = Dict("data" => [1.0;;])
     lus["prec_multi"] = Dict("data" => [1.0;;])
-    
+
     # define custom settings
     settings = Dict("tile" => "open")
-    
+
     # create fsm struct
     fsm = setup(Float32, Int32, lus, 1, 1, settings)
 
     # Set snow cover fraction scheme
     fsm.SNFRAC = SNFRAC
-    
+
     # define meteo data struct
-    met = MET{Float32,Int32}()
-    
+    met = MET{Float32, Int32}()
+
     # read meteo file
     df_meteo = CSV.read(joinpath(path, "../data/input_SLF_5WJ.txt"), DataFrame)
 
@@ -49,28 +49,28 @@ function setup_forest_example(SNFRAC)
 
     # add forest properties
     lus["forest"] = Dict("data" => [1;;]) # Forest cover fraction
-    lus["fveg"] = Dict("data" => [0.6;;]) # Canopy cover fraction 
+    lus["fveg"] = Dict("data" => [0.6;;]) # Canopy cover fraction
     lus["fves"] = Dict("data" => [0.6;;]) # Stand-scale canopy cover fraction
     lus["hcan"] = Dict("data" => [20;;])  # Canopy height (m)
     lus["lai"] = Dict("data" => [2.5;;])  # Leaf area index
     lus["vfhp"] = Dict("data" => [0.5;;]) # Hemispherical sky-view fraction including canopy
 
     # define custom settings
-    settings = Dict("tile" => "forest", "config" => Dict("CANMOD" => 1,"EXCHNG" => 2, "ZOFFST" => 1))
-    
+    settings = Dict("tile" => "forest", "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "ZOFFST" => 1))
+
     # create fsm struct
     fsm = setup(Float32, Int32, lus, 1, 1, settings)
 
     # Set snow cover fraction scheme
     fsm.SNFRAC = SNFRAC
-    
+
     # No preferential deposition in canopy gaps
     fsm.psr = Float32(0)
     fsm.psf = Float32(1)
 
     # define meteo data struct
-    met = MET{Float32,Int32}()
-    
+    met = MET{Float32, Int32}()
+
     # read meteo file
     df_meteo = CSV.read(joinpath(path, "../data/input_SLF_5WJ.txt"), DataFrame)
 
@@ -89,13 +89,13 @@ function run_fsm(fsm, met, df_meteo)
     # change in storage
     dSWE = -sum(fsm.Sice[:, 1, 1] .+ fsm.Sliq[:, 1, 1])
     dSveg = -fsm.Sveg[1, 1]
-        
+
     # time loop
     for (i, row) in zip(1:nrow(df_meteo), eachrow(df_meteo))
 
         # record precipitation before model run as the forest tile modifies these fluxes
         prec[i] = row["Sf"] + row["Rf"]
-    
+
         # assign input
         met.Sdir .= row["Sdir"]
         met.Sdif .= row["Sdif"]
@@ -109,18 +109,18 @@ function run_fsm(fsm, met, df_meteo)
         met.Ps .= row["Ps"]
         met.Sf24h .= row["Sf24h"]
         met.Tv .= 1
-    
-        # set time 
+
+        # set time
         t = DateTime(row["year"], row["month"], row["day"], row["hour"])
-    
+
         # run model and update states
         step!(fsm, met, t)
-    
+
         # record mass fluxes
         Roff[i] = fsm.Roff[1, 1]
         Sbsrf[i] = fsm.Sbsrf[1, 1]
         Sbveg[i] = fsm.Sbveg[1, 1]
-    
+
     end
 
     # change in storage
@@ -134,14 +134,14 @@ function run_fsm(fsm, met, df_meteo)
         Sbveg = sum(Sbveg),
         dSWE = dSWE,
         dSveg = dSveg,
-        )
-    
+    )
+
 end
 
 function test_results(results, verbose = false)
 
     mass_actual_change = results.prec - results.Roff - results.Sbsrf - results.Sbveg
-    mass_expected_change = results.dSWE + results.dSveg    
+    mass_expected_change = results.dSWE + results.dSveg
 
     if verbose
         println("prec = " * string(results.prec))
@@ -153,21 +153,23 @@ function test_results(results, verbose = false)
         println("residual = ", mass_actual_change - mass_expected_change)
     end
 
-    @test isapprox(mass_actual_change, mass_expected_change, atol=1e-1)
+    @test isapprox(mass_actual_change, mass_expected_change, atol = 1.0e-1)
+    
+    return nothing
 
 end
 
 @testset "Mass balance tests" begin
 
     # Test open tile for all snow cover fraction schemes
-    for SNFRAC = 0:4
+    for SNFRAC in 0:4
         fsm, met, df_meteo = setup_open_example(SNFRAC)
         results = run_fsm(fsm, met, df_meteo)
         test_results(results)
     end
 
     # Test forest tile for all snow cover fraction schemes
-    for SNFRAC = 0:4
+    for SNFRAC in 0:4
         fsm, met, df_meteo = setup_forest_example(SNFRAC)
         results = run_fsm(fsm, met, df_meteo)
         test_results(results)

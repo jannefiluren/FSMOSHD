@@ -8,8 +8,10 @@ using Serialization
 
 function load_domain_data()
 
-    variables = ["easting", "northing", "elevation", "Ld", "dhdxdy", "sd", "prec_multi", "skyvf",
-                 "fveg", "hcan", "lai", "vfhp", "fves", "forest", "glacier"]
+    variables = [
+        "easting", "northing", "elevation", "Ld", "dhdxdy", "sd", "prec_multi", "skyvf",
+        "fveg", "hcan", "lai", "vfhp", "fves", "forest", "glacier",
+    ]
 
     # Read domain data
     landuse = Dict()
@@ -39,7 +41,7 @@ function interpolate_meteo(Tf, landuse)
         ("LW", 150.0, 500.0),
         ("Sf", 0.0, 100.0),
         ("Rf", 0.0, 100.0),
-        ("Ta", 273.15-40, 273.15+40),
+        ("Ta", 273.15 - 40, 273.15 + 40),
         ("RH", 20.0, 100.0),
         ("Ua", 0.05, 30.0),
         ("Ps", 0.0, 150000.0),
@@ -79,7 +81,7 @@ function interpolate_meteo(Tf, landuse)
 
 end
 
-function run_simulations(settings, Tf=Float32, Ti=Int32)
+function run_simulations(settings, Tf = Float32, Ti = Int32)
 
     # Read landuse data
     landuse = load_domain_data()
@@ -96,7 +98,7 @@ function run_simulations(settings, Tf=Float32, Ti=Int32)
     Nt = length(times)
 
     fsm = setup(Tf, Ti, landuse, Nx, Ny, settings)
-    met = MET{Tf, Ti}(Nx=Nx, Ny=Ny)
+    met = MET{Tf, Ti}(Nx = Nx, Ny = Ny)
 
     # Preallocate arrays to store simulation results
     simulation_results = Dict{String, Any}()
@@ -143,9 +145,9 @@ function run_simulations(settings, Tf=Float32, Ti=Int32)
 
         # Store state variables
         simulation_results["Tsrf"][:, :, timestep] .= fsm.Tsrf
-        simulation_results["Tsnow"][:, :, timestep] .= fsm.Tsnow[1,:,:]  # First snow layer
-        simulation_results["Sice"][:, :, timestep] .= dropdims(sum(fsm.Sice, dims=1), dims=1)  # Total snow ice
-        simulation_results["Sliq"][:, :, timestep] .= dropdims(sum(fsm.Sliq, dims=1), dims=1)  # Total snow liquid
+        simulation_results["Tsnow"][:, :, timestep] .= fsm.Tsnow[1, :, :]  # First snow layer
+        simulation_results["Sice"][:, :, timestep] .= dropdims(sum(fsm.Sice, dims = 1), dims = 1)  # Total snow ice
+        simulation_results["Sliq"][:, :, timestep] .= dropdims(sum(fsm.Sliq, dims = 1), dims = 1)  # Total snow liquid
         simulation_results["fsnow"][:, :, timestep] .= fsm.fsnow
         simulation_results["albs"][:, :, timestep] .= fsm.albs
         simulation_results["Sveg"][:, :, timestep] .= fsm.Sveg
@@ -163,7 +165,7 @@ function run_simulations(settings, Tf=Float32, Ti=Int32)
         simulation_results["Rnet"][:, :, timestep] .= fsm.Rnet
 
         # Store diagnostic variables
-        simulation_results["Ds"][:, :, timestep] .= dropdims(sum(fsm.Ds, dims=1), dims=1)  # Total snow depth
+        simulation_results["Ds"][:, :, timestep] .= dropdims(sum(fsm.Ds, dims = 1), dims = 1)  # Total snow depth
         simulation_results["snowdepth"][:, :, timestep] .= simulation_results["Ds"][:, :, timestep] .* simulation_results["fsnow"][:, :, timestep]
 
     end
@@ -181,16 +183,16 @@ settings = [
     Dict(
         "tile" => "open",
         "config" => Dict("SNFRAC" => 0),
-        ),
+    ),
     Dict(
         "tile" => "forest",
         "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
         "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01)
-        ),
+    ),
     Dict(
         "tile" => "glacier",
         "config" => Dict("SNFRAC" => 0),
-    )
+    ),
 ]
 
 # Load or create reference data
@@ -205,7 +207,7 @@ end
 simulation_refs = deserialize(ref_file)
 
 # Run regression tests for each configuration
-tolerance = 1e-10
+tolerance = 1.0e-10
 
 for (setting, simulation_ref) in zip(settings, simulation_refs)
 

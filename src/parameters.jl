@@ -18,45 +18,47 @@ function get_constants(::Type{Tf}) where {Tf <: AbstractFloat}
         Ls = Tf(0.334e6 + 2.501e6), # Latent heat of sublimation (J/kg)
         pi = Tf(3.14159),      # pi
         Rair = Tf(287),        # Gas constant for air (J/K/kg)
-        Rwat = Tf(462),        # Gas constant for water vapour (J/K/kg)  
+        Rwat = Tf(462),        # Gas constant for water vapour (J/K/kg)
         rho_ice = Tf(917),     # Density of ice (kg/m^3)
         rho_wat = Tf(1000),    # Density of water (kg/m^3)
         sb = Tf(5.67e-8),      # Stefan-Boltzmann constant (W/m^2/K^4)
         em_snow = Tf(0.99),    # Emissivity snow for Stefan-Boltzmann
-        em_soil = Tf(0.90),    # Emissivity soil for Stefan-Boltzmann
+        em_soil = Tf(0.9),    # Emissivity soil for Stefan-Boltzmann
         Tm = Tf(273.15),       # Melting point (K)
-        vkman = Tf(0.4)        # Von Karman constant
+        vkman = Tf(0.4),        # Von Karman constant
     )
 end
 
 # Convenience macro to unpack constants in functions
 macro unpack_constants(Tf)
-    return esc(quote
-        constants = get_constants($Tf)
-        cp = constants.cp
-        eps_fsm = constants.eps_fsm
-        e0 = constants.e0
-        grav = constants.grav
-        hcap_ice = constants.hcap_ice
-        hcap_wat = constants.hcap_wat
-        hcon_air = constants.hcon_air
-        hcon_clay = constants.hcon_clay
-        hcon_ice = constants.hcon_ice  
-        hcon_sand = constants.hcon_sand
-        hcon_wat = constants.hcon_wat
-        I0 = constants.I0
-        Lf = constants.Lf
-        Lv = constants.Lv
-        Ls = constants.Ls
-        pi = constants.pi
-        Rair = constants.Rair
-        Rwat = constants.Rwat
-        rho_ice = constants.rho_ice
-        rho_wat = constants.rho_wat
-        sb = constants.sb
-        em_snow = constants.em_snow
-        em_soil = constants.em_soil
-        Tm = constants.Tm
-        vkman = constants.vkman
-    end)
+    return esc(
+        quote
+            constants = get_constants($Tf)
+            cp = constants.cp
+            eps_fsm = constants.eps_fsm
+            e0 = constants.e0
+            grav = constants.grav
+            hcap_ice = constants.hcap_ice
+            hcap_wat = constants.hcap_wat
+            hcon_air = constants.hcon_air
+            hcon_clay = constants.hcon_clay
+            hcon_ice = constants.hcon_ice
+            hcon_sand = constants.hcon_sand
+            hcon_wat = constants.hcon_wat
+            I0 = constants.I0
+            Lf = constants.Lf
+            Lv = constants.Lv
+            Ls = constants.Ls
+            pi = constants.pi
+            Rair = constants.Rair
+            Rwat = constants.Rwat
+            rho_ice = constants.rho_ice
+            rho_wat = constants.rho_wat
+            sb = constants.sb
+            em_snow = constants.em_snow
+            em_soil = constants.em_soil
+            Tm = constants.Tm
+            vkman = constants.vkman
+        end
+    )
 end

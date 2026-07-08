@@ -17,9 +17,11 @@ Implementation of Liston and Sturm (1998) and Liston et al. (2007) SnowTran3D mo
 - `dSWE_susp::Matrix`: SWE change due to suspension (kg/m²) - output
 - `dSWE_subl::Matrix`: SWE change due to sublimation (kg/m²) - output
 """
-function snowtran3d!(fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, snowdepth0::Matrix{Tf}, Sice0::Matrix{Tf},
-                     dSWE_salt::Matrix{Tf}, dSWE_susp::Matrix{Tf}, 
-                     dSWE_subl::Matrix{Tf}) where {Tf<:Real, Ti<:Integer}
+function snowtran3d!(
+        fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, snowdepth0::Matrix{Tf}, Sice0::Matrix{Tf},
+        dSWE_salt::Matrix{Tf}, dSWE_susp::Matrix{Tf},
+        dSWE_subl::Matrix{Tf}
+    ) where {Tf <: Real, Ti <: Integer}
 
     @unpack Nx, Ny, Nsmax, dt, zRH, zU = fsm
     @unpack Ds_min = fsm
@@ -29,31 +31,35 @@ function snowtran3d!(fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, snowdepth0::Matrix{Tf},
     @unpack dSWE_tot_subl, dSWE_tot_salt, dSWE_tot_susp = fsm
     @unpack Ld = fsm
     @unpack rhos_min, rhos_max, rho_snow = fsm
-    
-    
+
+
     # Call standalone Fortran routine following exact signature order
-    ccall((:snowtran3d_, LIBSNOWTRAN3D),
-          Cvoid,
-          (Ref{Ti}, Ref{Ti}, Ref{Ti},                     # Nsmax, Nx, Ny
-           Ptr{Tf}, Ptr{Tf}, Ptr{Tf}, Ptr{Tf}, Ptr{Tf},   # snowdepth0, Sice0, dSWE_salt, dSWE_susp, dSWE_subl
-           Ref{Tf},                                       # Ds_min
-           Ptr{Tf}, Ptr{Tf}, Ref{Tf}, Ptr{Tf}, Ptr{Tf},   # Ua, Udir, dt, Ta, RH
-           Ref{Tf}, Ref{Tf},                              # zRH, zU
-           Ptr{Tf}, Ptr{Tf},                              # vegsnowd_xy, z0_snow
-           Ptr{Tf}, Ptr{Ti}, Ptr{Tf}, Ptr{Tf}, Ptr{Tf},   # Ds, Nsnow, fsnow, Sice, Sliq
-           Ptr{Tf}, Ptr{Tf},                              # Tsnow, histowet
-           Ptr{Tf}, Ptr{Tf}, Ptr{Tf},                     # dSWE_tot_subl, dSWE_tot_salt, dSWE_tot_susp
-           Ptr{Tf}, Ref{Tf}, Ref{Tf}, Ref{Tf}),           # Ld, rhos_min, rhos_max, rho_snow
-          Nsmax, Nx, Ny,
-          snowdepth0, Sice0, dSWE_salt, dSWE_susp, dSWE_subl,
-          Ds_min,
-          Ua, Udir, dt, Ta, RH,
-          zRH, zU,
-          vegsnowd_xy, z0_snow,
-          Ds, Nsnow, fsnow, Sice, Sliq,
-          Tsnow, histowet,
-          dSWE_tot_subl, dSWE_tot_salt, dSWE_tot_susp,
-          Ld, rhos_min, rhos_max, rho_snow)
-          
+    ccall(
+        (:snowtran3d_, LIBSNOWTRAN3D),
+        Cvoid,
+        (
+            Ref{Ti}, Ref{Ti}, Ref{Ti},                     # Nsmax, Nx, Ny
+            Ptr{Tf}, Ptr{Tf}, Ptr{Tf}, Ptr{Tf}, Ptr{Tf},   # snowdepth0, Sice0, dSWE_salt, dSWE_susp, dSWE_subl
+            Ref{Tf},                                       # Ds_min
+            Ptr{Tf}, Ptr{Tf}, Ref{Tf}, Ptr{Tf}, Ptr{Tf},   # Ua, Udir, dt, Ta, RH
+            Ref{Tf}, Ref{Tf},                              # zRH, zU
+            Ptr{Tf}, Ptr{Tf},                              # vegsnowd_xy, z0_snow
+            Ptr{Tf}, Ptr{Ti}, Ptr{Tf}, Ptr{Tf}, Ptr{Tf},   # Ds, Nsnow, fsnow, Sice, Sliq
+            Ptr{Tf}, Ptr{Tf},                              # Tsnow, histowet
+            Ptr{Tf}, Ptr{Tf}, Ptr{Tf},                     # dSWE_tot_subl, dSWE_tot_salt, dSWE_tot_susp
+            Ptr{Tf}, Ref{Tf}, Ref{Tf}, Ref{Tf},
+        ),           # Ld, rhos_min, rhos_max, rho_snow
+        Nsmax, Nx, Ny,
+        snowdepth0, Sice0, dSWE_salt, dSWE_susp, dSWE_subl,
+        Ds_min,
+        Ua, Udir, dt, Ta, RH,
+        zRH, zU,
+        vegsnowd_xy, z0_snow,
+        Ds, Nsnow, fsnow, Sice, Sliq,
+        Tsnow, histowet,
+        dSWE_tot_subl, dSWE_tot_salt, dSWE_tot_susp,
+        Ld, rhos_min, rhos_max, rho_snow
+    )
+
     return nothing
 end
