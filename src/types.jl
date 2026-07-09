@@ -65,8 +65,8 @@
     kveg::Tf = 1                                             # Canopy cover coefficient (-)
     rchd::Tf = 0.67                                          # Ratio of displacement height to canopy height (-)
     rchz::Tf = 0.2                                           # Ratio of roughness length to canopy height (-)
-    tcnc::Tf = 3600 * 240                                      # Canopy unloading time scale for cold snow (s)
-    tcnm::Tf = 3600 * 48                                       # Canopy unloading time scale for melting snow (s)
+    tcnc::Tf = 3600 * 240                                    # Canopy unloading time scale for cold snow (s)
+    tcnm::Tf = 3600 * 48                                     # Canopy unloading time scale for melting snow (s)
     pmultf_for::Tf = 0.5                                     # Multiplier for snowfall in forest (-)
 
     # Snow parameters
@@ -88,14 +88,14 @@
     rhos_min::Tf = 50                                        # Minimum snow density (kg/m^3)
     rhos_max::Tf = 750                                       # Maximum snow density (kg/m^3)
     rcld::Tf = 300                                           # Maximum density for cold snow (kg/m^3)
-    rgr0::Tf = 5.0e-5                                          # Fresh snow grain radius (m)
+    rgr0::Tf = 5.0e-5                                        # Fresh snow grain radius (m)
     rmlt::Tf = 500                                           # Maximum density for melting snow (kg/m^3)
     Salb::Tf = 10                                            # Albedo decay constant (kg/m^2)
     snda::Tf = 2.8e-6                                        # Thermal metamorphism parameter (1/s)
     Talb::Tf = -2                                            # Albedo decay temperature threshold (C)
-    tcld::Tf = 3600 * 1000                                     # Cold snow albedo decay time scale (s)
-    tmlt::Tf = 3600 * 100                                      # Melting snow albedo decay time scale (s)
-    trho::Tf = 3600 * 200                                      # Snow compaction time scale (s)
+    tcld::Tf = 3600 * 1000                                   # Cold snow albedo decay time scale (s)
+    tmlt::Tf = 3600 * 100                                    # Melting snow albedo decay time scale (s)
+    trho::Tf = 3600 * 200                                    # Snow compaction time scale (s)
     Wirr::Tf = 0.03                                          # Irreducible liquid water content of snow (-)
     z0sn::Tf = 0.002                                         # Snow roughness length (m)
     Sfmin::Tf = 10                                           # Minimum snowfall over 24h needed to refresh albedo (kg/m^2)
@@ -123,8 +123,8 @@
     adfs::Tf = 3                                             # Snow albedo adjustment dependent on shortwave radiation (-)
     adfl::Tf = 2                                             # Snow albedo adjustment dependent on longwave radiation (-)
     fsar::Tf = 0.1                                           # Snow albedo adjustment range dependent on vegetation fraction (-)
-    psf::Tf = 1                                             # Solid precipitation multiplier in forest at minimum canopy cover (-)
-    psr::Tf = 0.1                                           # Additional multiplier range across canopy cover (-)
+    psf::Tf = 1                                              # Solid precipitation multiplier in forest at minimum canopy cover (-)
+    psr::Tf = 0.1                                            # Additional multiplier range across canopy cover (-)
     wcan::Tf = 2.5                                           # Parameter of exponential wind profile (-)
     zsub::Tf = 2                                             # Sub-canopy reference height (m)
     zgf::Tf = 1                                              # Roughness length adjustment factor depending on vegetation fraction (-)
@@ -134,16 +134,16 @@
     # Surface parameters
 
     adm::Tf = NaN                                            # Melting snow albedo decay time (h)
-    adc::Array{Tf, 2} = fill(NaN, Nx, Ny)                     # Cold snow albedo decay time (h)
-    afs::Array{Tf, 2} = fill(NaN, Nx, Ny)                     # Maximum albedo for fresh snow
-    z0_snow::Array{Tf, 2} = fill(NaN, Nx, Ny)                 # Roughness length of snow (m)
+    adc::Array{Tf, 2} = fill(NaN, Nx, Ny)                    # Cold snow albedo decay time (h)
+    afs::Array{Tf, 2} = fill(NaN, Nx, Ny)                    # Maximum albedo for fresh snow
+    z0_snow::Array{Tf, 2} = fill(NaN, Nx, Ny)                # Roughness length of snow (m)
 
     # Surface properties
 
-    alb0::Array{Tf, 2} = 0.2 * ones(Nx, Ny)                      # Snow-free ground albedo (-)
-    z0sf::Array{Tf, 2} = 0.2 * ones(Nx, Ny)                     # Snow-free roughness length (m)
-    fcly::Array{Tf, 2} = 0.3 * ones(Nx, Ny)                     # Soil clay fraction (-)
-    fsnd::Array{Tf, 2} = 0.6 * ones(Nx, Ny)                     # Soil sand fraction (-)
+    alb0::Array{Tf, 2} = 0.2 * ones(Nx, Ny)                  # Snow-free ground albedo (-)
+    z0sf::Array{Tf, 2} = 0.2 * ones(Nx, Ny)                  # Snow-free roughness length (m)
+    fcly::Array{Tf, 2} = 0.3 * ones(Nx, Ny)                  # Soil clay fraction (-)
+    fsnd::Array{Tf, 2} = 0.6 * ones(Nx, Ny)                  # Soil sand fraction (-)
 
     # Canopy parameters
 
@@ -166,96 +166,96 @@
     Ld::Array{Tf, 2} = fill(NaN, Nx, Ny)                     # Grid cell size (m)
     fsky_terr::Array{Tf, 2} = fill(NaN, Nx, Ny)              # Sky view fraction terrain (-)
     dem::Array{Tf, 2} = fill(NaN, Nx, Ny)                    # Grid elevation (m)
-    tilefrac::Array{Tf, 2} = fill(NaN, Nx, Ny)                # Tile fraction (-)
-    glacierfrac::Array{Tf, 2} = fill(NaN, Nx, Ny)             # Glacier fraction (-)
-    vegsnowd_xy::Array{Tf, 2} = fill(NaN, Nx, Ny)             # Vegetation snow holding capacity (m)
-    prec_multi::Array{Float64, 2} = fill(NaN, Nx, Ny)         # Precipitation multiplier (-)    TODO use float64 to match matlab/fortran version - change precision later
+    tilefrac::Array{Tf, 2} = fill(NaN, Nx, Ny)               # Tile fraction (-)
+    glacierfrac::Array{Tf, 2} = fill(NaN, Nx, Ny)            # Glacier fraction (-)
+    vegsnowd_xy::Array{Tf, 2} = fill(NaN, Nx, Ny)            # Vegetation snow holding capacity (m)
+    prec_multi::Array{Float64, 2} = fill(NaN, Nx, Ny)        # Precipitation multiplier (-)    TODO use float64 to match matlab/fortran version - change precision later
     slope::Array{Tf, 2} = fill(NaN, Nx, Ny)                  # Slope angles (deg)
     Shd::Array{Tf, 2} = fill(NaN, Nx, Ny)                    # Snow holding depth for gravitational transport (m)
 
     # Derived soil parameters
 
-    b::Array{Tf, 2} = zeros(Nx, Ny)                           # Clapp-Hornberger exponent (-)
-    hcap_soil::Array{Tf, 2} = zeros(Nx, Ny)                   # Volumetric heat capacity of dry soil (J/K/m^3)
-    hcon_soil::Array{Tf, 2} = zeros(Nx, Ny)                   # Thermal conductivity of dry soil (W/m/K)
-    sathh::Array{Tf, 2} = zeros(Nx, Ny)                       # Saturated soil water pressure (m)
-    Vsat::Array{Tf, 2} = zeros(Nx, Ny)                        # Volumetric soil moisture at saturation (-)
-    Vcrit::Array{Tf, 2} = zeros(Nx, Ny)                       # Volumetric soil moisture at critical point (-)
+    b::Array{Tf, 2} = zeros(Nx, Ny)                          # Clapp-Hornberger exponent (-)
+    hcap_soil::Array{Tf, 2} = zeros(Nx, Ny)                  # Volumetric heat capacity of dry soil (J/K/m^3)
+    hcon_soil::Array{Tf, 2} = zeros(Nx, Ny)                  # Thermal conductivity of dry soil (W/m/K)
+    sathh::Array{Tf, 2} = zeros(Nx, Ny)                      # Saturated soil water pressure (m)
+    Vsat::Array{Tf, 2} = zeros(Nx, Ny)                       # Volumetric soil moisture at saturation (-)
+    Vcrit::Array{Tf, 2} = zeros(Nx, Ny)                      # Volumetric soil moisture at critical point (-)
 
     # State variables
 
-    albs::Array{Tf, 2} = Tf(0.85) * ones(Nx, Ny)                # Snow albedo (-)
-    Ds::Array{Tf, 3} = zeros(Nsmax, Nx, Ny)                     # Snow layer thicknesses (m)
-    Nsnow::Array{Ti, 2} = zeros(Ti, Nx, Ny)                     # Number of snow layers
+    albs::Array{Tf, 2} = Tf(0.85) * ones(Nx, Ny)             # Snow albedo (-)
+    Ds::Array{Tf, 3} = zeros(Nsmax, Nx, Ny)                  # Snow layer thicknesses (m)
+    Nsnow::Array{Ti, 2} = zeros(Ti, Nx, Ny)                  # Number of snow layers
     Qcan::Array{Tf, 2} = zeros(Nx, Ny)                       # Canopy air space humidity (kg/kg)
-    rgrn::Array{Tf, 3} = zeros(Nsmax, Nx, Ny)                 # Snow layer grain radius (m)
-    Sice::Array{Tf, 3} = zeros(Nsmax, Nx, Ny)                   # Ice content of snow layers (kg/m^2)
-    Sliq::Array{Tf, 3} = zeros(Nsmax, Nx, Ny)                   # Liquid content of snow layers (kg/m^2)
-    Sveg::Array{Tf, 2} = zeros(Nx, Ny)                        # Snow mass on vegetation (kg/m^2)
-    Tcan::Array{Tf, 2} = Tf(285) * ones(Nx, Ny)                # Canopy air space temperature (K)
-    theta::Array{Tf, 3} = zeros(Nsoil, Nx, Ny)                  # Volumetric moisture content of soil layers (-)
-    Tsnow::Array{Tf, 3} = Tf(273.15) * ones(Nsmax, Nx, Ny)        # Snow layer temperatures (K)
-    Tsoil::Array{Tf, 3} = Tf(285) * ones(Nsoil, Nx, Ny)           # Soil layer temperatures (K)
-    Tsrf::Array{Tf, 2} = Tf(285) * ones(Nx, Ny)                 # Surface skin temperature (K)
-    fsnow::Array{Tf, 2} = zeros(Nx, Ny)                       # Snow cover fraction (-)
-    Tveg::Array{Tf, 2} = Tf(285) * ones(Nx, Ny)                # Vegetation temperature (K)
-    snowdepthmin::Array{Tf, 2} = zeros(Nx, Ny)                # Minimum snow depth at time step of swemin (m)
-    snowdepthmax::Array{Tf, 2} = zeros(Nx, Ny)                # Maximum snow depth at time step of swemax (m)
-    snowdepthhist::Array{Tf, 3} = zeros(14, Nx, Ny)             # History of snow depth during last 14 days with most recent entries first (m)
-    swemin::Array{Tf, 2} = zeros(Nx, Ny)                      # Minimum SWE during the season (kg/m^2)
-    swemax::Array{Tf, 2} = zeros(Nx, Ny)                      # Maximum SWE during the season (kg/m^2)
-    swehist::Array{Tf, 3} = zeros(14, Nx, Ny)                   # History of SWE during last 14 days with most recent entries first (kg/m^2)
-    histowet::Array{Tf, 3} = zeros(Nsmax, Nx, Ny)             # Historical variable for past wetting of a layer (-)
+    rgrn::Array{Tf, 3} = zeros(Nsmax, Nx, Ny)                # Snow layer grain radius (m)
+    Sice::Array{Tf, 3} = zeros(Nsmax, Nx, Ny)                # Ice content of snow layers (kg/m^2)
+    Sliq::Array{Tf, 3} = zeros(Nsmax, Nx, Ny)                # Liquid content of snow layers (kg/m^2)
+    Sveg::Array{Tf, 2} = zeros(Nx, Ny)                       # Snow mass on vegetation (kg/m^2)
+    Tcan::Array{Tf, 2} = Tf(285) * ones(Nx, Ny)              # Canopy air space temperature (K)
+    theta::Array{Tf, 3} = zeros(Nsoil, Nx, Ny)               # Volumetric moisture content of soil layers (-)
+    Tsnow::Array{Tf, 3} = Tf(273.15) * ones(Nsmax, Nx, Ny)   # Snow layer temperatures (K)
+    Tsoil::Array{Tf, 3} = Tf(285) * ones(Nsoil, Nx, Ny)      # Soil layer temperatures (K)
+    Tsrf::Array{Tf, 2} = Tf(285) * ones(Nx, Ny)              # Surface skin temperature (K)
+    fsnow::Array{Tf, 2} = zeros(Nx, Ny)                      # Snow cover fraction (-)
+    Tveg::Array{Tf, 2} = Tf(285) * ones(Nx, Ny)              # Vegetation temperature (K)
+    snowdepthmin::Array{Tf, 2} = zeros(Nx, Ny)               # Minimum snow depth at time step of swemin (m)
+    snowdepthmax::Array{Tf, 2} = zeros(Nx, Ny)               # Maximum snow depth at time step of swemax (m)
+    snowdepthhist::Array{Tf, 3} = zeros(14, Nx, Ny)          # History of snow depth during last 14 days with most recent entries first (m)
+    swemin::Array{Tf, 2} = zeros(Nx, Ny)                     # Minimum SWE during the season (kg/m^2)
+    swemax::Array{Tf, 2} = zeros(Nx, Ny)                     # Maximum SWE during the season (kg/m^2)
+    swehist::Array{Tf, 3} = zeros(14, Nx, Ny)                # History of SWE during last 14 days with most recent entries first (kg/m^2)
+    histowet::Array{Tf, 3} = zeros(Nsmax, Nx, Ny)            # Historical variable for past wetting of a layer (-)
 
     # Variables used in radiation-function
 
-    alb::Array{Tf, 2} = zeros(Nx, Ny)                          # Albedo (-)
-    asrf_out::Array{Tf, 2} = zeros(Nx, Ny)                     # Surface albedo (-)
-    SWveg::Array{Tf, 2} = zeros(Nx, Ny)                        # Net short wave radiation absorbed by vegetation (W/m^2)
-    SWsrf::Array{Tf, 2} = zeros(Nx, Ny)                        # Net short wave radiation absorbed by the surface (W/m^2)
-    SWsci::Array{Tf, 2} = zeros(Nx, Ny)                        # Subcanopy incoming shortwave radiation (W/m^2)
-    LWt::Array{Tf, 2} = zeros(Nx, Ny)                          # Incoming longwave radiation corrected for subgrid topography (W/m^2)
+    alb::Array{Tf, 2} = zeros(Nx, Ny)                        # Albedo (-)
+    asrf_out::Array{Tf, 2} = zeros(Nx, Ny)                   # Surface albedo (-)
+    SWveg::Array{Tf, 2} = zeros(Nx, Ny)                      # Net short wave radiation absorbed by vegetation (W/m^2)
+    SWsrf::Array{Tf, 2} = zeros(Nx, Ny)                      # Net short wave radiation absorbed by the surface (W/m^2)
+    SWsci::Array{Tf, 2} = zeros(Nx, Ny)                      # Subcanopy incoming shortwave radiation (W/m^2)
+    LWt::Array{Tf, 2} = zeros(Nx, Ny)                        # Incoming longwave radiation corrected for subgrid topography (W/m^2)
 
     # Variables used in thermal-function
 
-    ksnow::Array{Tf, 3} = zeros(Nsmax, Nx, Ny)                # Thermal conductivity of snow (W/m/K)
-    csoil::Array{Tf, 3} = zeros(Nsoil, Nx, Ny)                # Areal heat capacity of soil (J/K/m^2)
-    ksoil::Array{Tf, 3} = zeros(Nsoil, Nx, Ny)                # Thermal conductivity of soil (W/m/K)
-    gs1::Array{Tf, 2} = zeros(Nx, Ny)                         # Surface moisture conductance (m/s)
-    Ds1::Array{Tf, 2} = zeros(Nx, Ny)                         # Surface layer thickness (m)
-    Ts1::Array{Tf, 2} = zeros(Nx, Ny)                         # Surface layer temperature (K)
-    ks1::Array{Tf, 2} = zeros(Nx, Ny)                         # Surface thermal conductivity (W/m/K)
-    Tveg0::Array{Tf, 2} = zeros(Nx, Ny)                       # Vegetation temperature at start of timestep (K)
+    ksnow::Array{Tf, 3} = zeros(Nsmax, Nx, Ny)               # Thermal conductivity of snow (W/m/K)
+    csoil::Array{Tf, 3} = zeros(Nsoil, Nx, Ny)               # Areal heat capacity of soil (J/K/m^2)
+    ksoil::Array{Tf, 3} = zeros(Nsoil, Nx, Ny)               # Thermal conductivity of soil (W/m/K)
+    gs1::Array{Tf, 2} = zeros(Nx, Ny)                        # Surface moisture conductance (m/s)
+    Ds1::Array{Tf, 2} = zeros(Nx, Ny)                        # Surface layer thickness (m)
+    Ts1::Array{Tf, 2} = zeros(Nx, Ny)                        # Surface layer temperature (K)
+    ks1::Array{Tf, 2} = zeros(Nx, Ny)                        # Surface thermal conductivity (W/m/K)
+    Tveg0::Array{Tf, 2} = zeros(Nx, Ny)                      # Vegetation temperature at start of timestep (K)
 
     # Variables used in sfexch-function
 
-    KH::Array{Tf, 2} = zeros(Nx, Ny)                          # Eddy diffusivity for heat to the atmosphere (m/s)
-    KHa::Array{Tf, 2} = zeros(Nx, Ny)                         # Eddy diffusivity from the canopy air space (m/s)
-    KHg::Array{Tf, 2} = zeros(Nx, Ny)                         # Eddy diffusivity for heat from the ground (m/s)
-    KHv::Array{Tf, 2} = zeros(Nx, Ny)                         # Eddy diffusivity for heat from vegetation (m/s)
-    KWg::Array{Tf, 2} = zeros(Nx, Ny)                         # Eddy diffusivity for water from the ground (m/s)
-    KWv::Array{Tf, 2} = zeros(Nx, Ny)                         # Eddy diffusivity for water from vegetation (m/s)
-    Usc::Array{Tf, 2} = zeros(Nx, Ny)                         # Wind speed in canopy layer (m/s)
+    KH::Array{Tf, 2} = zeros(Nx, Ny)                         # Eddy diffusivity for heat to the atmosphere (m/s)
+    KHa::Array{Tf, 2} = zeros(Nx, Ny)                        # Eddy diffusivity from the canopy air space (m/s)
+    KHg::Array{Tf, 2} = zeros(Nx, Ny)                        # Eddy diffusivity for heat from the ground (m/s)
+    KHv::Array{Tf, 2} = zeros(Nx, Ny)                        # Eddy diffusivity for heat from vegetation (m/s)
+    KWg::Array{Tf, 2} = zeros(Nx, Ny)                        # Eddy diffusivity for water from the ground (m/s)
+    KWv::Array{Tf, 2} = zeros(Nx, Ny)                        # Eddy diffusivity for water from vegetation (m/s)
+    Usc::Array{Tf, 2} = zeros(Nx, Ny)                        # Wind speed in canopy layer (m/s)
 
     # Variables used in ebalsrf-function
 
-    Esrf::Array{Tf, 2} = zeros(Nx, Ny)                         # Moisture flux from the surface (kg/m^2/s)
-    Eveg::Array{Tf, 2} = zeros(Nx, Ny)                         # Moisture flux from vegetation (kg/m^2/s)
-    G::Array{Tf, 2} = zeros(Nx, Ny)                            # Heat flux into the surface (W/m^2)
-    H::Array{Tf, 2} = zeros(Nx, Ny)                            # Sensible heat flux to the atmosphere (W/m^2)
-    Hsrf::Array{Tf, 2} = zeros(Nx, Ny)                         # Sensible heat flux from the surface (W/m^2)
-    LE::Array{Tf, 2} = zeros(Nx, Ny)                           # Latent heat flux to the atmosphere (W/m^2)
-    LEsrf::Array{Tf, 2} = zeros(Nx, Ny)                        # Latent heat flux from the surface (W/m^2)
-    LWsci::Array{Tf, 2} = zeros(Nx, Ny)                        # Subcanopy incoming longwave radiation (W/m^2)
-    LWveg::Array{Tf, 2} = zeros(Nx, Ny)                        # Net longwave radiation absorbed by vegetation (W/m^2)
-    Melt::Array{Tf, 2} = zeros(Nx, Ny)                         # Surface melt rate (kg/m^2/s)
-    Rnet::Array{Tf, 2} = zeros(Nx, Ny)                         # Net radiation (W/m^2)
-    Rsrf::Array{Tf, 2} = zeros(Nx, Ny)                         # Net radiation at surface (W/m^2)
+    Esrf::Array{Tf, 2} = zeros(Nx, Ny)                       # Moisture flux from the surface (kg/m^2/s)
+    Eveg::Array{Tf, 2} = zeros(Nx, Ny)                       # Moisture flux from vegetation (kg/m^2/s)
+    G::Array{Tf, 2} = zeros(Nx, Ny)                          # Heat flux into the surface (W/m^2)
+    H::Array{Tf, 2} = zeros(Nx, Ny)                          # Sensible heat flux to the atmosphere (W/m^2)
+    Hsrf::Array{Tf, 2} = zeros(Nx, Ny)                       # Sensible heat flux from the surface (W/m^2)
+    LE::Array{Tf, 2} = zeros(Nx, Ny)                         # Latent heat flux to the atmosphere (W/m^2)
+    LEsrf::Array{Tf, 2} = zeros(Nx, Ny)                      # Latent heat flux from the surface (W/m^2)
+    LWsci::Array{Tf, 2} = zeros(Nx, Ny)                      # Subcanopy incoming longwave radiation (W/m^2)
+    LWveg::Array{Tf, 2} = zeros(Nx, Ny)                      # Net longwave radiation absorbed by vegetation (W/m^2)
+    Melt::Array{Tf, 2} = zeros(Nx, Ny)                       # Surface melt rate (kg/m^2/s)
+    Rnet::Array{Tf, 2} = zeros(Nx, Ny)                       # Net radiation (W/m^2)
+    Rsrf::Array{Tf, 2} = zeros(Nx, Ny)                       # Net radiation at surface (W/m^2)
 
     # Variables used in ebalfor-function
 
-    A_ebal::Array{Tf, 2} = zeros(4, 4)                        # Energy balance matrix for forest
-    Acp_ebal::Array{Tf, 2} = zeros(4, 4)                      # Copy of energy balance matrix for LU decomposition
+    A_ebal::Array{Tf, 2} = zeros(4, 4)                       # Energy balance matrix for forest
+    Acp_ebal::Array{Tf, 2} = zeros(4, 4)                     # Copy of energy balance matrix for LU decomposition
     b_ebal::Vector{Tf} = zeros(4)                            # Right-hand side vector for energy balance
     x_ebal::Vector{Tf} = zeros(4)                            # Solution vector for energy balance
     vv_ebal::Vector{Tf} = zeros(4)                           # Scaling vector for LU decomposition
@@ -263,16 +263,16 @@
 
     # Variables used in canopy-function
 
-    intcpt::Array{Tf, 2} = zeros(Nx, Ny)                      # Canopy interception (kg/m^2)
-    Sbveg::Array{Tf, 2} = zeros(Nx, Ny)                       # Sublimation from vegetation (kg/m^2)
+    intcpt::Array{Tf, 2} = zeros(Nx, Ny)                     # Canopy interception (kg/m^2)
+    Sbveg::Array{Tf, 2} = zeros(Nx, Ny)                      # Sublimation from vegetation (kg/m^2)
     unload::Array{Tf, 2} = zeros(Nx, Ny)                     # Snow mass unloaded from canopy (kg/m^2)
 
     # Variables used in snow-function
 
-    Gsoil::Array{Tf, 2} = zeros(Nx, Ny)                       # Heat flux into soil (W/m^2)
-    Roff::Array{Tf, 2} = zeros(Nx, Ny)                        # Total runoff (kg/m^2)
-    meltflux_out::Array{Tf, 2} = zeros(Nx, Ny)                # Runoff from snowmelt at base of snow (kg/m^2)
-    Sbsrf::Array{Tf, 2} = zeros(Nx, Ny)                       # Sublimation from the snow surface (kg/m^2)
+    Gsoil::Array{Tf, 2} = zeros(Nx, Ny)                      # Heat flux into soil (W/m^2)
+    Roff::Array{Tf, 2} = zeros(Nx, Ny)                       # Total runoff (kg/m^2)
+    meltflux_out::Array{Tf, 2} = zeros(Nx, Ny)               # Runoff from snowmelt at base of snow (kg/m^2)
+    Sbsrf::Array{Tf, 2} = zeros(Nx, Ny)                      # Sublimation from the snow surface (kg/m^2)
     Roff_bare::Array{Tf, 2} = zeros(Nx, Ny)                  # Bare soil runoff (kg/m^2)
     Roff_snow::Array{Tf, 2} = zeros(Nx, Ny)                  # Runoff at base of snow (kg/m^2)
     snowdepth0::Array{Tf, 2} = zeros(Nx, Ny)                 # Snow depth at start of timestep (m)
@@ -327,7 +327,7 @@
     # Variables used in snowslide-function
 
     dSWE_tot_slide::Array{Tf, 2} = zeros(Nx, Ny)             # Cumulated SWE change due to slides (kg/m^2)
-    index_sorted_dem::Array{Ti, 2} = zeros(Ti, Nx * Ny, 2)     # Sorted indices of digital elevation model
+    index_sorted_dem::Array{Ti, 2} = zeros(Ti, Nx * Ny, 2)   # Sorted indices of digital elevation model
 
     # Variables used in snowtran3d-function
 
