@@ -18,10 +18,10 @@ function ludcmp!(N::Integer, A::Matrix{Tf}, Acp::Matrix{Tf}, b::Vector{Tf}, x::V
 
     # LU decomposition with partial pivoting
     for j in 1:N
-        for i in 1:j-1
+        for i in 1:(j - 1)
             sum = Acp[i, j]
             if i > 1
-                for k in 1:i-1
+                for k in 1:(i - 1)
                     sum -= Acp[i, k] * Acp[k, j]
                 end
             end
@@ -31,7 +31,7 @@ function ludcmp!(N::Integer, A::Matrix{Tf}, Acp::Matrix{Tf}, b::Vector{Tf}, x::V
         imax = j
         for i in j:N
             sum = Acp[i, j]
-            for k in 1:j-1
+            for k in 1:(j - 1)
                 sum -= Acp[i, k] * Acp[k, j]
             end
             Acp[i, j] = sum
@@ -42,20 +42,20 @@ function ludcmp!(N::Integer, A::Matrix{Tf}, Acp::Matrix{Tf}, b::Vector{Tf}, x::V
             end
         end
         if (j != imax)
-          for k = 1:N
-            dum = Acp[imax,k]
-            Acp[imax,k] = Acp[j,k]
-            Acp[j,k] = dum
-          end
-          vv[imax] = vv[j]
+            for k in 1:N
+                dum = Acp[imax, k]
+                Acp[imax, k] = Acp[j, k]
+                Acp[j, k] = dum
+            end
+            vv[imax] = vv[j]
         end
         indx[j] = imax
         if Acp[j, j] == 0.0
-            Acp[j, j] = 1e-20
+            Acp[j, j] = 1.0e-20
         end
         if j != N
             dum = 1 / Acp[j, j]
-            for i in j+1:N
+            for i in (j + 1):N
                 Acp[i, j] *= dum
             end
         end
@@ -68,7 +68,7 @@ function ludcmp!(N::Integer, A::Matrix{Tf}, Acp::Matrix{Tf}, b::Vector{Tf}, x::V
         sum = x[ll]
         x[ll] = x[i]
         if ii != 0
-            for j in ii:i-1
+            for j in ii:(i - 1)
                 sum -= Acp[i, j] * x[j]
             end
         elseif sum != 0.0
@@ -80,14 +80,14 @@ function ludcmp!(N::Integer, A::Matrix{Tf}, Acp::Matrix{Tf}, b::Vector{Tf}, x::V
     # Backward substitution
     for i in N:-1:1
         sum = x[i]
-        for j in i+1:N
+        for j in (i + 1):N
             sum -= Acp[i, j] * x[j]
         end
         x[i] = sum / Acp[i, i]
     end
 
+    return nothing
 end
-
 
 
 # A = rand(4,4)

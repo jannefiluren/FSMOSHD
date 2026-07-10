@@ -7,17 +7,19 @@ Meteorological data preprocessing and unit conversions.
 - `fsm::FSM`: Model state structure
 - `meteo::MET`: Current meteorological conditions (modified in-place)
 """
-function drive!(fsm::FSM, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer}
+function drive!(fsm::FSM, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
-  @unpack_constants(Tf)
+    @unpack_constants(Tf)
 
-  @unpack dt = fsm
+    @unpack dt = fsm
 
-  @unpack es, Qa, Ua, Sf, Rf, Ta, RH, Ps = meteo
+    @unpack es, Qa, Ua, Sf, Rf, Ta, RH, Ps = meteo
 
-  Ua .= max.(Ua, Tf(0.1))
+    Ua .= max.(Ua, Tf(0.1))
 
-  es .= e0 .* exp.(Tf(17.5043) .* (Ta .- Tm) ./ (Tf(241.3) .+ (Ta .- Tm)))
-  Qa .= (RH ./ 100) .* eps_fsm .* es ./ Ps
+    es .= e0 .* exp.(Tf(17.5043) .* (Ta .- Tm) ./ (Tf(241.3) .+ (Ta .- Tm)))
+    Qa .= (RH ./ 100) .* eps_fsm .* es ./ Ps
+
+    return nothing
 
 end

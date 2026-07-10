@@ -1,4 +1,4 @@
-function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t) where {Tf<:Real,Ti<:Integer}
+function snow_layering!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, snowdepth0, Sice0, t) where {Tf <: Real, Ti <: Integer}
 
     @unpack_constants(Tf)
 
@@ -22,22 +22,22 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
             if tilefrac[i, j] >= tthresh
 
                 # Decrease Nsnow if necessary (e.g. after melting)
-                while Nsnow[i,j] > 0 && Ds[1,i,j] < eps(Tf)
-                    if Nsnow[i,j] > 1
-                        for n in 1:(Nsnow[i,j] - 1)
-                            Ds[n,i,j] = Ds[n+1,i,j]
-                            Sice[n,i,j] = Sice[n+1,i,j]
-                            Sliq[n,i,j] = Sliq[n+1,i,j]
-                            Tsnow[n,i,j] = Tsnow[n+1,i,j]
-                            histowet[n,i,j] = histowet[n+1,i,j]
+                while Nsnow[i, j] > 0 && Ds[1, i, j] < eps(Tf)
+                    if Nsnow[i, j] > 1
+                        for n in 1:(Nsnow[i, j] - 1)
+                            Ds[n, i, j] = Ds[n + 1, i, j]
+                            Sice[n, i, j] = Sice[n + 1, i, j]
+                            Sliq[n, i, j] = Sliq[n + 1, i, j]
+                            Tsnow[n, i, j] = Tsnow[n + 1, i, j]
+                            histowet[n, i, j] = histowet[n + 1, i, j]
                         end
                     end
-                    Ds[Nsnow[i,j],i,j] = 0
-                    Sice[Nsnow[i,j],i,j] = 0
-                    Sliq[Nsnow[i,j],i,j] = 0
-                    Tsnow[Nsnow[i,j],i,j] = Tm
-                    histowet[Nsnow[i,j],i,j] = Tf(0)
-                    Nsnow[i,j] = Nsnow[i,j] - 1
+                    Ds[Nsnow[i, j], i, j] = 0
+                    Sice[Nsnow[i, j], i, j] = 0
+                    Sliq[Nsnow[i, j], i, j] = 0
+                    Tsnow[Nsnow[i, j], i, j] = Tm
+                    histowet[Nsnow[i, j], i, j] = Tf(0)
+                    Nsnow[i, j] = Nsnow[i, j] - 1
                 end
 
                 if SNOLAY == 0
@@ -109,7 +109,7 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
                         E[:] .= Tf(0)
                     end
                     if (Nsnow[i, j] > 1)
-                        for k = 2:Nsnow[i, j]
+                        for k in 2:Nsnow[i, j]
                             csnow[k] = (Sice[k, i, j] * hcap_ice + Sliq[k, i, j] * hcap_wat) / fsnow[i, j]
                             E[k] = csnow[k] * (Tsnow[k, i, j] - Tm)
                         end
@@ -130,7 +130,7 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
                         dnew = snowdepth / fsnow[i, j]
                         Ds[1, i, j] = dnew
                         if (Ds[1, i, j] > Dzsnow[1])
-                            for k = 1:Nsmax
+                            for k in 1:Nsmax
                                 Ds[k, i, j] = Dzsnow[k]
                                 dnew = dnew - Dzsnow[k]
                                 if (dnew <= Dzsnow[k] || k == Nsmax)
@@ -149,7 +149,7 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
                         # Fill new layers from the top downwards
                         knew = 1
                         dnew = Ds[1, i, j]
-                        for kold = 1:Nold
+                        for kold in 1:Nold
                             while true
                                 if (D[kold] < dnew)
                                     # All snow from old layer partially fills new layer
@@ -178,7 +178,7 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
                         end
 
                         # Diagnose snow layer temperatures
-                        for k = 1:Nsnow[i, j]
+                        for k in 1:Nsnow[i, j]
                             csnow[k] = (Sice[k, i, j] * hcap_ice + Sliq[k, i, j] * hcap_wat) / fsnow[i, j]
                             Tsnow[k, i, j] = Tm + U[k] / csnow[k]
                             if (HN_ON)
@@ -203,22 +203,22 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
 
                     # Step 0: Save state variables in local variables that can be up to Nsmax+1
                     Sice_loc[1:Nsmax] = Sice[:, i, j]
-                    Sice_loc[Nsmax+1] = 0
+                    Sice_loc[Nsmax + 1] = 0
                     Sliq_loc[1:Nsmax] = Sliq[:, i, j]
-                    Sliq_loc[Nsmax+1] = 0
+                    Sliq_loc[Nsmax + 1] = 0
                     Ds_loc[1:Nsmax] = Ds[:, i, j]
-                    Ds_loc[Nsmax+1] = 0
+                    Ds_loc[Nsmax + 1] = 0
                     histowet_loc[1:Nsmax] = histowet[:, i, j]
-                    histowet_loc[Nsmax+1] = 0
+                    histowet_loc[Nsmax + 1] = 0
                     Tsnow_loc[1:Nsmax] = Tsnow[:, i, j]
-                    Tsnow_loc[Nsmax+1] = Tm
+                    Tsnow_loc[Nsmax + 1] = Tm
                     Nsnow_loc = Nsnow[i, j]
                     if fsnow[i, j] > eps(Tf)
                         for k in 1:Nsmax
                             csnow_loc[k] = (Sice_loc[k] * hcap_ice + Sliq_loc[k] * hcap_wat) / fsnow[i, j]
                             U_loc[k] = csnow_loc[k] * (Tsnow_loc[k] - Tm)
                         end
-                        U_loc[Nsmax+1] = 0
+                        U_loc[Nsmax + 1] = 0
                     else
                         U_loc[:] .= 0
                     end
@@ -227,12 +227,12 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
                     if Ds0[i, j] > eps(Tf)
                         Nsnow_loc = Nsnow_loc + 1
                         if Nsnow_loc > 1
-                            for k in 1:(Nsnow_loc-1)
-                                Ds_loc[Nsnow_loc-k+1] = Ds_loc[Nsnow_loc-k]
-                                Sice_loc[Nsnow_loc-k+1] = Sice_loc[Nsnow_loc-k]
-                                Sliq_loc[Nsnow_loc-k+1] = Sliq_loc[Nsnow_loc-k]
-                                U_loc[Nsnow_loc-k+1] = U_loc[Nsnow_loc-k]
-                                histowet_loc[Nsnow_loc-k+1] = histowet_loc[Nsnow_loc-k]
+                            for k in 1:(Nsnow_loc - 1)
+                                Ds_loc[Nsnow_loc - k + 1] = Ds_loc[Nsnow_loc - k]
+                                Sice_loc[Nsnow_loc - k + 1] = Sice_loc[Nsnow_loc - k]
+                                Sliq_loc[Nsnow_loc - k + 1] = Sliq_loc[Nsnow_loc - k]
+                                U_loc[Nsnow_loc - k + 1] = U_loc[Nsnow_loc - k]
+                                histowet_loc[Nsnow_loc - k + 1] = histowet_loc[Nsnow_loc - k]
                             end
                         end
                         Ds_loc[1] = Ds0[i, j]              # Set new top layer thickness
@@ -265,7 +265,7 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
                         if Nsnow_loc > 1
                             Dtemp_surflay = Tf(0)
                             k_surflay = 0
-                            for k in 1:(Nsnow_loc-1)
+                            for k in 1:(Nsnow_loc - 1)
                                 Dtemp_surflay = Dtemp_surflay + Ds_loc[k]
                                 if Dtemp_surflay > Ds_surflay
                                     k_surflay = k
@@ -283,16 +283,20 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
                                 Sliq_loc[k_surflay] = Sliq_old * (Ds_loc[k_surflay] / Ds_old)
                                 U_loc[k_surflay] = U_old * (Ds_loc[k_surflay] / Ds_old)
                                 # histowet_loc[k_surflay] unchanged
-                                Ds_loc[k_surflay+1] = snowthickness - Ds_surflay
-                                histowet_loc[k_surflay+1] = (sum((Sice_loc[k_surflay+1:Nsnow_loc] .+ Sliq_loc[k_surflay+1:Nsnow_loc]) .* histowet_loc[k_surflay+1:Nsnow_loc]) +
-                                                             (Sice_old + Sliq_old) * (1 - Ds_loc[k_surflay] / Ds_old) * histowet_loc[k_surflay]) /
-                                                            (sum(Sice_loc[k_surflay+1:Nsnow_loc] .+ Sliq_loc[k_surflay+1:Nsnow_loc]) +
-                                                             (Sice_old + Sliq_old) * (1 - Ds_loc[k_surflay] / Ds_old))
-                                Sice_loc[k_surflay+1] = sum(Sice_loc[k_surflay+1:Nsnow_loc]) + Sice_old * (1 - Ds_loc[k_surflay] / Ds_old)
-                                Sliq_loc[k_surflay+1] = sum(Sliq_loc[k_surflay+1:Nsnow_loc]) + Sliq_old * (1 - Ds_loc[k_surflay] / Ds_old)
-                                U_loc[k_surflay+1] = sum(U_loc[k_surflay+1:Nsnow_loc]) + U_old * (1 - Ds_loc[k_surflay] / Ds_old)
+                                Ds_loc[k_surflay + 1] = snowthickness - Ds_surflay
+                                histowet_loc[k_surflay + 1] = (
+                                    sum((Sice_loc[(k_surflay + 1):Nsnow_loc] .+ Sliq_loc[(k_surflay + 1):Nsnow_loc]) .* histowet_loc[(k_surflay + 1):Nsnow_loc]) +
+                                        (Sice_old + Sliq_old) * (1 - Ds_loc[k_surflay] / Ds_old) * histowet_loc[k_surflay]
+                                ) /
+                                    (
+                                    sum(Sice_loc[(k_surflay + 1):Nsnow_loc] .+ Sliq_loc[(k_surflay + 1):Nsnow_loc]) +
+                                        (Sice_old + Sliq_old) * (1 - Ds_loc[k_surflay] / Ds_old)
+                                )
+                                Sice_loc[k_surflay + 1] = sum(Sice_loc[(k_surflay + 1):Nsnow_loc]) + Sice_old * (1 - Ds_loc[k_surflay] / Ds_old)
+                                Sliq_loc[k_surflay + 1] = sum(Sliq_loc[(k_surflay + 1):Nsnow_loc]) + Sliq_old * (1 - Ds_loc[k_surflay] / Ds_old)
+                                U_loc[k_surflay + 1] = sum(U_loc[(k_surflay + 1):Nsnow_loc]) + U_old * (1 - Ds_loc[k_surflay] / Ds_old)
                                 if Nsnow_loc > k_surflay + 1
-                                    for k in (k_surflay+2):Nsnow_loc
+                                    for k in (k_surflay + 2):Nsnow_loc
                                         Ds_loc[k] = 0
                                         Sice_loc[k] = 0
                                         Sliq_loc[k] = 0
@@ -313,17 +317,17 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
                                 # Merge top two layers
                                 Ds_loc[1] = Ds_loc[1] + Ds_loc[2]
                                 histowet_loc[1] = ((Sice_loc[1] + Sliq_loc[1]) * histowet_loc[1] + (Sice_loc[2] + Sliq_loc[2]) * histowet_loc[2]) /
-                                                  (Sice_loc[1] + Sliq_loc[1] + Sice_loc[2] + Sliq_loc[2])
+                                    (Sice_loc[1] + Sliq_loc[1] + Sice_loc[2] + Sliq_loc[2])
                                 Sice_loc[1] = Sice_loc[1] + Sice_loc[2]
                                 Sliq_loc[1] = Sliq_loc[1] + Sliq_loc[2]
                                 U_loc[1] = U_loc[1] + U_loc[2]
                                 if Nsnow_loc > 2
-                                    for k in 2:(Nsnow_loc-1)
-                                        Ds_loc[k] = Ds_loc[k+1]
-                                        Sice_loc[k] = Sice_loc[k+1]
-                                        Sliq_loc[k] = Sliq_loc[k+1]
-                                        U_loc[k] = U_loc[k+1]
-                                        histowet_loc[k] = histowet_loc[k+1]
+                                    for k in 2:(Nsnow_loc - 1)
+                                        Ds_loc[k] = Ds_loc[k + 1]
+                                        Sice_loc[k] = Sice_loc[k + 1]
+                                        Sliq_loc[k] = Sliq_loc[k + 1]
+                                        U_loc[k] = U_loc[k + 1]
+                                        histowet_loc[k] = histowet_loc[k + 1]
                                     end
                                 end
                                 Ds_loc[Nsnow_loc] = 0
@@ -335,18 +339,22 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
                             elseif kmin == Nsnow_loc
                                 # The thinnest layer is the bottom one
                                 # Merge bottom two layers
-                                Ds_loc[Nsnow_loc-1] = Ds_loc[Nsnow_loc-1] + Ds_loc[Nsnow_loc]
+                                Ds_loc[Nsnow_loc - 1] = Ds_loc[Nsnow_loc - 1] + Ds_loc[Nsnow_loc]
                                 Ds_loc[Nsnow_loc] = 0
-                                histowet_loc[Nsnow_loc-1] = ((Sice_loc[Nsnow_loc-1] + Sliq_loc[Nsnow_loc-1]) * histowet_loc[Nsnow_loc-1] +
-                                                             (Sice_loc[Nsnow_loc] + Sliq_loc[Nsnow_loc]) * histowet_loc[Nsnow_loc]) /
-                                                            (Sice_loc[Nsnow_loc-1] + Sliq_loc[Nsnow_loc-1] +
-                                                             Sice_loc[Nsnow_loc] + Sliq_loc[Nsnow_loc])
+                                histowet_loc[Nsnow_loc - 1] = (
+                                    (Sice_loc[Nsnow_loc - 1] + Sliq_loc[Nsnow_loc - 1]) * histowet_loc[Nsnow_loc - 1] +
+                                        (Sice_loc[Nsnow_loc] + Sliq_loc[Nsnow_loc]) * histowet_loc[Nsnow_loc]
+                                ) /
+                                    (
+                                    Sice_loc[Nsnow_loc - 1] + Sliq_loc[Nsnow_loc - 1] +
+                                        Sice_loc[Nsnow_loc] + Sliq_loc[Nsnow_loc]
+                                )
                                 histowet_loc[Nsnow_loc] = 0
-                                Sice_loc[Nsnow_loc-1] = Sice_loc[Nsnow_loc-1] + Sice_loc[Nsnow_loc]
+                                Sice_loc[Nsnow_loc - 1] = Sice_loc[Nsnow_loc - 1] + Sice_loc[Nsnow_loc]
                                 Sice_loc[Nsnow_loc] = 0
-                                Sliq_loc[Nsnow_loc-1] = Sliq_loc[Nsnow_loc-1] + Sliq_loc[Nsnow_loc]
+                                Sliq_loc[Nsnow_loc - 1] = Sliq_loc[Nsnow_loc - 1] + Sliq_loc[Nsnow_loc]
                                 Sliq_loc[Nsnow_loc] = 0
-                                U_loc[Nsnow_loc-1] = U_loc[Nsnow_loc-1] + U_loc[Nsnow_loc]
+                                U_loc[Nsnow_loc - 1] = U_loc[Nsnow_loc - 1] + U_loc[Nsnow_loc]
                                 U_loc[Nsnow_loc] = 0
                                 Nsnow_loc = Nsnow_loc - 1
                             else
@@ -361,19 +369,23 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
                                     # Layer with closest density is up
                                     # Merge with upper neighbour
                                     Ds_loc[kup] = Ds_loc[kup] + Ds_loc[kmin]
-                                    histowet_loc[kup] = ((Sice_loc[kup] + Sliq_loc[kup]) * histowet_loc[kup] +
-                                                         (Sice_loc[kmin] + Sliq_loc[kmin]) * histowet_loc[kmin]) /
-                                                        (Sice_loc[kup] + Sliq_loc[kup] +
-                                                         Sice_loc[kmin] + Sliq_loc[kmin])
+                                    histowet_loc[kup] = (
+                                        (Sice_loc[kup] + Sliq_loc[kup]) * histowet_loc[kup] +
+                                            (Sice_loc[kmin] + Sliq_loc[kmin]) * histowet_loc[kmin]
+                                    ) /
+                                        (
+                                        Sice_loc[kup] + Sliq_loc[kup] +
+                                            Sice_loc[kmin] + Sliq_loc[kmin]
+                                    )
                                     Sice_loc[kup] = Sice_loc[kup] + Sice_loc[kmin]
                                     Sliq_loc[kup] = Sliq_loc[kup] + Sliq_loc[kmin]
                                     U_loc[kup] = U_loc[kup] + U_loc[kmin]
-                                    for k in kmin:(Nsnow_loc-1)
-                                        Ds_loc[k] = Ds_loc[k+1]
-                                        Sice_loc[k] = Sice_loc[k+1]
-                                        Sliq_loc[k] = Sliq_loc[k+1]
-                                        U_loc[k] = U_loc[k+1]
-                                        histowet_loc[k] = histowet_loc[k+1]
+                                    for k in kmin:(Nsnow_loc - 1)
+                                        Ds_loc[k] = Ds_loc[k + 1]
+                                        Sice_loc[k] = Sice_loc[k + 1]
+                                        Sliq_loc[k] = Sliq_loc[k + 1]
+                                        U_loc[k] = U_loc[k + 1]
+                                        histowet_loc[k] = histowet_loc[k + 1]
                                     end
                                     Ds_loc[Nsnow_loc] = 0
                                     Sice_loc[Nsnow_loc] = 0
@@ -385,20 +397,24 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
                                     # Layer with closest density is down
                                     # Merge with lower neighbour
                                     Ds_loc[kmin] = Ds_loc[kmin] + Ds_loc[kdown]
-                                    histowet_loc[kmin] = ((Sice_loc[kmin] + Sliq_loc[kmin]) * histowet_loc[kmin] +
-                                                          (Sice_loc[kdown] + Sliq_loc[kdown]) * histowet_loc[kdown]) /
-                                                         (Sice_loc[kmin] + Sliq_loc[kmin] +
-                                                          Sice_loc[kdown] + Sliq_loc[kdown])
+                                    histowet_loc[kmin] = (
+                                        (Sice_loc[kmin] + Sliq_loc[kmin]) * histowet_loc[kmin] +
+                                            (Sice_loc[kdown] + Sliq_loc[kdown]) * histowet_loc[kdown]
+                                    ) /
+                                        (
+                                        Sice_loc[kmin] + Sliq_loc[kmin] +
+                                            Sice_loc[kdown] + Sliq_loc[kdown]
+                                    )
                                     Sice_loc[kmin] = Sice_loc[kmin] + Sice_loc[kdown]
                                     Sliq_loc[kmin] = Sliq_loc[kmin] + Sliq_loc[kdown]
                                     U_loc[kmin] = U_loc[kmin] + U_loc[kdown]
                                     if kdown < Nsnow_loc
-                                        for k in kdown:(Nsnow_loc-1)
-                                            Ds_loc[k] = Ds_loc[k+1]
-                                            Sice_loc[k] = Sice_loc[k+1]
-                                            Sliq_loc[k] = Sliq_loc[k+1]
-                                            U_loc[k] = U_loc[k+1]
-                                            histowet_loc[k] = histowet_loc[k+1]
+                                        for k in kdown:(Nsnow_loc - 1)
+                                            Ds_loc[k] = Ds_loc[k + 1]
+                                            Sice_loc[k] = Sice_loc[k + 1]
+                                            Sliq_loc[k] = Sliq_loc[k + 1]
+                                            U_loc[k] = U_loc[k + 1]
+                                            histowet_loc[k] = histowet_loc[k + 1]
                                         end
                                     end
                                     Ds_loc[Nsnow_loc] = 0
@@ -415,27 +431,31 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
                         while Nsnow_loc > Nsmax
                             # Compute the density of each layer
                             rho[1:Nsnow_loc] = (Sice_loc[1:Nsnow_loc] .+ Sliq_loc[1:Nsnow_loc]) ./ Ds_loc[1:Nsnow_loc] ./ fsnow[i, j]
-                            for k in 1:(Nsnow_loc-1)
+                            for k in 1:(Nsnow_loc - 1)
                                 # Compute the density difference between each layer and its bottom neighbour
-                                diff_rho[k] = abs(rho[k] - rho[k+1])
+                                diff_rho[k] = abs(rho[k] - rho[k + 1])
                             end
                             # Find neighbours with smallest density difference
-                            kmerge = argmin(diff_rho[1:(Nsnow_loc-1)])
-                            Ds_loc[kmerge] = Ds_loc[kmerge] + Ds_loc[kmerge+1]
-                            histowet_loc[kmerge] = ((Sice_loc[kmerge] + Sliq_loc[kmerge]) * histowet_loc[kmerge] +
-                                                    (Sice_loc[kmerge+1] + Sliq_loc[kmerge+1]) * histowet_loc[kmerge+1]) /
-                                                   (Sice_loc[kmerge] + Sliq_loc[kmerge] +
-                                                    Sice_loc[kmerge+1] + Sliq_loc[kmerge+1])
-                            Sice_loc[kmerge] = Sice_loc[kmerge] + Sice_loc[kmerge+1]
-                            Sliq_loc[kmerge] = Sliq_loc[kmerge] + Sliq_loc[kmerge+1]
-                            U_loc[kmerge] = U_loc[kmerge] + U_loc[kmerge+1]
+                            kmerge = argmin(diff_rho[1:(Nsnow_loc - 1)])
+                            Ds_loc[kmerge] = Ds_loc[kmerge] + Ds_loc[kmerge + 1]
+                            histowet_loc[kmerge] = (
+                                (Sice_loc[kmerge] + Sliq_loc[kmerge]) * histowet_loc[kmerge] +
+                                    (Sice_loc[kmerge + 1] + Sliq_loc[kmerge + 1]) * histowet_loc[kmerge + 1]
+                            ) /
+                                (
+                                Sice_loc[kmerge] + Sliq_loc[kmerge] +
+                                    Sice_loc[kmerge + 1] + Sliq_loc[kmerge + 1]
+                            )
+                            Sice_loc[kmerge] = Sice_loc[kmerge] + Sice_loc[kmerge + 1]
+                            Sliq_loc[kmerge] = Sliq_loc[kmerge] + Sliq_loc[kmerge + 1]
+                            U_loc[kmerge] = U_loc[kmerge] + U_loc[kmerge + 1]
                             if kmerge + 1 < Nsnow_loc
-                                for k in (kmerge+1):(Nsnow_loc-1)
-                                    Ds_loc[k] = Ds_loc[k+1]
-                                    Sice_loc[k] = Sice_loc[k+1]
-                                    Sliq_loc[k] = Sliq_loc[k+1]
-                                    U_loc[k] = U_loc[k+1]
-                                    histowet_loc[k] = histowet_loc[k+1]
+                                for k in (kmerge + 1):(Nsnow_loc - 1)
+                                    Ds_loc[k] = Ds_loc[k + 1]
+                                    Sice_loc[k] = Sice_loc[k + 1]
+                                    Sliq_loc[k] = Sliq_loc[k + 1]
+                                    U_loc[k] = U_loc[k + 1]
+                                    histowet_loc[k] = histowet_loc[k + 1]
                                 end
                             end
                             Ds_loc[Nsnow_loc] = 0
@@ -494,9 +514,9 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
                                     if Ds_loc[kmax] < Tf(2.0) * Ds_min
                                         break
                                     end
-                                    Dtemp_surflay = sum(Ds_loc[1:(Nsnow_loc-1)])
+                                    Dtemp_surflay = sum(Ds_loc[1:(Nsnow_loc - 1)])
                                     if (kmax == Nsnow_loc) && (Ds_surflay - Dtemp_surflay > Ds_min)
-                                        # The thickest layer is the bottom one 
+                                        # The thickest layer is the bottom one
                                         # AND we can add at least Ds_min to the surface layers before reaching the max Ds_surflay
                                         # There are surface layers on top of the thickest (Nsnow_loc >1)
                                         # Calculate the thickness of the surface layers
@@ -536,29 +556,29 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
                                         # The thickest layer is not the last one.
                                         # OR it is, but surface layers are already too full.
                                         # In case of the second condition, we need to recalculate kmax excluding bottom layer.
-                                        kmax = argmax(Ds_loc[1:(Nsnow_loc-1)])
+                                        kmax = argmax(Ds_loc[1:(Nsnow_loc - 1)])
                                         # If the thickest layer is too thin to split, stop
                                         if Ds_loc[kmax] < Tf(2.0) * Ds_min
                                             break
                                         end
                                         # So we split an internal layer and shift layers down to make space
                                         Nsnow_loc = Nsnow_loc + 1
-                                        for k in Nsnow_loc:-1:(kmax+2)
-                                            Ds_loc[k] = Ds_loc[k-1]
-                                            Sice_loc[k] = Sice_loc[k-1]
-                                            Sliq_loc[k] = Sliq_loc[k-1]
-                                            histowet_loc[k] = histowet_loc[k-1]
-                                            U_loc[k] = U_loc[k-1]
+                                        for k in Nsnow_loc:-1:(kmax + 2)
+                                            Ds_loc[k] = Ds_loc[k - 1]
+                                            Sice_loc[k] = Sice_loc[k - 1]
+                                            Sliq_loc[k] = Sliq_loc[k - 1]
+                                            histowet_loc[k] = histowet_loc[k - 1]
+                                            U_loc[k] = U_loc[k - 1]
                                         end
-                                        Ds_loc[kmax+1] = Ds_loc[kmax] / Tf(2.0)
+                                        Ds_loc[kmax + 1] = Ds_loc[kmax] / Tf(2.0)
                                         Ds_loc[kmax] = Ds_loc[kmax] / Tf(2.0)
-                                        Sice_loc[kmax+1] = Sice_loc[kmax] / Tf(2.0)
+                                        Sice_loc[kmax + 1] = Sice_loc[kmax] / Tf(2.0)
                                         Sice_loc[kmax] = Sice_loc[kmax] / Tf(2.0)
-                                        Sliq_loc[kmax+1] = Sliq_loc[kmax] / Tf(2.0)
+                                        Sliq_loc[kmax + 1] = Sliq_loc[kmax] / Tf(2.0)
                                         Sliq_loc[kmax] = Sliq_loc[kmax] / Tf(2.0)
-                                        histowet_loc[kmax+1] = histowet_loc[kmax]
+                                        histowet_loc[kmax + 1] = histowet_loc[kmax]
                                         histowet_loc[kmax] = histowet_loc[kmax]
-                                        U_loc[kmax+1] = U_loc[kmax] / Tf(2.0)
+                                        U_loc[kmax + 1] = U_loc[kmax] / Tf(2.0)
                                         U_loc[kmax] = U_loc[kmax] / Tf(2.0)
                                     end
                                 end
@@ -586,7 +606,7 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
                     histowet[:, i, j] = histowet_loc[1:Nsmax]
                     Tsnow[:, i, j] = Tsnow_loc[1:Nsmax]
                     Nsnow[i, j] = Nsnow_loc
-                    
+
 
                 end
 
@@ -595,4 +615,5 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
         end
     end
 
+    return nothing
 end
