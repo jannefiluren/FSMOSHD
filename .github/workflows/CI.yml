@@ -31,6 +31,12 @@ jobs:
         with:
           version: ${{ matrix.version }}
       - uses: julia-actions/cache@v2
+      # deps/build.jl compiles the Fortran routines with gfortran, which is not
+      # on PATH by default on the Windows and macOS runners. This installs it
+      # (gcc/gfortran) across all three OSes.
+      - uses: fortran-lang/setup-fortran@v1
+        with:
+          compiler: gcc
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
       - uses: julia-actions/julia-processcoverage@v1
