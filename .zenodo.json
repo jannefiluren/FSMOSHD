@@ -31,6 +31,18 @@
                 "affiliation": "WSL - Snow and avalanche research institute - SLF"
             }
     ],
+    "related_identifiers": [
+        {
+            "identifier": "https://github.com/oshd-slf/FSM2oshd",
+            "relation": "isDerivedFrom",
+            "resource_type": "software"
+        },
+        {
+            "identifier": "https://github.com/RichardEssery/FSM2",
+            "relation": "isDerivedFrom",
+            "resource_type": "software"
+        }
+    ],
     "license": "MIT",
     "upload_type": "software"
 }
