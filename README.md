@@ -2,12 +2,17 @@
 
 [ci-img]: https://github.com/jannefiluren/FlexibleSnowModelOSHD.jl/actions/workflows/CI.yml/badge.svg?branch=main
 [ci-url]: https://github.com/jannefiluren/FlexibleSnowModelOSHD.jl/actions/workflows/CI.yml?query=branch%3Amain
+
 [codecov-img]: https://codecov.io/gh/jannefiluren/FlexibleSnowModelOSHD.jl/branch/main/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/jannefiluren/FlexibleSnowModelOSHD.jl
+
 [runic-img]: https://img.shields.io/badge/code_style-%E1%9A%B1%E1%9A%A2%E1%9A%BE%E1%9B%81%E1%9A%B2-black
 [runic-url]: https://github.com/fredrikekre/Runic.jl
 
- [![][ci-img]][ci-url] [![][codecov-img]][codecov-url] [![][runic-img]][runic-url]
+[zenodo-img]: https://zenodo.org/badge/563825020.svg
+[zenodo-url]: https://doi.org/10.5281/zenodo.21322824
+
+ [![][ci-img]][ci-url] [![][codecov-img]][codecov-url] [![][runic-img]][runic-url] [![DOI][zenodo-img]][zenodo-url]
 
 A Julia implementation of the **Flexible Snow Model (FSM)** for the **Operational Snow Hydrological Service (OSHD)** at SLF. This package provides a comprehensive snow physics model for simulating snow accumulation and melt processes in complex terrain.
 
