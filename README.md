@@ -9,7 +9,7 @@
 [runic-img]: https://img.shields.io/badge/code_style-%E1%9A%B1%E1%9A%A2%E1%9A%BE%E1%9B%81%E1%9A%B2-black
 [runic-url]: https://github.com/fredrikekre/Runic.jl
 
-[zenodo-img]: https://zenodo.org/badge/DOI/10.5281/zenodo.21322824.svg
+[zenodo-img]: https://zenodo.org/badge/563825020.svg
 [zenodo-url]: https://doi.org/10.5281/zenodo.21322824
 
  [![][ci-img]][ci-url] [![][codecov-img]][codecov-url] [![][runic-img]][runic-url] [![DOI][zenodo-img]][zenodo-url]
