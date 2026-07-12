@@ -1,0 +1,48 @@
+{
+    "title": "FlexibleSnowModelOSHD.jl",
+    "description": "Julia package for fast, friendly and flexible snow modelling.",
+    "creators": [
+            {
+                "name": "Magnusson, Jan",
+                "affiliation": "WSL - Snow and avalanche research institute - SLF",
+                "orcid": "0000-0003-0257-1862"
+            },
+            {
+                "name": "Oberrauch, Moritz",
+                "affiliation": "WSL - Snow and avalanche research institute - SLF",
+                "orcid": "0009-0006-6211-9690"
+            },
+            {
+                "name": "Queno, Louis",
+                "affiliation": "WSL - Snow and avalanche research institute - SLF",
+                "orcid": "0000-0003-3120-6805"
+            },
+            {
+                "name": "Mazzotti, Giulia",
+                "affiliation": "WSL - Snow and avalanche research institute - SLF",
+                "orcid": "0000-0003-3857-7449"
+            },
+            {
+                "name": "Haugeneder, Michael",
+                "affiliation": "WSL - Snow and avalanche research institute - SLF"
+            },
+            {
+                "name": "Oprel, Jens",
+                "affiliation": "WSL - Snow and avalanche research institute - SLF"
+            }
+    ],
+    "related_identifiers": [
+        {
+            "identifier": "https://github.com/oshd-slf/FSM2oshd",
+            "relation": "isDerivedFrom",
+            "resource_type": "software"
+        },
+        {
+            "identifier": "https://github.com/RichardEssery/FSM2",
+            "relation": "isDerivedFrom",
+            "resource_type": "software"
+        }
+    ],
+    "license": "MIT",
+    "upload_type": "software"
+}
