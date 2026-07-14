@@ -13,8 +13,8 @@ This function encapsulates the standard model execution sequence:
 7. Soil thermal processes
 
 # Arguments
-- `fsm::FSM`: Model state structure (modified in-place)  
-- `met::MET`: Current meteorological conditions (may be modified)
+- `fsm::FSM`: Model state structure (modified in-place)
+- `met::MET`: Current meteorological conditions (read-only, never modified)
 - `t::DateTime`: Current simulation time
 
 # Example

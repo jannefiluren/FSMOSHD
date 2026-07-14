@@ -5,7 +5,7 @@ Snow albedo calculations, surface and canopy net shortwave radiation.
 
 # Arguments
 - `fsm::FSM`: Model state structure (modified in-place)
-- `meteo::MET`: Current meteorological conditions  
+- `meteo::MET`: Current meteorological conditions (read-only)
 - `t`: Current simulation time
 """
 function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <: Integer}
@@ -24,7 +24,7 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, 
 
     @unpack ALBEDO, CANMOD, ALRADT, ALPERT = fsm
 
-    @unpack alb, asrf_out, SWveg, SWsrf, SWsci, LWt = fsm
+    @unpack alb, asrf_out, SWveg, SWsrf, SWsci, LWt, LWeff = fsm
 
     @unpack adm, adc, afs = fsm
 
@@ -180,9 +180,11 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, 
                 # Terrain LWR if not calculated later;
                 LWt[i, j] = fsky_terr[i, j] * LW[i, j] + (Tf(1) - fsky_terr[i, j]) * sb * Ta[i, j]^Tf(4)
 
-                # LW overwritten by LWt only if EBALFOR is used, where terrain impacts are accounted for already
+                # LWeff equals LWt except when EBALFOR is used, where terrain impacts are accounted for already
                 if (CANMOD == 0 || fveg[i, j] == 0)
-                    LW[i, j] = LWt[i, j]
+                    LWeff[i, j] = LWt[i, j]
+                else
+                    LWeff[i, j] = LW[i, j]
                 end
 
             end

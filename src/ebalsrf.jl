@@ -5,7 +5,7 @@ Surface energy balance solution for open and non-forest tiles.
 
 # Arguments
 - `fsm::FSM`: Model state structure (modified in-place)
-- `meteo::MET`: Current meteorological conditions
+- `meteo::MET`: Current meteorological conditions (read-only)
 """
 function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
@@ -33,7 +33,9 @@ function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <:
 
     @unpack KH, KWg, KHa, KHv, KWv, SWveg = fsm
 
-    @unpack LW, Ps, Qa, Ta = meteo
+    @unpack Qa, LWeff = fsm
+
+    @unpack Ps, Ta = meteo
 
     for j in 1:Ny
         for i in 1:Nx
@@ -60,7 +62,7 @@ function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <:
                     H[i, j] = cp * rho * KH[i, j] * (Tsrf[i, j] - Ta[i, j])
                     LE[i, j] = Lh * Esrf[i, j]
                     Melt[i, j] = Tf(0)
-                    Rnet[i, j] = SWsrf[i, j] + trcn[i, j] * LW[i, j] - sb * Tsrf[i, j]^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
+                    Rnet[i, j] = SWsrf[i, j] + trcn[i, j] * LWeff[i, j] - sb * Tsrf[i, j]^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
 
                     # Surface energy balance increments without melt
                     dTs = (Rnet[i, j] - G[i, j] - H[i, j] - LE[i, j]) / (Tf(4) * sb * Tsrf[i, j]^Tf(3) + Tf(2) * ks1[i, j] / Ds1[i, j] + rho * (cp * KH[i, j] + Lh * D * KWg[i, j]))
@@ -83,7 +85,7 @@ function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <:
                             G[i, j] = Tf(2) * ks1[i, j] * (Tm - Ts1[i, j]) / Ds1[i, j]
                             H[i, j] = cp * rho * KH[i, j] * (Tm - Ta[i, j])
                             LE[i, j] = Ls * Esrf[i, j]
-                            Rnet[i, j] = SWsrf[i, j] + trcn[i, j] * LW[i, j] - sb * Tm^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
+                            Rnet[i, j] = SWsrf[i, j] + trcn[i, j] * LWeff[i, j] - sb * Tm^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
                             Melt[i, j] = (Rnet[i, j] - H[i, j] - LE[i, j] - G[i, j]) / Lf
                             Melt[i, j] = max(Melt[i, j], Tf(0.0))
                             dE = Tf(0.0)
@@ -106,7 +108,7 @@ function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <:
                             G[i, j] = Tf(2) * ks1[i, j] * (Tm - Ts1[i, j]) / Ds1[i, j]
                             H[i, j] = cp * rho * KH[i, j] * (Tm - Ta[i, j])
                             LE[i, j] = Ls * Esrf[i, j]
-                            Rnet[i, j] = SWsrf[i, j] + trcn[i, j] * LW[i, j] - sb * Tm^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
+                            Rnet[i, j] = SWsrf[i, j] + trcn[i, j] * LWeff[i, j] - sb * Tm^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
                             dE = Tf(0.0)
                             dG = Tf(0.0)
                             dH = Tf(0.0)
@@ -136,7 +138,7 @@ function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <:
                     Rsrf[i, j] = Rnet[i, j]
 
                     # Ensure LWsci and LWveg exist as variable even in open runs
-                    LWsci[i, j] = LW[i, j]
+                    LWsci[i, j] = LWeff[i, j]
                     LWveg[i, j] = Tf(0.0)
 
                     if (CANMOD == 0)
@@ -150,7 +152,7 @@ function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <:
                                 Lh = Lv
                             end
                             LE[i, j] = LE[i, j] + Lh * Eveg[i, j]
-                            Rnet[i, j] = Rnet[i, j] + SWveg[i, j] + (Tf(1) - trcn[i, j]) * (LW[i, j] + sb * Tsrf[i, j]^Tf(4) - Tf(2) * sb * Tveg[i, j]^Tf(4))
+                            Rnet[i, j] = Rnet[i, j] + SWveg[i, j] + (Tf(1) - trcn[i, j]) * (LWeff[i, j] + sb * Tsrf[i, j]^Tf(4) - Tf(2) * sb * Tveg[i, j]^Tf(4))
                         end
                     end
                 end

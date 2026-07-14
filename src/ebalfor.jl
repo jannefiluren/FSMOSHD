@@ -5,7 +5,7 @@ Energy balance solution for forest tiles with 1-layer canopy model.
 
 # Arguments
 - `fsm::FSM`: Model state structure (modified in-place)
-- `meteo::MET`: Current meteorological conditions
+- `meteo::MET`: Current meteorological conditions (read-only)
 """
 function ebalfor!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
@@ -13,7 +13,9 @@ function ebalfor!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <:
 
     @unpack tthresh = fsm
 
-    @unpack LW, Ps, Qa, Ta = meteo
+    @unpack Qa, LWeff = fsm
+
+    @unpack Ps, Ta = meteo
 
     @unpack Nx, Ny, dt = fsm
 
@@ -65,9 +67,9 @@ function ebalfor!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <:
                     Hveg = rho * cp * KHv[i, j] * (Tveg[i, j] - Tcan[i, j])
                     LE[i, j] = Lsrf * Esrf[i, j] + Lveg * Eveg[i, j]
                     Melt[i, j] = Tf(0)
-                    Rsrf[i, j] = SWsrf[i, j] + trcn[i, j] * (fsky[i, j] * LW[i, j] + (Tf(1) - fsky[i, j]) * sb * Ta[i, j]^Tf(4)) - sb * Tsrf[i, j]^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)        # with near and distant canopy contributions
+                    Rsrf[i, j] = SWsrf[i, j] + trcn[i, j] * (fsky[i, j] * LWeff[i, j] + (Tf(1) - fsky[i, j]) * sb * Ta[i, j]^Tf(4)) - sb * Tsrf[i, j]^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)        # with near and distant canopy contributions
                     # Rsrf[i,j] = SWsrf[i,j] + trcn[i,j]*LW[i,j] - sb*Tsrf[i,j]^4 + (1 - trcn[i,j])*sb*Tveg[i,j]^4  ! original formulations
-                    Rveg = SWveg[i, j] + (Tf(1) - trcn[i, j]) * (LW[i, j] + sb * Tsrf[i, j]^Tf(4) - Tf(2) * sb * Tveg[i, j]^Tf(4))
+                    Rveg = SWveg[i, j] + (Tf(1) - trcn[i, j]) * (LWeff[i, j] + sb * Tsrf[i, j]^Tf(4) - Tf(2) * sb * Tveg[i, j]^Tf(4))
 
                     # Surface energy balance increments without melt
                     A_ebal[1, 1] = Tf(0)
@@ -120,8 +122,8 @@ function ebalfor!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <:
                             Esrf[i, j] = rho * KWg[i, j] * (Qsrf - Qcan[i, j])
                             G[i, j] = Tf(2) * ks1[i, j] * (Tm - Ts1[i, j]) / Ds1[i, j]
                             Hsrf[i, j] = rho * cp * KHg[i, j] * (Tm - Tcan[i, j])
-                            Rsrf[i, j] = SWsrf[i, j] + trcn[i, j] * (fsky[i, j] * LW[i, j] + (Tf(1) - fsky[i, j]) * sb * Ta[i, j]^Tf(4)) - sb * Tm^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
-                            Rveg = SWveg[i, j] + (Tf(1) - trcn[i, j]) * (LW[i, j] + sb * Tm^Tf(4) - Tf(2) * sb * Tveg[i, j]^Tf(4))
+                            Rsrf[i, j] = SWsrf[i, j] + trcn[i, j] * (fsky[i, j] * LWeff[i, j] + (Tf(1) - fsky[i, j]) * sb * Ta[i, j]^Tf(4)) - sb * Tm^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
+                            Rveg = SWveg[i, j] + (Tf(1) - trcn[i, j]) * (LWeff[i, j] + sb * Tm^Tf(4) - Tf(2) * sb * Tveg[i, j]^Tf(4))
                             A_ebal[1, 3] = Tf(0)
                             b_ebal[1] = (H[i, j] - Hveg - Hsrf[i, j]) / (rho * cp)
                             A_ebal[2, 3] = Tf(0)
@@ -157,9 +159,9 @@ function ebalfor!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <:
                     H[i, j] = Hsrf[i, j] + Hveg
                     LE[i, j] = Lsrf * Esrf[i, j] + Lveg * Eveg[i, j]
                     LEsrf[i, j] = Lsrf * Esrf[i, j]
-                    Rnet[i, j] = SWsrf[i, j] + SWveg[i, j] + LW[i, j] - trcn[i, j] * sb * Tsrf[i, j]^Tf(4) - (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
-                    LWsci[i, j] = trcn[i, j] * (fsky[i, j] * LW[i, j] + (Tf(1) - fsky[i, j]) * sb * Ta[i, j]^Tf(4)) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
-                    LWveg[i, j] = (Tf(1) - trcn[i, j]) * (LW[i, j] + sb * Tsrf[i, j]^Tf(4) - Tf(2) * sb * Tveg[i, j]^Tf(4))
+                    Rnet[i, j] = SWsrf[i, j] + SWveg[i, j] + LWeff[i, j] - trcn[i, j] * sb * Tsrf[i, j]^Tf(4) - (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
+                    LWsci[i, j] = trcn[i, j] * (fsky[i, j] * LWeff[i, j] + (Tf(1) - fsky[i, j]) * sb * Ta[i, j]^Tf(4)) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
+                    LWveg[i, j] = (Tf(1) - trcn[i, j]) * (LWeff[i, j] + sb * Tsrf[i, j]^Tf(4) - Tf(2) * sb * Tveg[i, j]^Tf(4))
 
                     # Sublimation limited by amount of snow after melt
                     Ssub = sum(Sice[:, i, j]) - Melt[i, j] * dt

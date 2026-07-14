@@ -5,7 +5,7 @@ Snow interception, sublimation, and unloading from vegetation canopy.
 
 # Arguments
 - `fsm::FSM`: Model state structure (modified in-place)
-- `meteo::MET`: Current meteorological conditions (may be modified)
+- `meteo::MET`: Current meteorological conditions (read-only)
 """
 function canopy!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
@@ -13,7 +13,7 @@ function canopy!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: 
 
     @unpack tthresh = fsm
 
-    @unpack Sf = meteo
+    @unpack Sf_eff = fsm
 
     @unpack Nx, Ny, dt = fsm
 
@@ -40,13 +40,13 @@ function canopy!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: 
 
                 if (fveg[i, j] > eps(Tf))
                     # rescale precipitation to correct back precip multiplier applied to open area
-                    Sf[i, j] = pmultf[i, j] * Sf[i, j]
+                    Sf_eff[i, j] = pmultf[i, j] * Sf_eff[i, j]
 
                     # interception
-                    intcpt[i, j] = (scap[i, j] - Sveg[i, j]) * (Tf(1) - exp(-fveg[i, j] * Sf[i, j] * dt / scap[i, j]))
+                    intcpt[i, j] = (scap[i, j] - Sveg[i, j]) * (Tf(1) - exp(-fveg[i, j] * Sf_eff[i, j] * dt / scap[i, j]))
                     Sveg[i, j] = Sveg[i, j] + intcpt[i, j]
-                    Sf[i, j] = Sf[i, j] - intcpt[i, j] / dt
-                    Sf[i, j] = (psf - psr * fveg[i, j]) * Sf[i, j] # including preferential deposition in canopy gaps; might have to be revisited to ensure mass conservation, potentially integrate with pmultf
+                    Sf_eff[i, j] = Sf_eff[i, j] - intcpt[i, j] / dt
+                    Sf_eff[i, j] = (psf - psr * fveg[i, j]) * Sf_eff[i, j] # including preferential deposition in canopy gaps; might have to be revisited to ensure mass conservation, potentially integrate with pmultf
 
                     # sublimation
                     Evegs = Tf(0)
