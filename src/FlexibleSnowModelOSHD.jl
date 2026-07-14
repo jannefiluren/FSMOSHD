@@ -11,6 +11,7 @@ using KernelAbstractions: @kernel, @index, @Const, get_backend
 include("parameters.jl")
 include("types.jl")
 include("architectures.jl")
+include("kernel_utils.jl")
 include("setup.jl")
 include("qsat.jl")
 include("tridiag.jl")
