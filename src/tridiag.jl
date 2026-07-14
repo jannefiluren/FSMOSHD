@@ -13,7 +13,7 @@ Tridiagonal matrix solver using Thomas algorithm.
 - `c`: Super-diagonal coefficients
 - `r`: Right-hand side vector
 """
-function tridiag!(x::Vector{Tf}, Nvec, gamma, Nmax, a, b, c, r) where {Tf <: Real}
+function tridiag!(x::AbstractVector{Tf}, Nvec, gamma, Nmax, a, b, c, r) where {Tf <: Real}
 
     fill!(gamma, zero(Tf))
 

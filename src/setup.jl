@@ -1,13 +1,15 @@
 """
-    setup(Tf, Ti, landuse, Nx, Ny, settings)
+    setup([arch], Tf, Ti, landuse, Nx, Ny, settings)
 
 Initialize the FSM snow model with specified configuration and domain properties.
 
 Creates and configures the FSM model state structure with landuse data, model parameters,
-and domain dimensions. Sets up soil properties, surface characteristics, and applies 
+and domain dimensions. Sets up soil properties, surface characteristics, and applies
 configuration-specific settings for different surface types and model behaviors.
 
 # Arguments
+- `arch::AbstractArchitecture`: Architecture the model arrays live on
+  (optional, default `CPU()`); pass e.g. `GPU(CUDABackend())` for GPU runs
 - `Tf`: Floating-point precision type (typically Float32 or Float64)
 - `Ti`: Integer type for array indices (typically Int32 or Int64)
 - `landuse::Dict`: Landuse data dictionary with topographic and surface properties
@@ -21,6 +23,10 @@ configuration-specific settings for different surface types and model behaviors.
 - `FSM`: Initialized model state structure ready for simulation
 """
 function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
+    return setup(CPU(), Tf, Ti, landuse, Nx, Ny, settings)
+end
+
+function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
 
     @unpack_constants(Tf)
 
@@ -122,6 +128,12 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
 
     fsm.canh[:, :] = Tf(12500) * fsm.VAI[:, :]
     fsm.scap[:, :] = fsm.cvai * fsm.VAI[:, :]
+
+    # The whole setup above runs on the CPU (it uses scalar indexing); the
+    # finished structure is moved to the target architecture in one step.
+    if !(arch isa CPU)
+        fsm = on_architecture(arch, fsm)
+    end
 
     return fsm
 

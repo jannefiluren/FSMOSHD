@@ -3,7 +3,7 @@
 
 LU decomposition solver for linear systems with partial pivoting.
 """
-function ludcmp!(N::Integer, A::Matrix{Tf}, Acp::Matrix{Tf}, b::Vector{Tf}, x::Vector{Tf}, vv::Vector{Tf}, indx::Vector{Ti}) where {Tf <: Real, Ti <: Integer}
+function ludcmp!(N::Integer, A::AbstractMatrix{Tf}, Acp::AbstractMatrix{Tf}, b::AbstractVector{Tf}, x::AbstractVector{Tf}, vv::AbstractVector{Tf}, indx::AbstractVector{Ti}) where {Tf <: Real, Ti <: Integer}
 
     Acp .= A
     x .= b

@@ -13,7 +13,7 @@ Snow cover fraction calculation using multiple parameterizations.
 - `snowdepthbuffer::Array`: Workspace for depth history tracking  
 - `diffSWEbuffer::Array`: Workspace for SWE difference calculations
 """
-function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::DateTime, i::Int, j::Int, SWEbuffer::Array{Tf}, snowdepthbuffer::Array{Tf}, diffSWEbuffer::Array{Tf}) where {Tf <: Real, Ti <: Integer}
+function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::DateTime, i::Int, j::Int, SWEbuffer::AbstractArray{Tf}, snowdepthbuffer::AbstractArray{Tf}, diffSWEbuffer::AbstractArray{Tf}) where {Tf <: Real, Ti <: Integer}
 
     @unpack SNFRAC = fsm
     @unpack hfsn = fsm
