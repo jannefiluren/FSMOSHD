@@ -218,6 +218,7 @@
     SWveg::MF = zeros(Nx, Ny)                      # Net short wave radiation absorbed by vegetation (W/m^2)
     SWsrf::MF = zeros(Nx, Ny)                      # Net short wave radiation absorbed by the surface (W/m^2)
     SWsci::MF = zeros(Nx, Ny)                      # Subcanopy incoming shortwave radiation (W/m^2)
+    LWt::MF = zeros(Nx, Ny)                                  # Incoming longwave radiation corrected for subgrid topography (W/m^2)
     LWeff::MF = zeros(Nx, Ny)                      # Incoming longwave radiation used in the energy balance, terrain-corrected where applicable (W/m^2)
 
     # Variables used in thermal-function
