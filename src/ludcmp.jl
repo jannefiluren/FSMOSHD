@@ -3,7 +3,14 @@
 
 LU decomposition solver for linear systems with partial pivoting.
 """
-function ludcmp!(N::Integer, A::AbstractMatrix{Tf}, Acp::AbstractMatrix{Tf}, b::AbstractVector{Tf}, x::AbstractVector{Tf}, vv::AbstractVector{Tf}, indx::AbstractVector{Ti}) where {Tf <: Real, Ti <: Integer}
+# @inline so that kernel-local MMatrix/MVector arguments do not escape
+# (escaping would force them onto the heap, allocating once per grid cell)
+@inline function ludcmp!(N::Integer, A::AbstractMatrix{Tf}, Acp::AbstractMatrix{Tf}, b::AbstractVector{Tf}, x::AbstractVector{Tf}, vv::AbstractVector{Tf}, indx::AbstractVector{Ti}) where {Tf <: Real, Ti <: Integer}
+
+    # @inbounds (callers guarantee N <= size of all system arrays): without
+    # it, the bounds-check error paths would capture the kernel-local
+    # MMatrix/MVector arguments and force them onto the heap
+    @inbounds begin
 
     Acp .= A
     x .= b
@@ -88,6 +95,8 @@ function ludcmp!(N::Integer, A::AbstractMatrix{Tf}, Acp::AbstractMatrix{Tf}, b::
         end
         x[i] = sum / Acp[i, i]
     end
+
+    end # @inbounds
 
     return nothing
 end

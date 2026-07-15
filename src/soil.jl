@@ -57,7 +57,11 @@ end
 
     @unpack_constants(Tf)
 
-    if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
+    # @inbounds so that the bounds-check error paths do not capture the
+    # kernel-local MVector scratch (which would force it onto the heap,
+    # allocating once per grid cell); tests run with --check-bounds=yes,
+    # which overrides this
+    @inbounds if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
 
         # Kernel-local scratch (one set per grid cell)
         asoil = zero(MVector{Nsoil, Tf})

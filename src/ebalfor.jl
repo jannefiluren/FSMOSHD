@@ -62,7 +62,11 @@ end
     @unpack_constants(Tf)
 
     # 1-layer canopy model
-    if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
+    # @inbounds so that the bounds-check error paths do not capture the
+    # kernel-local MMatrix/MVector scratch (which would force it onto the
+    # heap, allocating once per grid cell); tests run with
+    # --check-bounds=yes, which overrides this
+    @inbounds if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
 
         if (fveg[i, j] > eps(Tf))
 

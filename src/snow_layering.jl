@@ -60,7 +60,11 @@ end
 
     @unpack_constants(Tf)
 
-    if tilefrac[i, j] >= tthresh
+    # @inbounds so that the bounds-check error paths do not capture the
+    # kernel-local MVector scratch (which would force it onto the heap,
+    # allocating once per grid cell); tests run with --check-bounds=yes,
+    # which overrides this
+    @inbounds if tilefrac[i, j] >= tthresh
 
         # Decrease Nsnow if necessary (e.g. after melting)
         while Nsnow[i, j] > 0 && Ds[1, i, j] < eps(Tf)

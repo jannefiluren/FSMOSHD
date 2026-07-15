@@ -30,7 +30,11 @@ the "6:00 am" test, since `Dates` cannot run inside kernels).
         SNFRAC::Integer, hfsn::Tf, update_hist::Bool
     ) where {Tf <: Real}
 
-    if SNFRAC == 0
+    # @inbounds so that the bounds-check error paths do not capture the
+    # local MVector history buffers (which would force them onto the heap,
+    # allocating once per grid cell); tests run with --check-bounds=yes,
+    # which overrides this
+    @inbounds if SNFRAC == 0
 
         # calculate topo terms needed for standard deviation of snow depth (done)
         sd_snowdepth1 = exp(Tf(-1) / (Ld[i, j] / xi[i, j])^Tf(2))
