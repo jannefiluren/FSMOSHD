@@ -4,9 +4,13 @@ using Parameters
 using Dates
 
 # KernelAbstractions is imported qualified because it exports its own CPU/GPU
-# names, which would clash with the architecture types defined here
+# names, which would clash with the architecture types defined here.
+# NOTE: @Const is deliberately NOT used on kernel arguments - on the CPU
+# backend it wraps the kernel body in an aliasscope, which miscompiles large
+# kernel bodies on Julia >= 1.11 when combined with inbounds (silently wrong
+# results; see JuliaGPU/KernelAbstractions.jl#652 for the aliasscope issue).
 import KernelAbstractions
-using KernelAbstractions: @kernel, @index, @Const, get_backend
+using KernelAbstractions: @kernel, @index, get_backend
 using StaticArrays: MVector, MMatrix
 
 include("parameters.jl")

@@ -57,12 +57,12 @@ end
 
 @kernel function radiation_kernel!(
         albs, alb, asrf_out, SWveg, SWsrf, SWsci, LWt, LWeff,
-        @Const(fsky_terr), @Const(fveg), @Const(tilefrac), @Const(alb0),
-        @Const(fsky), @Const(scap), @Const(trcn),
-        @Const(Sice), @Const(Sliq), @Const(fsnow), @Const(Sveg), @Const(Tsrf),
-        @Const(adc), @Const(afs),
-        @Const(LW), @Const(Sdif), @Const(Sdir), @Const(Sdird), @Const(Sf),
-        @Const(Sf24h), @Const(Ta), @Const(Tv),
+        fsky_terr, fveg, tilefrac, alb0,
+        fsky, scap, trcn,
+        Sice, Sliq, fsnow, Sveg, Tsrf,
+        adc, afs,
+        LW, Sdif, Sdir, Sdird, Sf,
+        Sf24h, Ta, Tv,
         dt::Tf, tthresh::Tf, asmn::Tf, avg0::Tf, avgs::Tf, Talb::Tf, tcld::Tf,
         tmlt::Tf, adfs::Tf, adfl::Tf, fsar::Tf, Sfmin::Tf, adm::Tf,
         ALBEDO::Ti, CANMOD::Ti, ALRADT::Ti, summer_decay::Bool,

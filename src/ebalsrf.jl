@@ -59,10 +59,10 @@ end
 
 @kernel function ebalsrf_kernel!(
         Tveg, Tcan, Tsrf, Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf,
-        @Const(Sice), @Const(trcn), @Const(fveg), @Const(tilefrac),
-        @Const(SWsrf), @Const(SWveg), @Const(Ds1), @Const(Ts1), @Const(ks1),
-        @Const(KH), @Const(KWg), @Const(KHa), @Const(KHv), @Const(KWv),
-        @Const(Qa), @Const(LWeff), @Const(Ps), @Const(Ta),
+        Sice, trcn, fveg, tilefrac,
+        SWsrf, SWveg, Ds1, Ts1, ks1,
+        KH, KWg, KHa, KHv, KWv,
+        Qa, LWeff, Ps, Ta,
         dt::Tf, tthresh::Tf, CANMOD::Ti, glacier_tile::Bool,
     ) where {Tf, Ti}
 

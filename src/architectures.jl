@@ -62,7 +62,11 @@ function on_architecture(arch::AbstractArchitecture, fsm::FSM)
     return FSM(values...)
 end
 
-function on_architecture(arch::AbstractArchitecture, met::MET)
+function on_architecture(arch::AbstractArchitecture, met::MET{Tf, Ti}) where {Tf, Ti}
     values = map(name -> on_architecture(arch, getfield(met, name)), fieldnames(typeof(met)))
-    return MET(values...)
+    nt = NamedTuple{fieldnames(typeof(met))}(values)
+    # Unlike FSM, MET has no scalar Tf-typed field, so Tf cannot be inferred
+    # by a positional constructor - pass the type parameters explicitly,
+    # deriving the array types from representative converted fields
+    return MET{Tf, Ti, typeof(nt.Sdir), typeof(nt.Sf24h_f64), typeof(nt.Sf_history_f64)}(; nt...)
 end

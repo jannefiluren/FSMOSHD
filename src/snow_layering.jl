@@ -46,11 +46,14 @@ function snow_layering!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, snowdepth0, Sice0,
     return nothing
 end
 
-@kernel function snow_layering_kernel!(
+# inbounds = true keeps the kernel-local MVector scratch off the heap; see
+# the note on soil_kernel! (a raw @inbounds block inside a @kernel body must
+# not be used - it corrupts the KernelAbstractions CPU transformation)
+@kernel inbounds = true function snow_layering_kernel!(
         Ds, Sice, Sliq, Tsnow, histowet, Nsnow, Ds0, fsnow,
         swehist, swemin, swemax, snowdepthhist, snowdepthmin, snowdepthmax,
-        @Const(tilefrac), @Const(snowdepth0), @Const(Sice0), @Const(Ta),
-        @Const(slopemu), @Const(xi), @Const(Ld), @Const(Dzsnow),
+        tilefrac, snowdepth0, Sice0, Ta,
+        slopemu, xi, Ld, Dzsnow,
         tthresh::Tf, Ds_min::Tf, Ds_surflay::Tf, rho0::Tf, hfsn::Tf,
         SNOLAY::Ti, SNFRAC::Ti, HN_ON::Bool, update_hist::Bool,
         ::Val{Nsmax},
@@ -60,11 +63,7 @@ end
 
     @unpack_constants(Tf)
 
-    # @inbounds so that the bounds-check error paths do not capture the
-    # kernel-local MVector scratch (which would force it onto the heap,
-    # allocating once per grid cell); tests run with --check-bounds=yes,
-    # which overrides this
-    @inbounds if tilefrac[i, j] >= tthresh
+    if tilefrac[i, j] >= tthresh
 
         # Decrease Nsnow if necessary (e.g. after melting)
         while Nsnow[i, j] > 0 && Ds[1, i, j] < eps(Tf)

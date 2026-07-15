@@ -45,10 +45,17 @@ function soil!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
     return nothing
 end
 
-@kernel function soil_kernel!(
+# inbounds = true keeps the kernel-local MVector scratch off the heap (the
+# bounds-check error paths would otherwise capture it, forcing a heap
+# allocation per grid cell). NOTE: a raw @inbounds block written directly in
+# a @kernel body must NOT be used instead - it interferes with the
+# KernelAbstractions CPU code transformation and silently corrupts results.
+# Tests run with --check-bounds=yes, which overrides this, so all indexing
+# stays validated in CI.
+@kernel inbounds = true function soil_kernel!(
         Tsoil,
-        @Const(Dzsoil), @Const(tilefrac),
-        @Const(csoil), @Const(ksoil), @Const(Gsoil),
+        Dzsoil, tilefrac,
+        csoil, ksoil, Gsoil,
         dt::Tf, tthresh::Tf, glacier_tile::Bool,
         ::Val{Nsoil},
     ) where {Tf, Nsoil}
@@ -57,11 +64,7 @@ end
 
     @unpack_constants(Tf)
 
-    # @inbounds so that the bounds-check error paths do not capture the
-    # kernel-local MVector scratch (which would force it onto the heap,
-    # allocating once per grid cell); tests run with --check-bounds=yes,
-    # which overrides this
-    @inbounds if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
+    if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
 
         # Kernel-local scratch (one set per grid cell)
         asoil = zero(MVector{Nsoil, Tf})

@@ -48,12 +48,16 @@ function ebalfor!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <:
 
 end
 
-@kernel function ebalfor_kernel!(
+# inbounds = true keeps the kernel-local MMatrix/MVector scratch off the
+# heap; see the note on soil_kernel! (a raw @inbounds block inside a @kernel
+# body must not be used - it corrupts the KernelAbstractions CPU
+# transformation)
+@kernel inbounds = true function ebalfor_kernel!(
         Qcan, Tcan, Tsrf, Tveg, Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf,
-        @Const(canh), @Const(fsky), @Const(trcn), @Const(Sice), @Const(fveg), @Const(tilefrac),
-        @Const(Ds1), @Const(KHa), @Const(KHg), @Const(KHv), @Const(KWg), @Const(KWv),
-        @Const(ks1), @Const(SWsrf), @Const(SWveg), @Const(Ts1), @Const(Tveg0),
-        @Const(Qa), @Const(LWeff), @Const(Ps), @Const(Ta),
+        canh, fsky, trcn, Sice, fveg, tilefrac,
+        Ds1, KHa, KHg, KHv, KWg, KWv,
+        ks1, SWsrf, SWveg, Ts1, Tveg0,
+        Qa, LWeff, Ps, Ta,
         dt::Tf, tthresh::Tf,
     ) where {Tf}
 
@@ -62,11 +66,7 @@ end
     @unpack_constants(Tf)
 
     # 1-layer canopy model
-    # @inbounds so that the bounds-check error paths do not capture the
-    # kernel-local MMatrix/MVector scratch (which would force it onto the
-    # heap, allocating once per grid cell); tests run with
-    # --check-bounds=yes, which overrides this
-    @inbounds if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
+    if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
 
         if (fveg[i, j] > eps(Tf))
 

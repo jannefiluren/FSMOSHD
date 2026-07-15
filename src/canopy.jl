@@ -45,8 +45,8 @@ end
 
 @kernel function canopy_kernel!(
         unload, intcpt, Sbveg, Sveg, Sfeff,
-        @Const(scap), @Const(Tveg), @Const(fveg), @Const(pmultf),
-        @Const(tilefrac), @Const(Eveg),
+        scap, Tveg, fveg, pmultf,
+        tilefrac, Eveg,
         dt::Tf, tthresh::Tf, tcnc::Tf, tcnm::Tf, psf::Tf, psr::Tf,
     ) where {Tf}
 

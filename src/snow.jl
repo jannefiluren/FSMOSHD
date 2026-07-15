@@ -76,13 +76,16 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
 
 end
 
-@kernel function snow_kernel!(
+# inbounds = true keeps the kernel-local MVector scratch off the heap; see
+# the note on soil_kernel! (a raw @inbounds block inside a @kernel body must
+# not be used - it corrupts the KernelAbstractions CPU transformation)
+@kernel inbounds = true function snow_kernel!(
         Sbsrf, Roff_bare, Roff_snow, Roff, meltflux_out, Gsoil,
         Tsnow, Ds, Sice, Sliq, histowet, rgrn, Sice0, snowdepth0,
-        @Const(Nsnow), @Const(fsnow), @Const(tilefrac), @Const(unload),
-        @Const(ksnow), @Const(ksoil), @Const(Dzsoil), @Const(Tsoil),
-        @Const(G), @Const(Melt), @Const(Esrf), @Const(Tsrf), @Const(dem),
-        @Const(Uaeff), @Const(Sfeff), @Const(Ta),
+        Nsnow, fsnow, tilefrac, unload,
+        ksnow, ksoil, Dzsoil, Tsoil,
+        G, Melt, Esrf, Tsrf, dem,
+        Uaeff, Sfeff, Ta,
         dt::Tf, tthresh::Tf, Wirr::Tf, rho0::Tf, rhob::Tf, rhoc::Tf, rhof::Tf,
         rhos_min::Tf, rcld::Tf, rmlt::Tf, snda::Tf, trho::Tf, eta0::Tf,
         eta1::Tf, a_eta::Tf, b_eta::Tf, c_eta::Tf, rhos_max::Tf,
@@ -94,11 +97,7 @@ end
 
     @unpack_constants(Tf)
 
-    # @inbounds so that the bounds-check error paths do not capture the
-    # kernel-local MVector scratch (which would force it onto the heap,
-    # allocating once per grid cell); tests run with --check-bounds=yes,
-    # which overrides this
-    @inbounds if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
+    if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
 
         # Kernel-local scratch (one set per grid cell)
         csnow = zero(MVector{Nsmax, Tf})

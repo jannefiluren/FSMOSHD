@@ -49,11 +49,11 @@ end
 
 @kernel function thermal_kernel!(
         ksnow, csoil, ksoil, gs1, Ds1, Ts1, ks1, Tveg0,
-        @Const(Dzsoil), @Const(b), @Const(hcap_soil), @Const(hcon_soil),
-        @Const(sathh), @Const(Vcrit), @Const(Vsat),
-        @Const(Ds), @Const(Nsnow), @Const(fsnow), @Const(Sice), @Const(Sliq),
-        @Const(theta), @Const(Tsnow), @Const(Tsoil), @Const(Tveg),
-        @Const(tilefrac),
+        Dzsoil, b, hcap_soil, hcon_soil,
+        sathh, Vcrit, Vsat,
+        Ds, Nsnow, fsnow, Sice, Sliq,
+        theta, Tsnow, Tsoil, Tveg,
+        tilefrac,
         tthresh::Tf, bthr::Tf, gsat::Tf, kfix::Tf, rhof::Tf,
         Nsoil::Ti, CONDCT::Ti, DENSTY::Ti, glacier_tile::Bool,
     ) where {Tf, Ti}

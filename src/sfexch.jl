@@ -53,10 +53,10 @@ end
 
 @kernel function sfexch_kernel!(
         KH, KHa, KHg, KHv, KWg, KWv, Usc,
-        @Const(z0_snow), @Const(z0sf), @Const(VAI), @Const(Qcan), @Const(fsnow),
-        @Const(Sice), @Const(Sveg), @Const(Tcan), @Const(Tsrf), @Const(Tveg), @Const(Ds),
-        @Const(fveg), @Const(fves), @Const(hcan), @Const(tilefrac), @Const(gs1),
-        @Const(Qa), @Const(Uaeff), @Const(Ta), @Const(Ps),
+        z0_snow, z0sf, VAI, Qcan, fsnow,
+        Sice, Sveg, Tcan, Tsrf, Tveg, Ds,
+        fveg, fves, hcan, tilefrac, gs1,
+        Qa, Uaeff, Ta, Ps,
         tthresh::Tf, zT::Tf, zU::Tf, bstb::Tf, cden::Tf, cveg::Tf, gsnf::Tf,
         rchd::Tf, rchz::Tf, wcan::Tf, zsub::Tf, zgf::Tf, zgr::Tf, khcf::Tf,
         CANMOD::Ti, ZOFFST::Ti, EXCHNG::Ti, SNFRAC::Ti,
