@@ -38,8 +38,6 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
 
     @unpack Gsoil, Roff, meltflux_out, Sbsrf, Roff_bare, Roff_snow, unload = fsm
 
-    @unpack csnow, D, E, S, U, W = fsm
-
     @unpack snowdepth0, Sice0 = fsm
 
     @unpack Sfeff, Uaeff = fsm
@@ -55,15 +53,6 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
     # Initialize arrays for snow layering
     snowdepth0 .= Tf(0)
     Sice0 .= Tf(0)
-
-    # Scratch vectors still used by snow_layering! (the per-cell scratch of
-    # the snow kernel itself is kernel-local)
-    csnow .= Tf(0)
-    D .= Tf(0)
-    E .= Tf(0)
-    S .= Tf(0)
-    U .= Tf(0)
-    W .= Tf(0)
 
     # Points with existing snowpack
     backend = get_backend(Tsnow)

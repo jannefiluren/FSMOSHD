@@ -13,3 +13,35 @@ KernelAbstractions kernels on both CPU and GPU.
     end
     return s
 end
+
+"""
+    first_argmin(v, n)
+
+Index of the first minimum of `v[1:n]`. Equivalent to `argmin(v[1:n])` for
+data without NaNs, written as a plain loop that is safe inside kernels
+(range indexing of an `MVector` would allocate).
+"""
+@inline function first_argmin(v, n::Integer)
+    im = 1
+    @inbounds for k in 2:n
+        if v[k] < v[im]
+            im = k
+        end
+    end
+    return im
+end
+
+"""
+    first_argmax(v, n)
+
+Index of the first maximum of `v[1:n]`; see [`first_argmin`](@ref).
+"""
+@inline function first_argmax(v, n::Integer)
+    im = 1
+    @inbounds for k in 2:n
+        if v[k] > v[im]
+            im = k
+        end
+    end
+    return im
+end

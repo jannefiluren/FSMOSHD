@@ -1,6 +1,6 @@
 @with_kw mutable struct FSM{
         Tf, Ti,
-        VF <: AbstractVector{Tf}, VI <: AbstractVector{Ti},
+        VF <: AbstractVector{Tf},
         MF <: AbstractMatrix{Tf}, MI <: AbstractMatrix{Ti},
         MF64 <: AbstractMatrix{Float64},
         AF3 <: AbstractArray{Tf, 3},
@@ -257,15 +257,6 @@
     Rnet::MF = zeros(Nx, Ny)                       # Net radiation (W/m^2)
     Rsrf::MF = zeros(Nx, Ny)                       # Net radiation at surface (W/m^2)
 
-    # Variables used in ebalfor-function
-
-    A_ebal::MF = zeros(4, 4)                       # Energy balance matrix for forest
-    Acp_ebal::MF = zeros(4, 4)                     # Copy of energy balance matrix for LU decomposition
-    b_ebal::VF = zeros(4)                            # Right-hand side vector for energy balance
-    x_ebal::VF = zeros(4)                            # Solution vector for energy balance
-    vv_ebal::VF = zeros(4)                           # Scaling vector for LU decomposition
-    indx_ebal::VI = zeros(4)                         # Pivot indices for LU decomposition
-
     # Variables used in canopy-function
 
     intcpt::MF = zeros(Nx, Ny)                     # Canopy interception (kg/m^2)
@@ -283,51 +274,9 @@
     snowdepth0::MF = zeros(Nx, Ny)                 # Snow depth at start of timestep (m)
     Sice0::MF = zeros(Nx, Ny)                      # Ice content at start of timestep (kg/m^2)
 
-    a::VF = zeros(Nsmax)                             # Tridiagonal matrix lower diagonal
-    bsnow::VF = zeros(Nsmax)                         # Tridiagonal matrix main diagonal
-    c::VF = zeros(Nsmax)                             # Tridiagonal matrix upper diagonal
-    csnow::VF = zeros(Nsmax)                         # Areal heat capacity of snow layers (J/K/m^2)
-    dTssnow::VF = zeros(Nsmax)                       # Snow layer temperature increments (K)
-    D::VF = zeros(Nsmax)                             # Layer thickness (m)
-    E::VF = zeros(Nsmax)                             # Energy flux (W/m^2)
-    Gs::VF = zeros(Nsmax)                            # Inter-layer thermal conductance (W/m^2/K)
-    rhs::VF = zeros(Nsmax)                           # Right-hand side for tridiagonal solver
-    R::VF = zeros(Nsmax)                             # Liquid water flux between layers (kg/m^2/s)
-    S::VF = zeros(Nsmax)                             # Layer source term (W/m^2)
-    U::VF = zeros(Nsmax)                             # Layer internal energy (J/m^2)
-    W::VF = zeros(Nsmax)                             # Layer liquid water content (kg/m^2)
-
-    SWEbuffer::VF = zeros(15)                        # Buffer for SWE history (kg/m^2)
-    snowdepthbuffer::VF = zeros(15)                  # Buffer for snow depth history (m)
-    diffSWEbuffer::VF = zeros(14)                    # Buffer for SWE differences (kg/m^2)
-
     # Variables used in snow_layering-function
 
     Ds0::MF = zeros(Nx, Ny)                        # Snow layer thickness at start of timestep (m)
-    hw::VF = zeros(Nsmax)                            # Liquid water equivalent height (m)
-    rho::VF = zeros(Nsmax + 1)                       # Snow density (kg/m^3)
-    diff_rho::VF = zeros(Nsmax)                      # Density difference between layers (kg/m^3)
-    csnow_loc::VF = zeros(Nsmax + 1)                 # Local heat capacity of snow layers (J/K/m^2)
-    Sice_loc::VF = zeros(Nsmax + 1)                  # Local ice content of snow layers (kg/m^2)
-    Sliq_loc::VF = zeros(Nsmax + 1)                  # Local liquid content of snow layers (kg/m^2)
-    Ds_loc::VF = zeros(Nsmax + 1)                    # Local snow layer thicknesses (m)
-    histowet_loc::VF = zeros(Nsmax + 1)              # Local historical wetting variable (-)
-    U_loc::VF = zeros(Nsmax + 1)                     # Local layer internal energy (J/m^2)
-    Tsnow_loc::VF = zeros(Nsmax + 1)                 # Local snow layer temperatures (K)
-
-    # Variables used in soil-function
-
-    asoil::VF = zeros(Nsoil)                         # Tridiagonal matrix lower diagonal for soil
-    bsoil::VF = zeros(Nsoil)                         # Tridiagonal matrix main diagonal for soil
-    cssoil::VF = zeros(Nsoil)                        # Tridiagonal matrix upper diagonal for soil
-    dTssoil::VF = zeros(Nsoil)                       # Soil layer temperature increments (K)
-    Gssoil::VF = zeros(Nsoil)                        # Inter-layer thermal conductance for soil (W/m^2/K)
-    rhssoil::VF = zeros(Nsoil)                       # Right-hand side for soil tridiagonal solver
-
-    # Variables used in tridiag-function
-
-    gammasnow::VF = zeros(Nsmax)                     # Tridiagonal solver work array for snow
-    gammasoil::VF = zeros(Nsoil)                     # Tridiagonal solver work array for soil
 
 end
 
@@ -372,7 +321,7 @@ end
 function (::Type{FSM{Tf, Ti}})(; kwargs...) where {Tf, Ti}
     return FSM{
         Tf, Ti,
-        Vector{Tf}, Vector{Ti},
+        Vector{Tf},
         Matrix{Tf}, Matrix{Ti},
         Matrix{Float64},
         Array{Tf, 3},

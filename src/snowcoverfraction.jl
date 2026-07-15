@@ -1,25 +1,34 @@
 """
-    snowcoverfraction!(fsm, snowdepth, SWEtmp, t, i, j, SWEbuffer, snowdepthbuffer, diffSWEbuffer)
+    snowcoverfraction_point!(fsnow, swehist, swemin, swemax, snowdepthhist,
+                             snowdepthmin, snowdepthmax, slopemu, xi, Ld,
+                             snowdepth, SWEtmp, i, j, SNFRAC, hfsn, update_hist)
 
-Snow cover fraction calculation using multiple parameterizations.
+Snow cover fraction calculation for one grid cell, using multiple
+parameterizations selected by `SNFRAC`.
+
+Device-safe per-cell function called from the `snow_layering!` kernel (and
+from the [`snowcoverfraction!`](@ref) host wrapper). The 14-day SWE and snow
+depth history buffers are function-local `MVector`s; `update_hist` selects
+whether the history state is refreshed this time step (the caller resolves
+the "6:00 am" test, since `Dates` cannot run inside kernels).
 
 # Arguments
-- `fsm::FSM`: Model state structure (modified in-place)
+- `fsnow`, `swehist`, `swemin`, `swemax`, `snowdepthhist`, `snowdepthmin`,
+  `snowdepthmax`: State arrays from `FSM` (modified in-place)
+- `slopemu`, `xi`, `Ld`: Terrain property arrays from `FSM`
 - `snowdepth::Real`: Current snow depth (m)
 - `SWEtmp::Real`: Current snow water equivalent (kg/m²)
-- `t::DateTime`: Current simulation time
-- `i::Int, j::Int`: Grid indices
-- `SWEbuffer::Array`: Workspace for SWE history tracking
-- `snowdepthbuffer::Array`: Workspace for depth history tracking  
-- `diffSWEbuffer::Array`: Workspace for SWE difference calculations
+- `i::Integer`, `j::Integer`: Grid indices
+- `SNFRAC`: Snow cover fraction configuration
+- `hfsn::Real`: Snowcover fraction depth scale (m)
+- `update_hist::Bool`: Refresh the 14-day history state (true at 6:00 am)
 """
-function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::DateTime, i::Int, j::Int, SWEbuffer::AbstractArray{Tf}, snowdepthbuffer::AbstractArray{Tf}, diffSWEbuffer::AbstractArray{Tf}) where {Tf <: Real, Ti <: Integer}
-
-    @unpack SNFRAC = fsm
-    @unpack hfsn = fsm
-    @unpack fsnow, swehist, swemin, swemax = fsm
-    @unpack snowdepthhist, snowdepthmin, snowdepthmax = fsm
-    @unpack slopemu, xi, Ld = fsm
+@inline function snowcoverfraction_point!(
+        fsnow, swehist, swemin, swemax, snowdepthhist, snowdepthmin, snowdepthmax,
+        slopemu, xi, Ld,
+        snowdepth::Tf, SWEtmp::Tf, i::Integer, j::Integer,
+        SNFRAC::Integer, hfsn::Tf, update_hist::Bool
+    ) where {Tf <: Real}
 
     if SNFRAC == 0
 
@@ -28,15 +37,19 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
         sd_snowdepth3 = slopemu[i, j]^Tf(0.309)
 
         # merge current SWEtmp with SWEtmp history from past 14 days
+        SWEbuffer = MVector{15, Tf}(undef)
+        snowdepthbuffer = MVector{15, Tf}(undef)
         SWEbuffer[1] = SWEtmp
-        SWEbuffer[2:15] .= @view swehist[:, i, j]
         snowdepthbuffer[1] = snowdepth
-        snowdepthbuffer[2:15] .= @view snowdepthhist[:, i, j]
+        @inbounds for k in 1:14
+            SWEbuffer[k + 1] = swehist[k, i, j]
+            snowdepthbuffer[k + 1] = snowdepthhist[k, i, j]
+        end
 
         # calculate snowdepthmin_buffer, snowdepthmax_buffer, snowdepthmin_recent
         # find indices of global min and max in SWEbuffer
-        iabsmax = argmax(SWEbuffer)
-        iabsmin = argmin(SWEbuffer)
+        iabsmax = first_argmax(SWEbuffer, 15)
+        iabsmin = first_argmin(SWEbuffer, 15)
 
         # find index of recent min in SWEbuffer
         # calculate diff vector of SWEBuffer
@@ -50,7 +63,7 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
                 ifinal = iloop + 1
             end
         end
-        irecentmin = argmin(@view SWEbuffer[1:ifinal])
+        irecentmin = first_argmin(SWEbuffer, ifinal)
 
         # use indices to determine snowdepth amounts
         snowdepthmin_buffer = snowdepthbuffer[iabsmin]
@@ -154,23 +167,6 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
             fsnow_nsnow_recent = tanh(dsnowdepth_recent^Tf(0.14) + dsnowdepth_recent / Tf(0.13))
         end
 
-
-        # if i == 121 && j == 446
-        #     fname = "D:\\julia\\debug_scf\\" * Dates.format(t, "yyyymmddHH") * "_julia.txt"
-        #     open(fname, "w") do io
-        #         println(io, "i: ", i)
-        #         println(io, "j: ", j)
-        #         println(io, "snowdepth: ", snowdepth)
-        #         println(io, "SWEbuffer: ", SWEbuffer)
-        #         println(io, "snowdepthbuffer: ", snowdepthbuffer)
-        #         println(io, "irecentmin: ", irecentmin)
-        #         println(io, "snowdepthmin_recent: ", snowdepthmin_recent)
-        #         println(io, "dsnowdepth_recent: ", dsnowdepth_recent)
-        #         println(io, "fsnow_nsnow_recent: ", fsnow_nsnow_recent)
-        #     end
-        # end
-
-
         # take maximum between the two new snow scf, similar to taking the maximum of all three regimes at the end (done)
         fsnow_nsnow = max(fsnow_nsnow, fsnow_nsnow_recent)
 
@@ -201,38 +197,14 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
         fsnow[i, j] = max(fsnow_season, fsnow_nsnow)
 
         # BC update history of SWE and hs only if they correspond to 6:00am values
-        if 4.5 < hour(t) < 5.5
-            swehist[:, i, j] .= SWEbuffer[1:14]
-            snowdepthhist[:, i, j] .= snowdepthbuffer[1:14]
+        if update_hist
+            @inbounds for k in 1:14
+                swehist[k, i, j] = SWEbuffer[k]
+                snowdepthhist[k, i, j] = snowdepthbuffer[k]
+            end
         end
 
         fsnow[i, j] = max(fsnow[i, j], Tf(0.01))
-
-
-        if false
-            println("iabsmax: ", iabsmax)
-            println("iabsmin: ", iabsmin)
-            println("SWEbuffer: ", SWEbuffer)
-            println("irecentmin: ", irecentmin)
-            println("snowdepthmin_buffer: ", snowdepthmin_buffer)
-            println("snowdepthmax_buffer: ", snowdepthmax_buffer)
-            println("snowdepthmin_recent: ", snowdepthmin_recent)
-            println("dsnowdepth: ", dsnowdepth)
-            println("dsnowdepthmax: ", dsnowdepthmax)
-            println("dsnowdepth_recent: ", dsnowdepth_recent)
-            println("swemin: ", swemin)
-            println("swemax: ", swemax)
-            println("snowdepthmin: ", snowdepthmin)
-            println("snowdepthmax: ", snowdepthmax)
-            println("sd_snowdepth0 :", sd_snowdepth0)
-            println("sd_snowdepth2 :", sd_snowdepth2)
-            println("fsnow_season :", fsnow_season)
-            println("sd_snowdepth0_dhs: ", sd_snowdepth0_dhs)
-            println("fsnow_nsnow: ", fsnow_nsnow)
-            println("sd_snowdepth0_dhs_recent: ", sd_snowdepth0_dhs_recent)
-            println("fsnow_nsnow_recent: ", fsnow_nsnow_recent)
-        end
-
 
     elseif SNFRAC == 1
         # HelbigHS
@@ -275,6 +247,41 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
     else
         fsnow[i, j] = min(fsnow[i, j], Tf(1.0))
     end
+
+    return nothing
+end
+
+"""
+    snowcoverfraction!(fsm, snowdepth, SWEtmp, t, i, j, SWEbuffer, snowdepthbuffer, diffSWEbuffer)
+
+Snow cover fraction calculation for one grid cell (host convenience wrapper
+around [`snowcoverfraction_point!`](@ref), kept for API compatibility).
+
+The buffer arguments are accepted but ignored: the history buffers are now
+function-local (they were always pure workspace).
+
+# Arguments
+- `fsm::FSM`: Model state structure (modified in-place)
+- `snowdepth::Real`: Current snow depth (m)
+- `SWEtmp::Real`: Current snow water equivalent (kg/m²)
+- `t::DateTime`: Current simulation time
+- `i::Int, j::Int`: Grid indices
+"""
+function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::DateTime, i::Int, j::Int, SWEbuffer::AbstractArray{Tf}, snowdepthbuffer::AbstractArray{Tf}, diffSWEbuffer::AbstractArray{Tf}) where {Tf <: Real, Ti <: Integer}
+
+    @unpack SNFRAC, hfsn = fsm
+    @unpack fsnow, swehist, swemin, swemax = fsm
+    @unpack snowdepthhist, snowdepthmin, snowdepthmax = fsm
+    @unpack slopemu, xi, Ld = fsm
+
+    # update history of SWE and hs only if they correspond to 6:00am values
+    update_hist = 4.5 < hour(t) < 5.5
+
+    snowcoverfraction_point!(
+        fsnow, swehist, swemin, swemax, snowdepthhist, snowdepthmin, snowdepthmax,
+        slopemu, xi, Ld,
+        snowdepth, SWEtmp, i, j, SNFRAC, hfsn, update_hist
+    )
 
     return nothing
 end

@@ -11,8 +11,11 @@ function ludcmp!(N::Integer, A::AbstractMatrix{Tf}, Acp::AbstractMatrix{Tf}, b::
     indx .= 0
 
     # Scaling
-    @views for i in 1:N
-        aamax = maximum(abs, Acp[i, :])
+    for i in 1:N
+        aamax = abs(Acp[i, 1])
+        for k in 2:N
+            aamax = max(aamax, abs(Acp[i, k]))
+        end
         vv[i] = 1 / aamax
     end
 
