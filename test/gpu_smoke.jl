@@ -89,7 +89,7 @@ const configs = [
         "forest", Dict(
             "tile" => "forest",
             "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
-            "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01),
+            "params" => Dict("hfsn" => 0.3, "z0_snow" => 0.01),
         ),
     ),
     ("glacier", Dict("tile" => "glacier", "config" => Dict("SNFRAC" => 0))),
@@ -152,13 +152,20 @@ function run_case(arch, landuse, settings, forcing)
     init_snowpack!(fsm)
     fsm = on_architecture(arch, fsm)
     met = on_architecture(arch, MET{Tf, Ti}(Nx = Nx, Ny = Ny))
-    elapsed = @elapsed begin
-        for h in 1:nsteps
-            apply_forcing!(met, forcing[h])
+    # Time only the second half of the steps: the first steps pay the
+    # (config-dependent) kernel compilation on both CPU and GPU, which would
+    # otherwise dominate the average
+    ntimed = nsteps - nsteps ÷ 2
+    elapsed = 0.0
+    for h in 1:nsteps
+        apply_forcing!(met, forcing[h])
+        if h > nsteps ÷ 2
+            elapsed += @elapsed step!(fsm, met, t0 + Hour(h - 1))
+        else
             step!(fsm, met, t0 + Hour(h - 1))
         end
     end
-    return on_architecture(FlexibleSnowModelOSHD.CPU(), fsm), elapsed / nsteps
+    return on_architecture(FlexibleSnowModelOSHD.CPU(), fsm), elapsed / ntimed
 end
 
 # ---------------------------------------------------------------------------
