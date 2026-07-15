@@ -1,10 +1,25 @@
-function fresh_snow_density!(fsm::FSM{Tf, Ti}, Ta, Ua, dem) where {Tf <: Real, Ti <: Integer}
+"""
+    fresh_snow_density(FSNRHO, rho0, rhob, rhoc, rhof, rhos_min, Ta, Ua, dem)
+
+Density of fresh snow (kg/m^3) for one grid cell.
+
+Pure scalar function (safe inside KernelAbstractions kernels); the caller
+passes the `FSNRHO` configuration and the density parameters from `FSM`.
+
+# Arguments
+- `FSNRHO`: Fresh snow density configuration (0: fixed, 1: climate-dependent,
+  2: climate-dependent with elevation-dependent decompaction)
+- `rho0`, `rhob`, `rhoc`, `rhof`, `rhos_min`: Density parameters (see `FSM`)
+- `Ta`: Air temperature (K)
+- `Ua`: Wind speed (m/s)
+- `dem`: Grid elevation (m)
+"""
+@inline function fresh_snow_density(
+        FSNRHO::Integer, rho0::Tf, rhob::Tf, rhoc::Tf, rhof::Tf, rhos_min::Tf,
+        Ta::Tf, Ua::Tf, dem::Tf
+    ) where {Tf <: Real}
 
     @unpack_constants(Tf)
-
-    @unpack rho0, rhob, rhoc, rhof, rhos_min = fsm
-
-    @unpack FSNRHO = fsm
 
     if (FSNRHO == 0)
         # Fixed fresh snow density
@@ -28,4 +43,14 @@ function fresh_snow_density!(fsm::FSM{Tf, Ti}, Ta, Ua, dem) where {Tf <: Real, T
 
     return rhonew
 
+end
+
+"""
+    fresh_snow_density!(fsm, Ta, Ua, dem)
+
+Convenience method taking the configuration and parameters from `fsm`.
+"""
+function fresh_snow_density!(fsm::FSM{Tf, Ti}, Ta, Ua, dem) where {Tf <: Real, Ti <: Integer}
+    @unpack FSNRHO, rho0, rhob, rhoc, rhof, rhos_min = fsm
+    return fresh_snow_density(FSNRHO, rho0, rhob, rhoc, rhof, rhos_min, Tf(Ta), Tf(Ua), Tf(dem))
 end

@@ -7,6 +7,7 @@ using Dates
 # names, which would clash with the architecture types defined here
 import KernelAbstractions
 using KernelAbstractions: @kernel, @index, @Const, get_backend
+using StaticArrays: MVector, MMatrix
 
 include("parameters.jl")
 include("types.jl")
