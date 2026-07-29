@@ -25,7 +25,8 @@ function snowtran3d!(
 
     @unpack Nx, Ny, Nsmax, dt, zRH, zU = fsm
     @unpack Ds_min = fsm
-    @unpack Ua, Udir, Ta, RH = met
+    @unpack Uaeff = fsm
+    @unpack Udir, Ta, RH = met
     @unpack vegsnowd_xy, z0_snow = fsm
     @unpack Ds, Nsnow, fsnow, Sice, Sliq, Tsnow, histowet = fsm
     @unpack dSWE_tot_subl, dSWE_tot_salt, dSWE_tot_susp = fsm
@@ -52,7 +53,7 @@ function snowtran3d!(
         Nsmax, Nx, Ny,
         snowdepth0, Sice0, dSWE_salt, dSWE_susp, dSWE_subl,
         Ds_min,
-        Ua, Udir, dt, Ta, RH,
+        Uaeff, Udir, dt, Ta, RH,
         zRH, zU,
         vegsnowd_xy, z0_snow,
         Ds, Nsnow, fsnow, Sice, Sliq,

@@ -5,7 +5,7 @@ Snow physics processes including heat conduction, melting, sublimation, hydrauli
 
 # Arguments
 - `fsm::FSM`: Model state structure (modified in-place)
-- `meteo::MET`: Current meteorological conditions
+- `meteo::MET`: Current meteorological conditions (read-only)
 - `t`: Current simulation time
 """
 function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <: Integer}
@@ -40,7 +40,9 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
 
     @unpack snowdepth0, Sice0 = fsm
 
-    @unpack Rf, Sf, Ta, Ua = meteo
+    @unpack Sfeff, Uaeff = fsm
+
+    @unpack Rf, Ta = meteo
 
     Gsoil .= G
     Roff .= Tf(0)
@@ -334,7 +336,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
                     Esnow = fsnow[i, j] * Esrf[i, j]
                     Sbsrf[i, j] = Esnow * dt
                 end
-                dSice = (Sf[i, j] - Esnow) * dt  # Think about how to scale for fsnow...
+                dSice = (Sfeff[i, j] - Esnow) * dt  # Think about how to scale for fsnow...
 
                 # Catch to round infinitesimally small new snow amounts.
                 # The small amounts were due to EnKF-assimilated daily precip being downscaled to hourly
@@ -347,7 +349,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
                     dSice = Tf(trunc(Ti, dSice * Tf(1000) + Tf(0.5))) / Tf(1000)    # TODO verify against original code
                 end
 
-                rhonew = fresh_snow_density!(fsm, Ta[i, j], Ua[i, j], dem[i, j])
+                rhonew = fresh_snow_density!(fsm, Ta[i, j], Uaeff[i, j], dem[i, j])
 
                 Sice0[i, j] = dSice
                 snowdepth0[i, j] = dSice / rhonew

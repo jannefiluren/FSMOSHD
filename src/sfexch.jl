@@ -5,7 +5,7 @@ Surface exchange coefficients and turbulent transfer calculations.
 
 # Arguments
 - `fsm::FSM`: Model state structure (modified in-place)
-- `meteo::MET`: Current meteorological conditions
+- `meteo::MET`: Current meteorological conditions (read-only)
 """
 function sfexch!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
@@ -31,7 +31,9 @@ function sfexch!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: 
 
     @unpack gs1 = fsm
 
-    @unpack Ta, Ps, Qa, Ua = meteo
+    @unpack Qa, Uaeff = fsm
+
+    @unpack Ta, Ps = meteo
 
     for j in 1:Ny
         for i in 1:Nx
@@ -67,7 +69,7 @@ function sfexch!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: 
                 if (EXCHNG == 2) # Forest - specific adjustment *GM
                     # Open
                     z0h = Tf(0.1) * z0g
-                    ustar = vkman * Ua[i, j] / log(zU / z0g)
+                    ustar = vkman * Uaeff[i, j] / log(zU / z0g)
                     rgo = log(zT / z0h) / (vkman * ustar)
 
                     # Forest
@@ -76,7 +78,7 @@ function sfexch!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: 
                         z0h = Tf(0.1) * z0g
                         dh = rchd * hcan[i, j]
                         z0v = rchz * hcan[i, j]
-                        ustar = vkman * Ua[i, j] / log((zU1 - dh) / z0v)
+                        ustar = vkman * Uaeff[i, j] / log((zU1 - dh) / z0v)
                         Uh = (ustar / vkman) * log((hcan[i, j] - dh) / z0v)
                         KHh = vkman * ustar * (hcan[i, j] - dh)
                         Usf = exp(wcan * (zsub / hcan[i, j] - Tf(1))) * Uh
@@ -87,9 +89,9 @@ function sfexch!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: 
                     z0h = Tf(0.1) * z0
                     dh = fveg[i, j] * rchd * hcan[i, j]
                     CD = (vkman / log((zU1 - dh) / z0))^Tf(2)
-                    ustar = sqrt(CD) * Ua[i, j]
+                    ustar = sqrt(CD) * Uaeff[i, j]
                 end
-                Uso = Ua[i, j] * log(zsub / z0g) / log(zU / z0g)
+                Uso = Uaeff[i, j] * log(zsub / z0g) / log(zU / z0g)
 
                 if (EXCHNG == 0)
                     # No stability adjustment
@@ -99,7 +101,7 @@ function sfexch!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: 
                 if (EXCHNG == 1)
                     # Stability adjustment (Louis et al. 1982, quoted by Beljaars 1992)
                     Tint = fveg[i, j] * Tveg[i, j] + (Tf(1) - fveg[i, j]) * Tsrf[i, j]
-                    RiB = grav * (Ta[i, j] - Tint) * (zU1 - dh)^Tf(2) / ((zT1 - dh) * Ta[i, j] * Ua[i, j]^Tf(2))
+                    RiB = grav * (Ta[i, j] - Tint) * (zU1 - dh)^Tf(2) / ((zT1 - dh) * Ta[i, j] * Uaeff[i, j]^Tf(2))
                     if (RiB > Tf(0.2))
                         RiB = Tf(0.2) # New maximum threshold for RiB
                     end

@@ -207,6 +207,13 @@
     swehist::Array{Tf, 3} = zeros(14, Nx, Ny)                # History of SWE during last 14 days with most recent entries first (kg/m^2)
     histowet::Array{Tf, 3} = zeros(Nsmax, Nx, Ny)            # Historical variable for past wetting of a layer (-)
 
+    # Variables used in drive-function
+
+    es::Array{Tf, 2} = zeros(Nx, Ny)                         # Saturation vapour pressure (Pa)
+    Qa::Array{Tf, 2} = zeros(Nx, Ny)                         # Specific humidity (kg/kg)
+    Uaeff::Array{Tf, 2} = zeros(Nx, Ny)                     # Wind speed with lower bound applied (m/s)
+    Sfeff::Array{Tf, 2} = zeros(Nx, Ny)                     # Snowfall rate reaching the surface, adjusted by canopy processes (kg/m^2/s)
+
     # Variables used in radiation-function
 
     alb::Array{Tf, 2} = zeros(Nx, Ny)                        # Albedo (-)
@@ -214,7 +221,7 @@
     SWveg::Array{Tf, 2} = zeros(Nx, Ny)                      # Net short wave radiation absorbed by vegetation (W/m^2)
     SWsrf::Array{Tf, 2} = zeros(Nx, Ny)                      # Net short wave radiation absorbed by the surface (W/m^2)
     SWsci::Array{Tf, 2} = zeros(Nx, Ny)                      # Subcanopy incoming shortwave radiation (W/m^2)
-    LWt::Array{Tf, 2} = zeros(Nx, Ny)                        # Incoming longwave radiation corrected for subgrid topography (W/m^2)
+    LWeff::Array{Tf, 2} = zeros(Nx, Ny)                      # Incoming longwave radiation used in the energy balance, terrain-corrected where applicable (W/m^2)
 
     # Variables used in thermal-function
 
@@ -358,8 +365,6 @@ end
     Ua::Array{Tf, 2} = fill(NaN, Nx, Ny)                     # Wind speed (m/s)
     Udir::Array{Tf, 2} = fill(NaN, Nx, Ny)                   # Wind direction (degrees, clockwise from North)
     Ps::Array{Tf, 2} = fill(NaN, Nx, Ny)                     # Surface air pressure (Pa)
-    es::Array{Tf, 2} = fill(NaN, Nx, Ny)                     # Saturation vapour pressure (Pa)
-    Qa::Array{Tf, 2} = fill(NaN, Nx, Ny)                     # Specific humidity (kg/kg)
     Tv::Array{Tf, 2} = fill(NaN, Nx, Ny)                     # Time-varying transmissivity for direct shortwave radiation (-)
 
     # Snowfall tracking variables

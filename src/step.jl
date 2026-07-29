@@ -13,14 +13,14 @@ This function encapsulates the standard model execution sequence:
 7. Soil thermal processes
 
 # Arguments
-- `fsm::FSM`: Model state structure (modified in-place)  
-- `met::MET`: Current meteorological conditions (may be modified)
+- `fsm::FSM`: Model state structure (modified in-place)
+- `met::MET`: Current meteorological conditions (read-only, never modified)
 - `t::DateTime`: Current simulation time
 
 # Example
 ```julia
-fsm = setup(Float32, Int32, landuse, Nx, Ny, TILE="forest")  
-met = MET{Float32, Int32}(Nx=Nx, Ny=Ny)
+fsm = setup(Float32, Int32, landuse, Nx, Ny, TILE = "forest")
+met = MET{Float32, Int32}(Nx = Nx, Ny = Ny)
 step!(fsm, met, DateTime(2023, 12, 1, 12))
 ```
 """
