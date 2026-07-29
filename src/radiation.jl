@@ -24,7 +24,7 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, 
 
     @unpack ALBEDO, CANMOD, ALRADT, ALPERT = fsm
 
-    @unpack alb, asrf_out, SWveg, SWsrf, SWsci, LWt, LWeff = fsm
+    @unpack alb, asrf_out, SWveg, SWsrf, SWsci, LWeff = fsm
 
     @unpack adm, adc, afs = fsm
 
@@ -175,15 +175,13 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, 
                     SWveg[i, j] = ((Tf(1) - tdif) * (Tf(1) - aveg) + tdif * asrf * (Tf(1) - tdif)) * Sdif_aux + (tdir * fveg[i, j] * (Tf(1) - aveg) + tdir * asrf * (Tf(1) - tdif)) * Sdir[i, j]   # local SWR absorption by vegetation correlates with local tdir
                     SWsci[i, j] = tdif * Sdif_aux + tdir * Sdir[i, j]
                 end
-
-                # Thermal emissions from surroundings
-                # Terrain LWR if not calculated later;
-                LWt[i, j] = fsky_terr[i, j] * LW[i, j] + (Tf(1) - fsky_terr[i, j]) * sb * Ta[i, j]^Tf(4)
-
-                # LWeff equals LWt except when EBALFOR is used, where terrain impacts are accounted for already
+                
+                # Incoming longwave radiation used in the energy balance, terrain-corrected where applicable
                 if (CANMOD == 0 || fveg[i, j] == 0)
-                    LWeff[i, j] = LWt[i, j]
+                    # Account for thermal emissions from surrounding terrain (when there is no canopy or when the canopy is not modeled)
+                    LWeff[i, j] = fsky_terr[i, j] * LW[i, j] + (Tf(1) - fsky_terr[i, j]) * sb * Ta[i, j]^Tf(4)
                 else
+                    # Terrain impacts are already accounted for when canopy is modeled (ebalfor.jl)
                     LWeff[i, j] = LW[i, j]
                 end
 
