@@ -175,7 +175,7 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, 
                     SWveg[i, j] = ((Tf(1) - tdif) * (Tf(1) - aveg) + tdif * asrf * (Tf(1) - tdif)) * Sdif_aux + (tdir * fveg[i, j] * (Tf(1) - aveg) + tdir * asrf * (Tf(1) - tdif)) * Sdir[i, j]   # local SWR absorption by vegetation correlates with local tdir
                     SWsci[i, j] = tdif * Sdif_aux + tdir * Sdir[i, j]
                 end
-                
+
                 # Incoming longwave radiation used in the energy balance, terrain-corrected where applicable
                 if (CANMOD == 0 || fveg[i, j] == 0)
                     # Account for thermal emissions from surrounding terrain (when there is no canopy or when the canopy is not modeled)
