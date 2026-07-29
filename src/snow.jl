@@ -40,7 +40,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
 
     @unpack snowdepth0, Sice0 = fsm
 
-    @unpack Sf_eff, Ua_eff = fsm
+    @unpack Sfeff, Uaeff = fsm
 
     @unpack Rf, Ta = meteo
 
@@ -336,7 +336,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
                     Esnow = fsnow[i, j] * Esrf[i, j]
                     Sbsrf[i, j] = Esnow * dt
                 end
-                dSice = (Sf_eff[i, j] - Esnow) * dt  # Think about how to scale for fsnow...
+                dSice = (Sfeff[i, j] - Esnow) * dt  # Think about how to scale for fsnow...
 
                 # Catch to round infinitesimally small new snow amounts.
                 # The small amounts were due to EnKF-assimilated daily precip being downscaled to hourly
@@ -349,7 +349,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
                     dSice = Tf(trunc(Ti, dSice * Tf(1000) + Tf(0.5))) / Tf(1000)    # TODO verify against original code
                 end
 
-                rhonew = fresh_snow_density!(fsm, Ta[i, j], Ua_eff[i, j], dem[i, j])
+                rhonew = fresh_snow_density!(fsm, Ta[i, j], Uaeff[i, j], dem[i, j])
 
                 Sice0[i, j] = dSice
                 snowdepth0[i, j] = dSice / rhonew

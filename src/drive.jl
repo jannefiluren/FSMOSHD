@@ -15,17 +15,17 @@ function drive!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: I
 
     @unpack_constants(Tf)
 
-    @unpack es, Qa, Ua_eff, Sf_eff = fsm
+    @unpack es, Qa, Uaeff, Sfeff = fsm
 
     @unpack Ua, Sf, Ta, RH, Ps = meteo
 
-    Ua_eff .= max.(Ua, Tf(0.1))
+    Uaeff .= max.(Ua, Tf(0.1))
 
     es .= e0 .* exp.(Tf(17.5043) .* (Ta .- Tm) ./ (Tf(241.3) .+ (Ta .- Tm)))
     Qa .= (RH ./ 100) .* eps_fsm .* es ./ Ps
 
     # Snowfall reaching the surface; further adjusted by canopy! for forest tiles
-    Sf_eff .= Sf
+    Sfeff .= Sf
 
     return nothing
 

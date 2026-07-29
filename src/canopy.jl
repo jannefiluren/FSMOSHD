@@ -13,7 +13,7 @@ function canopy!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: 
 
     @unpack tthresh = fsm
 
-    @unpack Sf_eff = fsm
+    @unpack Sfeff = fsm
 
     @unpack Nx, Ny, dt = fsm
 
@@ -40,13 +40,13 @@ function canopy!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: 
 
                 if (fveg[i, j] > eps(Tf))
                     # rescale precipitation to correct back precip multiplier applied to open area
-                    Sf_eff[i, j] = pmultf[i, j] * Sf_eff[i, j]
+                    Sfeff[i, j] = pmultf[i, j] * Sfeff[i, j]
 
                     # interception
-                    intcpt[i, j] = (scap[i, j] - Sveg[i, j]) * (Tf(1) - exp(-fveg[i, j] * Sf_eff[i, j] * dt / scap[i, j]))
+                    intcpt[i, j] = (scap[i, j] - Sveg[i, j]) * (Tf(1) - exp(-fveg[i, j] * Sfeff[i, j] * dt / scap[i, j]))
                     Sveg[i, j] = Sveg[i, j] + intcpt[i, j]
-                    Sf_eff[i, j] = Sf_eff[i, j] - intcpt[i, j] / dt
-                    Sf_eff[i, j] = (psf - psr * fveg[i, j]) * Sf_eff[i, j] # including preferential deposition in canopy gaps; might have to be revisited to ensure mass conservation, potentially integrate with pmultf
+                    Sfeff[i, j] = Sfeff[i, j] - intcpt[i, j] / dt
+                    Sfeff[i, j] = (psf - psr * fveg[i, j]) * Sfeff[i, j] # including preferential deposition in canopy gaps; might have to be revisited to ensure mass conservation, potentially integrate with pmultf
 
                     # sublimation
                     Evegs = Tf(0)

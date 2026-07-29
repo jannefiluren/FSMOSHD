@@ -211,8 +211,8 @@
 
     es::Array{Tf, 2} = zeros(Nx, Ny)                         # Saturation vapour pressure (Pa)
     Qa::Array{Tf, 2} = zeros(Nx, Ny)                         # Specific humidity (kg/kg)
-    Ua_eff::Array{Tf, 2} = zeros(Nx, Ny)                     # Wind speed with lower bound applied (m/s)
-    Sf_eff::Array{Tf, 2} = zeros(Nx, Ny)                     # Snowfall rate reaching the surface, adjusted by canopy processes (kg/m^2/s)
+    Uaeff::Array{Tf, 2} = zeros(Nx, Ny)                     # Wind speed with lower bound applied (m/s)
+    Sfeff::Array{Tf, 2} = zeros(Nx, Ny)                     # Snowfall rate reaching the surface, adjusted by canopy processes (kg/m^2/s)
 
     # Variables used in radiation-function
 
