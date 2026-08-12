@@ -43,22 +43,28 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
     # Apply parameter overrides
     if haskey(settings, "params")
         for (key, value) in settings["params"]
-            setfield!(fsm, Symbol(key), Tf(value))
+            field = Symbol(key)
+            existing = getfield(fsm, field)
+            target_type = eltype(existing)
+            if existing isa AbstractArray && !(value isa AbstractArray)
+                # scalar overriding an array field: fill the entire array
+                fill!(existing, target_type(value))
+            else
+                # scalar to scalar, or array to array: assign directly
+                setfield!(fsm, field, target_type.(value))
+            end
         end
     end
 
+    # this should be set in the settings parameters like settings["params"]["rhof"] = 300.0
+    # and not happen automatically if FSNRHO=0
     # Settings specific for FSNRHO=0 (fixed fresh snow density)
-    if (fsm.FSNRHO == 0)
-        fsm.rhof = fsm.rho0
-    end
-
-    # Initialize surface properties for non-default tiles
-    if (fsm.TILE == "glacier")
-        fsm.alb0[:, :] .= Tf(0.3)
-        fsm.z0sf[:, :] .= Tf(0.04)
-    end
+    # if (fsm.FSNRHO == 0)
+    #     fsm.rhof = fsm.rho0
+    # end
 
     # Derived soil parameters
+    # should we move all these soil params into types.jl or is it fine if they are hard coded?
 
     mask = fsm.fcly .+ fsm.fsnd .> Tf(1)
     fsm.fcly[mask] .= Tf(1) .- fsm.fsnd[mask]
@@ -72,11 +78,15 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
     fsm.hcon_soil .= (hcon_air .^ fsm.Vsat) .* (hcon_min .^ (Tf(1) .- fsm.Vsat))
 
     # Initial soil profiles
-    fsat = Tf(0.5)
-    Tprof = Tf(285)
     for k in 1:fsm.Nsoil
-        fsm.theta[k, :, :] .= fsat * fsm.Vsat[:, :]
-        fsm.Tsoil[k, :, :] .= Tprof
+        fsm.theta[k, :, :] .= fsm.fsat * fsm.Vsat[:, :]
+        fsm.Tsoil[k, :, :] .= fsm.Tprof
+    end
+
+    # Cap surface and soil temperatures for glacier
+    if (fsm.TILE == "glacier")
+        fsm.Tsrf .= min.(fsm.Tsrf, Tm)
+        fsm.Tsoil .= min.(fsm.Tsoil, Tm)
     end
 
     # Load terrain properties from landuse data
@@ -84,16 +94,8 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
     fsm.dem .= Tf.(landuse["elevation"]["data"])
     fsm.prec_multi .= landuse["prec_multi"]["data"]   # TODO hack float64
 
-    # Cap surface temperatures for glacier
-    if (fsm.TILE == "glacier")
-        fsm.Tsrf .= min.(fsm.Tsrf, Tm)
-        fsm.Tsoil .= min.(fsm.Tsoil, Tm)
-    end
-
-    # Model tile fractions
-    if (fsm.TILE == "open")
-        fsm.tilefrac = ones(Tf, size(fsm.dem))
-    else
+    # Set tile fractions non open tiles
+    if (fsm.TILE != "open")
         fsm.tilefrac .= Tf.(landuse[lowercase(fsm.TILE)]["data"])
     end
 
@@ -103,18 +105,17 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
     fsm.Ld .= Tf.(landuse["Ld"]["data"])
 
     # Canopy properties
-    if (fsm.TILE != "forest")
-        fsm.VAI[:, :] .= Tf(0)
-        fsm.hcan[:, :] .= Tf(0)
-        fsm.fsky[:, :] .= Tf(1)
-        fsm.trcn[:, :] .= exp.(-fsm.kdif .* fsm.VAI[:, :])
-        fsm.fveg[:, :] .= Tf(1) .- exp.(-fsm.kveg .* fsm.VAI[:, :])
-        fsm.fves[:, :] .= Tf(1) .- exp.(-fsm.kveg .* fsm.VAI[:, :])
-    else
-        fsm.Qcan .= Tf(0)
-        fsm.Sveg .= Tf(0)
-        fsm.Tcan .= Tf(285)
-        fsm.Tveg .= Tf(285)
+    # if (fsm.TILE != "forest")
+    #     # these moved to types.jl as default parameters dictionary
+    #     fsm.VAI[:, :] .= Tf(0)
+    #     fsm.hcan[:, :] .= Tf(0)
+    #     fsm.fsky[:, :] .= Tf(1)
+    #     fsm.trcn[:, :] .= exp.(-fsm.kdif .* fsm.VAI[:, :])
+    #     fsm.fveg[:, :] .= Tf(1) .- exp.(-fsm.kveg .* fsm.VAI[:, :])
+    #     fsm.fves[:, :] .= Tf(1) .- exp.(-fsm.kveg .* fsm.VAI[:, :])
+    # else
+
+    if (fsm.TILE == "forest")
 
         fsm.fveg .= Tf.(landuse["fveg"]["data"])
         fsm.hcan .= Tf.(landuse["hcan"]["data"])
@@ -136,56 +137,9 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
     fsm.canh[:, :] = Tf(12500) * fsm.VAI[:, :]
     fsm.scap[:, :] = fsm.cvai * fsm.VAI[:, :]
 
-    if fsm.SNTRAN == 1
-        fsm.vegsnowd_xy[:, :] .= Tf(0.1)
-    end
-
-    # Tuned snow surface properties
-
-    if fsm.SNOPRP == 0
-
-        fsm.adm = Tf(100)
-        fsm.adc[:, :] .= Tf(1000)
-        fsm.afs[:, :] .= fsm.asmx
-        if (fsm.TILE == "glacier" || ((fsm.SNTRAN == 1 || fsm.SNSLID == 1) && fsm.glacierfrac(i, j) > eps(Tf)))
-            fsm.z0_snow[:, :] .= Tf(0.0009)
-        else
-            fsm.z0_snow[:, :] .= fsm.z0sn
-        end
-
-    else
-
-        fsm.adm = Tf(130)
-
-        # Elevation-dependent tuning of cold snow albedo decay time
-        fsm.adc .= Tf(6000) .+ (Tf(2300) .- fsm.dem) ./ (Tf(2300) .- Tf(1500)) .* (Tf(3000) .- Tf(6000))
-        fsm.adc[fsm.dem .>= Tf(2300)] .= Tf(6000)
-        fsm.adc[fsm.dem .<= Tf(1500)] .= Tf(3000)
-
-        for j in 1:fsm.Ny
-            for i in 1:fsm.Nx
-
-                # Fresh snow albedo is now constant (previously elevation-dependent)
-                fsm.afs[i, j] = fsm.asmx
-
-                # Elevation-dependent tuning of snow roughness length
-                if (fsm.TILE == "glacier" || ((fsm.SNTRAN == 1 || fsm.SNSLID == 1) && fsm.glacierfrac[i, j] > eps(Tf)))
-                    fsm.z0_snow[i, j] = Tf(0.0009)
-                elseif (fsm.TILE == "forest")
-                    fsm.z0_snow[i, j] = fsm.z0sn
-                else
-                    if (fsm.dem[i, j] >= Tf(2300))
-                        fsm.z0_snow[i, j] = Tf(0.01)
-                    elseif (fsm.dem[i, j] >= Tf(1500))
-                        fsm.z0_snow[i, j] = Tf(0.2) + (fsm.dem[i, j] - Tf(1500)) / (Tf(2300) - Tf(1500)) * (Tf(0.01) - Tf(0.2))
-                    else
-                        fsm.z0_snow[i, j] = Tf(0.2)
-                    end
-                end
-
-            end
-        end
-
+    # Tuned snow surface properties (same for glacier, but there given in settings["params"]["z0_snow"])
+    if (fsm.SNTRAN == 1 || fsm.SNSLID == 1)
+        fsm.z0_snow[fsm.glacierfrac .> eps(Tf)] .= fsm.z0gl
     end
 
     # Initialize SnowSlide arrays if enabled    TODO this is computed using Float64 in matlab originally...
@@ -208,14 +162,14 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
 
         # Calculate snow holding depth from slope
         slope_thres = copy(fsm.slope)
-        slope_thres[slope_thres .< 10] .= 10  # Limit to >10 degrees to avoid inf
+        slope_thres[slope_thres .< fsm.snow_slide_slope_floor] .= fsm.snow_slide_slope_floor  # Limit to >10 degrees to avoid inf
 
         # Snow holding depth, normal to the slope
-        shd_norm = 3178.4 .* slope_thres .^ (-1.998)
+        shd_norm = fsm.snow_slide_shd_a .* slope_thres .^ (fsm.snow_slide_shd_b)
 
         # Convert to vertical snow holding depth
         cos_slope_thres = cosd.(slope_thres)
-        cos_slope_thres[cos_slope_thres .< 0.001] .= 0.001  # Avoid division by zero
+        cos_slope_thres[cos_slope_thres .< fsm.snow_slide_cos_floor] .= fsm.snow_slide_cos_floor  # Avoid division by zero
         fsm.Shd = shd_norm .* cos_slope_thres
 
     end
