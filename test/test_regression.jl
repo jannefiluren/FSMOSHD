@@ -81,6 +81,40 @@ function interpolate_meteo(Tf, landuse)
 
 end
 
+# adc and z0_snow are elevation-dependent per cell; computed in Tf to match the original
+# Float32 arithmetic bit-for-bit.
+function with_oshd_tuning(Tf, settings, landuse)
+
+    dem = Tf.(landuse["elevation"]["data"])
+    params = Dict{String, Any}(get(settings, "params", Dict()))
+
+    # Cold snow albedo decay time (h)
+    adc = Tf(6000) .+ (Tf(2300) .- dem) ./ (Tf(2300) .- Tf(1500)) .* (Tf(3000) .- Tf(6000))
+    adc[dem .>= Tf(2300)] .= Tf(6000)
+    adc[dem .<= Tf(1500)] .= Tf(3000)
+
+    # Snow roughness length (m)
+    z0sn = Tf(get(params, "z0sn", 0.002))
+    if settings["tile"] == "glacier"
+        z0_snow = fill(Tf(0.0009), size(dem))
+        params["alb0"] = 0.3
+        params["z0sf"] = 0.04
+    elseif settings["tile"] == "forest"
+        z0_snow = fill(z0sn, size(dem))
+    else
+        z0_snow = Tf(0.2) .+ (dem .- Tf(1500)) ./ (Tf(2300) .- Tf(1500)) .* (Tf(0.01) .- Tf(0.2))
+        z0_snow[dem .>= Tf(2300)] .= Tf(0.01)
+        z0_snow[dem .<= Tf(1500)] .= Tf(0.2)
+    end
+
+    params["adm"] = 130
+    params["adc"] = adc
+    params["z0_snow"] = z0_snow
+
+    return merge(settings, Dict("params" => params))
+
+end
+
 function run_simulations(settings, Tf = Float32, Ti = Int32)
 
     # Read landuse data
@@ -97,7 +131,9 @@ function run_simulations(settings, Tf = Float32, Ti = Int32)
     Ny = size(landuse["elevation"]["data"], 2)
     Nt = length(times)
 
-    fsm = setup(Tf, Ti, landuse, Nx, Ny, settings)
+    tuned = OSHD_TUNING ? with_oshd_tuning(Tf, settings, landuse) : settings
+
+    fsm = setup(Tf, Ti, landuse, Nx, Ny, tuned)
     met = MET{Tf, Ti}(Nx = Nx, Ny = Ny)
 
     # Preallocate arrays to store simulation results
@@ -177,6 +213,13 @@ end
 # Test data paths
 projdir = dirname(dirname(@__FILE__))
 ref_file = joinpath(projdir, "test", "simulation_results.jls")
+
+# Reapply the OSHD tuning that setup.jl carried before 6e5061d, so the committed reference in
+# simulation_results.jls stays valid. Temporary scaffolding: OSHD-specific tuning belongs in
+# OSHDinternal.jl (parse_tuning_params!), not in this package. To rebuild the reference against
+# plain defaults, set this to false and delete simulation_results.jls — then delete this flag and
+# with_oshd_tuning too. The whole regression test wants a revision at that point.
+const OSHD_TUNING = true
 
 # Configuration matrix
 settings = [
