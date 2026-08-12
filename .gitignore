@@ -16,3 +16,4 @@ nlst_from_julia.nam
 *.log
 *.dll
 *.so
+Manifest*.toml
