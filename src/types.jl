@@ -31,7 +31,6 @@
     ZOFFST::Ti = 0                                           # Measurement height offset (0, 1)
     FSNRHO::Ti = 2                                           # Fresh snow density (0, 1, 2)
     ALRADT::Ti = 1                                           # Albedo decay as function of incoming direct shortwave radiation (0, 1)
-    # SNOPRP::Ti = 1                                           # Snow surface properties (0, 1)
     SNTRAN::Ti = 0                                           # Wind-driven snow transport (0, 1)
     SNSLID::Ti = 0                                           # Snow slides (0, 1)
     SNOLAY::Ti = 0                                           # Density-dependent layering (0, 1)
@@ -97,8 +96,7 @@
     tmlt::Tf = 3600 * 100                                    # Melting snow albedo decay time scale (s)
     trho::Tf = 3600 * 200                                    # Snow compaction time scale (s)
     Wirr::Tf = 0.03                                          # Irreducible liquid water content of snow (-)
-    z0sn::Tf = 0.002                                         # Snow roughness length (m)
-    z0gl::Tf = 0.0009                                        # Glacier roughness length (m)
+    z0gl::Tf = 0.0009                                        # Roughness length of snow on glaciers (m)
     Sfmin::Tf = 10                                           # Minimum snowfall over 24h needed to refresh albedo (kg/m^2)
 
     # Snow layering parameters
@@ -141,7 +139,7 @@
     adm::Tf = 100                                            # Melting snow albedo decay time (h)
     adc::Array{Tf, 2} = Tf(1000) * ones(Nx, Ny)              # Cold snow albedo decay time (h)
     afs::Array{Tf, 2} = asmx * ones(Nx, Ny)                  # Maximum albedo for fresh snow
-    z0_snow::Array{Tf, 2} = z0sn * ones(Nx, Ny)              # Roughness length of snow (m)
+    z0_snow::Array{Tf, 2} = 0.002 * ones(Nx, Ny)             # Roughness length of snow (m)
 
     # Surface properties
 

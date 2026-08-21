@@ -19,7 +19,7 @@ function sfexch!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: 
 
     @unpack Nx, Ny = fsm
 
-    @unpack bstb, cden, cveg, gsnf, rchd, rchz, z0sn, wcan, zsub, zgf, zgr, khcf, z0_snow = fsm
+    @unpack bstb, cden, cveg, gsnf, rchd, rchz, wcan, zsub, zgf, zgr, khcf, z0_snow = fsm
 
     @unpack VAI, z0sf = fsm
 

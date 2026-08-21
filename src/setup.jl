@@ -15,7 +15,7 @@ configuration-specific settings for different surface types and model behaviors.
 - `settings::Dict`: Configuration dictionary containing:
   - `"tile"`: Surface tile type ("open", "forest", "glacier")
   - `"config"` (optional): Model configuration flags (SNFRAC, CANMOD, EXCHNG, ZOFFST, etc.)
-  - `"params"` (optional): Parameter overrides (hfsn, z0sn, etc.)
+  - `"params"` (optional): Parameter overrides (hfsn etc.)
 
 # Returns
 - `FSM`: Initialized model state structure ready for simulation

@@ -94,13 +94,12 @@ function with_oshd_tuning(Tf, settings, landuse)
     adc[dem .<= Tf(1500)] .= Tf(3000)
 
     # Snow roughness length (m)
-    z0sn = Tf(get(params, "z0sn", 0.002))
     if settings["tile"] == "glacier"
         z0_snow = fill(Tf(0.0009), size(dem))
         params["alb0"] = 0.3
         params["z0sf"] = 0.04
     elseif settings["tile"] == "forest"
-        z0_snow = fill(z0sn, size(dem))
+        z0_snow = fill(Tf(get(params, "z0_snow", 0.002)), size(dem))
     else
         z0_snow = Tf(0.2) .+ (dem .- Tf(1500)) ./ (Tf(2300) .- Tf(1500)) .* (Tf(0.01) .- Tf(0.2))
         z0_snow[dem .>= Tf(2300)] .= Tf(0.01)
@@ -230,7 +229,7 @@ settings = [
     Dict(
         "tile" => "forest",
         "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
-        "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01)
+        "params" => Dict("hfsn" => 0.3, "z0_snow" => 0.01)
     ),
     Dict(
         "tile" => "glacier",
