@@ -111,10 +111,10 @@
     slope_min::Tf = 30.0                                     # Minimum slope for snow slide occurrence (deg)
     Shd_min::Tf = 0.01                                       # Minimum snow holding depth (m)
     rho_snow::Tf = 300.0                                     # Constant snow density for transport (kg/m³)
-    snow_slide_slope_floor::Tf = 10.0                        # Values to calculate snow holding depth from slope (deg)
-    snow_slide_shd_a::Tf = 3178.4                            # |
-    snow_slide_shd_b::Tf = -1.998                            # |
-    snow_slide_cos_floor::Tf = 0.001                         # v
+    snow_slide_slope_floor::Tf = 10.0                        # Slope threshold for calculating snow holding depth normal to slope (deg)
+    snow_slide_shd_a::Tf = 3178.4                            # Parameter for computing snow holding depth (-)
+    snow_slide_shd_b::Tf = -1.998                            # Exponent for computing snow holding depth (-)
+    snow_slide_cos_floor::Tf = 0.001                         # Cosine threshold for calculating vertical snow holding depth (-)
 
     # Ground surface parameters
 
@@ -150,19 +150,19 @@
     fsat::Tf = 0.5                                           # Initial moisture content of soil layers as fractions of saturation
     Tprof::Tf = 285                                          # Initial soil layer temperatures (K)
 
-    # Canopy parameters
+    # Canopy parameters (dummy values should be filled from landuse data)
 
-    VAI::Array{Tf, 2} = zeros(Nx, Ny)                    # Vegetation area index (-)
+    VAI::Array{Tf, 2} = zeros(Nx, Ny)                        # Vegetation area index (-)
     vfhp::Array{Tf, 2} = fill(NaN, Nx, Ny)                   # Hemispherical sky-view fraction including canopy (-)
     canh::Array{Tf, 2} = fill(NaN, Nx, Ny)                   # Canopy heat capacity (J/K/m^2)
-    fsky::Array{Tf, 2} = ones(Nx, Ny)                   # Sky view fraction (-)
-    fveg::Array{Tf, 2} = Tf(1) .- exp.(-kveg .* VAI[:, :])                   # Canopy cover fraction (-)
-    fves::Array{Tf, 2} = Tf(1) .- exp.(-kveg .* VAI[:, :])                   # Stand-scale canopy cover fraction (-)
-    hcan::Array{Tf, 2} = zeros(Nx, Ny)                   # Canopy height (m)
+    fsky::Array{Tf, 2} = ones(Nx, Ny)                        # Sky view fraction (-)
+    fveg::Array{Tf, 2} = Tf(1) .- exp.(-kveg .* VAI[:, :])   # Canopy cover fraction (-)
+    fves::Array{Tf, 2} = Tf(1) .- exp.(-kveg .* VAI[:, :])   # Stand-scale canopy cover fraction (-)
+    hcan::Array{Tf, 2} = zeros(Nx, Ny)                       # Canopy height (m)
     lai::Array{Tf, 2} = fill(NaN, Nx, Ny)                    # Leaf area index (-)
     pmultf::Array{Tf, 2} = fill(NaN, Nx, Ny)                 # Precipitation multiplier to revert correction applied to open area (-)
     scap::Array{Tf, 2} = fill(NaN, Nx, Ny)                   # Canopy snow capacity (kg/m^2)
-    trcn::Array{Tf, 2} = exp.(-kdif .* VAI[:, :])                   # Canopy transmissivity (-)
+    trcn::Array{Tf, 2} = exp.(-kdif .* VAI[:, :])            # Canopy transmissivity (-)
 
 
     # Terrain properties

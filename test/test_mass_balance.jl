@@ -153,8 +153,7 @@ function test_results(results, verbose = false)
         println("residual = ", mass_actual_change - mass_expected_change)
     end
 
-    # Residual is Float32 round-off drift (~1e-4 of throughput);
-    # the same runs in Float64 give ~1e-10.
+    # Tolerance scaled to total precipitation
     @test isapprox(mass_actual_change, mass_expected_change, atol = 1.0e-3 * results.prec)
     return nothing
 

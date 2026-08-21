@@ -56,16 +56,12 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
         end
     end
 
-    # this should be set in the settings parameters like settings["params"]["rhof"] = 300.0
-    # and not happen automatically if FSNRHO=0
     # Settings specific for FSNRHO=0 (fixed fresh snow density)
-    # if (fsm.FSNRHO == 0)
-    #     fsm.rhof = fsm.rho0
-    # end
+    if (fsm.FSNRHO == 0)
+        fsm.rhof = fsm.rho0
+    end
 
     # Derived soil parameters
-    # should we move all these soil params into types.jl or is it fine if they are hard coded?
-
     mask = fsm.fcly .+ fsm.fsnd .> Tf(1)
     fsm.fcly[mask] .= Tf(1) .- fsm.fsnd[mask]
 
@@ -105,16 +101,6 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
     fsm.Ld .= Tf.(landuse["Ld"]["data"])
 
     # Canopy properties
-    # if (fsm.TILE != "forest")
-    #     # these moved to types.jl as default parameters dictionary
-    #     fsm.VAI[:, :] .= Tf(0)
-    #     fsm.hcan[:, :] .= Tf(0)
-    #     fsm.fsky[:, :] .= Tf(1)
-    #     fsm.trcn[:, :] .= exp.(-fsm.kdif .* fsm.VAI[:, :])
-    #     fsm.fveg[:, :] .= Tf(1) .- exp.(-fsm.kveg .* fsm.VAI[:, :])
-    #     fsm.fves[:, :] .= Tf(1) .- exp.(-fsm.kveg .* fsm.VAI[:, :])
-    # else
-
     if (fsm.TILE == "forest")
 
         fsm.fveg .= Tf.(landuse["fveg"]["data"])
@@ -160,16 +146,14 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
             error("SNSLID=1 but no 'slope' data found in landuse dictionary.")     # TODO maybe remove, should always be there...
         end
 
-        # Calculate snow holding depth from slope
+        # Calculate snow holding depth normal to the slope
         slope_thres = copy(fsm.slope)
-        slope_thres[slope_thres .< fsm.snow_slide_slope_floor] .= fsm.snow_slide_slope_floor  # Limit to >10 degrees to avoid inf
-
-        # Snow holding depth, normal to the slope
+        slope_thres[slope_thres .< fsm.snow_slide_slope_floor] .= fsm.snow_slide_slope_floor
         shd_norm = fsm.snow_slide_shd_a .* slope_thres .^ (fsm.snow_slide_shd_b)
 
         # Convert to vertical snow holding depth
         cos_slope_thres = cosd.(slope_thres)
-        cos_slope_thres[cos_slope_thres .< fsm.snow_slide_cos_floor] .= fsm.snow_slide_cos_floor  # Avoid division by zero
+        cos_slope_thres[cos_slope_thres .< fsm.snow_slide_cos_floor] .= fsm.snow_slide_cos_floor
         fsm.Shd = shd_norm .* cos_slope_thres
 
     end
