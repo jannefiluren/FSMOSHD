@@ -1,6 +1,6 @@
 name = "FlexibleSnowModelOSHD"
 uuid = "5919be0d-1d81-4a5b-ac5f-ee56392bdbf1"
-version = "0.1.1"
+version = "0.2.0"
 license = "MIT"
 authors = ["jannefiluren <jan.magnusson@slf.ch>"]
 
