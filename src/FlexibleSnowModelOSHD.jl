@@ -2,7 +2,6 @@ module FlexibleSnowModelOSHD
 
 using Parameters
 using Dates
-using Infiltrator
 
 include("parameters.jl")
 include("types.jl")

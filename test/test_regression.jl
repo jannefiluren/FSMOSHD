@@ -187,7 +187,7 @@ settings = [
     Dict(
         "tile" => "forest",
         "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
-        "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01)
+        "params" => Dict("hfsn" => 0.3, "z0_snow" => 0.01)
     ),
     Dict(
         "tile" => "glacier",

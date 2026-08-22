@@ -31,7 +31,6 @@
     ZOFFST::Ti = 0                                           # Measurement height offset (0, 1)
     FSNRHO::Ti = 2                                           # Fresh snow density (0, 1, 2)
     ALRADT::Ti = 1                                           # Albedo decay as function of incoming direct shortwave radiation (0, 1)
-    SNOPRP::Ti = 1                                           # Snow surface properties (0, 1)
     SNTRAN::Ti = 0                                           # Wind-driven snow transport (0, 1)
     SNSLID::Ti = 0                                           # Snow slides (0, 1)
     SNOLAY::Ti = 0                                           # Density-dependent layering (0, 1)
@@ -97,7 +96,7 @@
     tmlt::Tf = 3600 * 100                                    # Melting snow albedo decay time scale (s)
     trho::Tf = 3600 * 200                                    # Snow compaction time scale (s)
     Wirr::Tf = 0.03                                          # Irreducible liquid water content of snow (-)
-    z0sn::Tf = 0.002                                         # Snow roughness length (m)
+    z0gl::Tf = 0.0009                                        # Roughness length of snow on glaciers (m)
     Sfmin::Tf = 10                                           # Minimum snowfall over 24h needed to refresh albedo (kg/m^2)
 
     # Snow layering parameters
@@ -112,6 +111,10 @@
     slope_min::Tf = 30.0                                     # Minimum slope for snow slide occurrence (deg)
     Shd_min::Tf = 0.01                                       # Minimum snow holding depth (m)
     rho_snow::Tf = 300.0                                     # Constant snow density for transport (kg/m³)
+    snow_slide_slope_floor::Tf = 10.0                        # Slope threshold for calculating snow holding depth normal to slope (deg)
+    snow_slide_shd_a::Tf = 3178.4                            # Parameter for computing snow holding depth (-)
+    snow_slide_shd_b::Tf = -1.998                            # Exponent for computing snow holding depth (-)
+    snow_slide_cos_floor::Tf = 0.001                         # Cosine threshold for calculating vertical snow holding depth (-)
 
     # Ground surface parameters
 
@@ -133,10 +136,10 @@
 
     # Surface parameters
 
-    adm::Tf = NaN                                            # Melting snow albedo decay time (h)
-    adc::Array{Tf, 2} = fill(NaN, Nx, Ny)                    # Cold snow albedo decay time (h)
-    afs::Array{Tf, 2} = fill(NaN, Nx, Ny)                    # Maximum albedo for fresh snow
-    z0_snow::Array{Tf, 2} = fill(NaN, Nx, Ny)                # Roughness length of snow (m)
+    adm::Tf = 100                                            # Melting snow albedo decay time (h)
+    adc::Array{Tf, 2} = Tf(1000) * ones(Nx, Ny)              # Cold snow albedo decay time (h)
+    afs::Array{Tf, 2} = asmx * ones(Nx, Ny)                  # Maximum albedo for fresh snow
+    z0_snow::Array{Tf, 2} = 0.002 * ones(Nx, Ny)             # Roughness length of snow (m)
 
     # Surface properties
 
@@ -144,20 +147,23 @@
     z0sf::Array{Tf, 2} = 0.2 * ones(Nx, Ny)                  # Snow-free roughness length (m)
     fcly::Array{Tf, 2} = 0.3 * ones(Nx, Ny)                  # Soil clay fraction (-)
     fsnd::Array{Tf, 2} = 0.6 * ones(Nx, Ny)                  # Soil sand fraction (-)
+    fsat::Tf = 0.5                                           # Initial moisture content of soil layers as fractions of saturation
+    Tprof::Tf = 285                                          # Initial soil layer temperatures (K)
 
-    # Canopy parameters
+    # Canopy parameters (dummy values should be filled from landuse data)
 
+    VAI::Array{Tf, 2} = zeros(Nx, Ny)                        # Vegetation area index (-)
+    vfhp::Array{Tf, 2} = fill(NaN, Nx, Ny)                   # Hemispherical sky-view fraction including canopy (-)
     canh::Array{Tf, 2} = fill(NaN, Nx, Ny)                   # Canopy heat capacity (J/K/m^2)
-    fsky::Array{Tf, 2} = fill(NaN, Nx, Ny)                   # Sky view fraction (-)
-    fveg::Array{Tf, 2} = fill(NaN, Nx, Ny)                   # Canopy cover fraction (-)
-    fves::Array{Tf, 2} = fill(NaN, Nx, Ny)                   # Stand-scale canopy cover fraction (-)
-    hcan::Array{Tf, 2} = fill(NaN, Nx, Ny)                   # Canopy height (m)
+    fsky::Array{Tf, 2} = ones(Nx, Ny)                        # Sky view fraction (-)
+    fveg::Array{Tf, 2} = Tf(1) .- exp.(-kveg .* VAI[:, :])   # Canopy cover fraction (-)
+    fves::Array{Tf, 2} = Tf(1) .- exp.(-kveg .* VAI[:, :])   # Stand-scale canopy cover fraction (-)
+    hcan::Array{Tf, 2} = zeros(Nx, Ny)                       # Canopy height (m)
     lai::Array{Tf, 2} = fill(NaN, Nx, Ny)                    # Leaf area index (-)
     pmultf::Array{Tf, 2} = fill(NaN, Nx, Ny)                 # Precipitation multiplier to revert correction applied to open area (-)
     scap::Array{Tf, 2} = fill(NaN, Nx, Ny)                   # Canopy snow capacity (kg/m^2)
-    trcn::Array{Tf, 2} = fill(NaN, Nx, Ny)                   # Canopy transmissivity (-)
-    VAI::Array{Tf, 2} = fill(NaN, Nx, Ny)                    # Vegetation area index (-)
-    vfhp::Array{Tf, 2} = fill(NaN, Nx, Ny)                   # Hemispherical sky-view fraction including canopy (-)
+    trcn::Array{Tf, 2} = exp.(-kdif .* VAI[:, :])            # Canopy transmissivity (-)
+
 
     # Terrain properties
 
@@ -166,9 +172,9 @@
     Ld::Array{Tf, 2} = fill(NaN, Nx, Ny)                     # Grid cell size (m)
     fsky_terr::Array{Tf, 2} = fill(NaN, Nx, Ny)              # Sky view fraction terrain (-)
     dem::Array{Tf, 2} = fill(NaN, Nx, Ny)                    # Grid elevation (m)
-    tilefrac::Array{Tf, 2} = fill(NaN, Nx, Ny)               # Tile fraction (-)
+    tilefrac::Array{Tf, 2} = ones(Nx, Ny)                    # Tile fraction (-)
     glacierfrac::Array{Tf, 2} = fill(NaN, Nx, Ny)            # Glacier fraction (-)
-    vegsnowd_xy::Array{Tf, 2} = fill(NaN, Nx, Ny)            # Vegetation snow holding capacity (m)
+    vegsnowd_xy::Array{Tf, 2} = Tf(0.1) * ones(Nx, Ny)       # Vegetation snow holding capacity (m)
     prec_multi::Array{Float64, 2} = fill(NaN, Nx, Ny)        # Precipitation multiplier (-)    TODO use float64 to match matlab/fortran version - change precision later
     slope::Array{Tf, 2} = fill(NaN, Nx, Ny)                  # Slope angles (deg)
     Shd::Array{Tf, 2} = fill(NaN, Nx, Ny)                    # Snow holding depth for gravitational transport (m)

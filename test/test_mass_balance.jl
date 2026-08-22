@@ -153,7 +153,8 @@ function test_results(results, verbose = false)
         println("residual = ", mass_actual_change - mass_expected_change)
     end
 
-    @test isapprox(mass_actual_change, mass_expected_change, atol = 1.0e-1)
+    # Tolerance scaled to total precipitation
+    @test isapprox(mass_actual_change, mass_expected_change, atol = 1.0e-3 * results.prec)
     return nothing
 
 end
