@@ -134,6 +134,20 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
         fsm.fsky[mask] .= Tf(1)
     end
 
+    # A tile is a configuration plus the cells whose data is valid for that configuration.
+    # tilefrac >= tthresh is the mask; narrow it here by the configuration's own requirement,
+    # so the kernels never have to re-derive it per cell. For a canopy tile that requirement
+    # is fveg > 0: a cell with no canopy does not belong to the forest tile, and its area is
+    # covered by the open tile, which spans the whole domain.
+    if (fsm.TILE == "forest")
+        canopy_free = (fsm.tilefrac .>= fsm.tthresh) .& (fsm.fveg .<= 0)
+        dropped = count(canopy_free)
+        if dropped > 0
+            @warn "forest tile: $dropped active cell(s) have fveg == 0 and are excluded from the tile"
+            fsm.tilefrac[canopy_free] .= Tf(0)
+        end
+    end
+
     fsm.canh[:, :] = Tf(12500) * fsm.VAI[:, :]
     fsm.scap[:, :] = fsm.cvai * fsm.VAI[:, :]
 
