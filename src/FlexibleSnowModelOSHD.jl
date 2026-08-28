@@ -20,6 +20,7 @@ using KernelAbstractions: @kernel, @index, get_backend
 using StaticArrays: MVector, MMatrix
 
 include("parameters.jl")
+include("schemes.jl")
 include("types.jl")
 include("architectures.jl")
 include("kernel_utils.jl")
@@ -42,7 +43,7 @@ include("step.jl")
 include("snowcoverfraction.jl")
 
 export FSM, MET
-export AbstractParameterization
+export AbstractParameterization, grid_array, check_grid, build_scheme
 export AbstractConductivity, FixedConductivity, DensityConductivity, snow_conductivity!
 export AbstractAlbedo, DiagnosticAlbedo, DecayAlbedo, PrognosticAlbedo, snow_albedo!
 export AbstractArchitecture, CPU, GPU, on_architecture

@@ -32,21 +32,18 @@ struct PrognosticAlbedo{Tf, MF <: AbstractMatrix{Tf}} <: AbstractAlbedo{Tf}
     Sfmin::Tf                            # Min 24h snowfall to refresh albedo (kg/m^2)
 end
 
-_albedo_field(::Type{Tf}, x::Number, Nx, Ny) where {Tf} = fill(Tf(x), Nx, Ny)
-_albedo_field(::Type{Tf}, x::AbstractArray, Nx, Ny) where {Tf} = convert(Array{Tf, 2}, x)
-
 DiagnosticAlbedo{Tf}(Nx, Ny; kwargs...) where {Tf} = DiagnosticAlbedo{Tf}(; kwargs...)
 
 function DecayAlbedo{Tf}(Nx, Ny; afs = 0.86, amin = 0.6, tcld = 3600 * 1000,
         tmlt = 3600 * 100, adfs = 3, adfl = 2, Sfmin = 10) where {Tf}
-    return DecayAlbedo(_albedo_field(Tf, afs, Nx, Ny), Tf(amin), Tf(tcld), Tf(tmlt),
+    return DecayAlbedo(grid_array(Tf, afs, Nx, Ny), Tf(amin), Tf(tcld), Tf(tmlt),
         Tf(adfs), Tf(adfl), Tf(Sfmin))
 end
 
 function PrognosticAlbedo{Tf}(Nx, Ny; ALRADT = true, adc = 1000, adm = 100,
         afs = 0.86, amin = 0.6, Sfmin = 10) where {Tf}
-    return PrognosticAlbedo(ALRADT, _albedo_field(Tf, adc, Nx, Ny), Tf(adm),
-        _albedo_field(Tf, afs, Nx, Ny), Tf(amin), Tf(Sfmin))
+    return PrognosticAlbedo(ALRADT, grid_array(Tf, adc, Nx, Ny), Tf(adm),
+        grid_array(Tf, afs, Nx, Ny), Tf(amin), Tf(Sfmin))
 end
 
 """

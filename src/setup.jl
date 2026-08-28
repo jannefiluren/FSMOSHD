@@ -1,28 +1,4 @@
 """
-    build_scheme(Tf, requested, Nx, Ny, params)
-
-Instantiate a parameterization. `requested` is either a type - constructed at precision `Tf` on an
-`Nx` by `Ny` grid, consuming any `params` entry named like one of its fields - or a ready-made
-instance, returned unchanged.
-
-Routing matters: a scheme's parameters live on the scheme, so an entry such as "adm" would
-otherwise be set on `FSM`, where nothing reads it any more.
-"""
-function build_scheme(Tf, requested, Nx, Ny, params)
-
-    requested isa Type || return requested
-
-    kwargs = Dict{Symbol, Any}()
-    for name in fieldnames(requested)
-        key = string(name)
-        haskey(params, key) && (kwargs[name] = pop!(params, key))
-    end
-
-    return requested{Tf}(Nx, Ny; kwargs...)
-
-end
-
-"""
     setup([arch], Tf, Ti, landuse, Nx, Ny, settings)
 
 Initialize the FSM snow model with specified configuration and domain properties.
@@ -63,6 +39,10 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
         CONDCT = build_scheme(Tf, get(config, "CONDCT", DensityConductivity), Nx, Ny, params),
     )
     fsm = FSM{Tf, Ti}(; Nx = Nx, Ny = Ny, schemes...)
+
+    for scheme in schemes
+        check_grid(scheme, Nx, Ny)
+    end
 
     # Set tile
     fsm.TILE = settings["tile"]
