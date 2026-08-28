@@ -16,7 +16,7 @@ configuration-specific settings for different surface types and model behaviors.
 - `Nx::Int, Ny::Int`: Model domain dimensions
 - `settings::Dict`: Configuration dictionary containing:
   - `"tile"`: Surface tile type ("open", "forest", "glacier")
-  - `"config"` (optional): Model configuration flags (SNFRAC, CANMOD, EXCHNG, ZOFFST, etc.)
+  - `"config"` (optional): Model configuration flags (SNFRAC, EXCHNG, ZOFFST, etc.)
   - `"params"` (optional): Parameter overrides (hfsn etc.)
 
 # Returns

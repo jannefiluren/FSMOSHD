@@ -12,7 +12,7 @@ launched over the whole grid (see `ebalsrf!` for the pattern).
 """
 function sfexch!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
-    @unpack CANMOD, ZOFFST, EXCHNG, SNFRAC = fsm
+    @unpack ZOFFST, EXCHNG, SNFRAC = fsm
 
     @unpack tthresh = fsm
 
@@ -43,7 +43,7 @@ function sfexch!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: 
         z0_snow, z0sf, VAI, Qcan, fsnow, Sice, Sveg, Tcan, Tsrf, Tveg, Ds,
         fveg, fves, hcan, tilefrac, gs1, Qa, Uaeff, Ta, Ps,
         tthresh, zT, zU, bstb, cden, cveg, gsnf, rchd, rchz, wcan, zsub, zgf, zgr, khcf,
-        CANMOD, ZOFFST, EXCHNG, SNFRAC;
+        ZOFFST, EXCHNG, SNFRAC;
         ndrange = (Int(Nx), Int(Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -59,7 +59,7 @@ end
         Qa, Uaeff, Ta, Ps,
         tthresh::Tf, zT::Tf, zU::Tf, bstb::Tf, cden::Tf, cveg::Tf, gsnf::Tf,
         rchd::Tf, rchz::Tf, wcan::Tf, zsub::Tf, zgf::Tf, zgr::Tf, khcf::Tf,
-        CANMOD::Ti, ZOFFST::Ti, EXCHNG::Ti, SNFRAC::Ti,
+        ZOFFST::Ti, EXCHNG::Ti, SNFRAC::Ti,
     ) where {Tf, Ti}
 
     i, j = @index(Global, NTuple)
@@ -183,11 +183,6 @@ end
                 KWv[i, j] = gsnf * KHv[i, j] / (gsnf + KHv[i, j])
             end
 
-            if (CANMOD == 0)
-                # Combined resistances for 0-layer canopy model
-                KH[i, j] = KHg[i, j] * (KHa[i, j] + KHv[i, j]) / (KHa[i, j] + KHg[i, j] + KHv[i, j])
-                KWg[i, j] = KWg[i, j] * (KHa[i, j] + KWv[i, j]) / (KHa[i, j] + KWg[i, j] + KWv[i, j])
-            end
         end
 
     end

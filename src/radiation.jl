@@ -180,7 +180,7 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, 
 
     @unpack albs, Sice, Sliq, fsnow, Sveg, Tsrf = fsm
 
-    @unpack ALBEDO, CANMOD = fsm
+    @unpack ALBEDO = fsm
 
     @unpack alb, asrf_out, SWveg, SWsrf, SWsci, LWt, LWeff = fsm
 
@@ -198,7 +198,7 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, 
         Sice, Sliq, fsnow, Sveg, Tsrf,
         LW, Sdif, Sdir, Sdird, Sf, Sf24h, Ta, Tv,
         dt, tthresh, avg0, avgs, fsar,
-        ALBEDO, CANMOD, summer_decay;
+        ALBEDO, summer_decay;
         ndrange = (Int(Nx), Int(Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -214,7 +214,7 @@ end
         LW, Sdif, Sdir, Sdird, Sf,
         Sf24h, Ta, Tv,
         dt::Tf, tthresh::Tf, avg0::Tf, avgs::Tf, fsar::Tf,
-        ALBEDO::AbstractAlbedo{Tf}, CANMOD::Ti, summer_decay::Bool,
+        ALBEDO::AbstractAlbedo{Tf}, summer_decay::Bool,
     ) where {Tf, Ti}
 
     i, j = @index(Global, NTuple)
@@ -252,13 +252,12 @@ end
         asrf_out[i, j] = alb[i, j]
 
         # Solar radiation trasmission
-        if (CANMOD == 0)
+        if (fveg[i, j] == 0)
+            # No canopy: open-sky transmission
             SWveg[i, j] = Tf(0)
             SWsrf[i, j] = (Tf(1) - alb[i, j]) * (Sdir[i, j] + Sdif[i, j])
             SWsci[i, j] = Sdif[i, j] + Sdir[i, j]
-        end
-
-        if (CANMOD == 1)
+        else
             Sdif_aux = fsky[i, j] / fsky_terr[i, j] * Sdif[i, j]
             tdif = trcn[i, j]
             tdir = Tv[i, j]
@@ -278,7 +277,7 @@ end
         LWt[i, j] = fsky_terr[i, j] * LW[i, j] + (Tf(1) - fsky_terr[i, j]) * sb * Ta[i, j]^Tf(4)
 
         # LWeff equals LWt except when EBALFOR is used, where terrain impacts are accounted for already
-        if (CANMOD == 0 || fveg[i, j] == 0)
+        if (fveg[i, j] == 0)
             LWeff[i, j] = LWt[i, j]
         else
             LWeff[i, j] = LW[i, j]

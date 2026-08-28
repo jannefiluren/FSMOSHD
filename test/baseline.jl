@@ -40,7 +40,7 @@ const TILE_SETTINGS = [
     (
         "forest", Dict(
             "tile" => "forest",
-            "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
+            "config" => Dict("EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
             "params" => Dict("hfsn" => 0.3, "z0_snow" => 0.01),
         ),
     ),
@@ -64,7 +64,6 @@ const TILE_SETTINGS = [
 const FLAG_MATRIX = Pair{String, Vector{Any}}[
     "ALBEDO" => [0, 1, 2],
     "CONDCT" => [0, 1],
-    "CANMOD" => [0, 1],
     "DENSTY" => [0, 1, 2, 3],
     "HYDROL" => [0, 1, 2],
     "SNFRAC" => [0, 1, 2, 3, 4],

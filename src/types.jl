@@ -30,7 +30,6 @@
     # Model configuration
 
     ALBEDO::A = PrognosticAlbedo{Tf}(Nx, Ny)                 # Snow albedo scheme (was ALBEDO = 2)
-    CANMOD::Ti = 0                                           # Forest canopy (0, 1)
     CONDCT::C = DensityConductivity{Tf}()                    # Snow thermal conductivity scheme (was CONDCT = 1)
     DENSTY::Ti = 3                                           # Snow density (0, 1, 2, 3)
     EXCHNG::Ti = 1                                           # Turbulent exchange (0, 1)

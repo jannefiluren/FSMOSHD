@@ -14,8 +14,6 @@ bit-identical results to the former plain loops.
 """
 function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
-    @unpack CANMOD = fsm
-
     @unpack TILE, tthresh = fsm
 
     @unpack dt = fsm
@@ -49,7 +47,7 @@ function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <:
         Tveg, Tcan, Tsrf, Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf,
         Sice, trcn, fveg, tilefrac, SWsrf, SWveg, Ds1, Ts1, ks1,
         KH, KWg, KHa, KHv, KWv, Qa, LWeff, Ps, Ta,
-        dt, tthresh, CANMOD, glacier_tile;
+        dt, tthresh, glacier_tile;
         ndrange = (Int(Nx), Int(Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -63,7 +61,7 @@ end
         SWsrf, SWveg, Ds1, Ts1, ks1,
         KH, KWg, KHa, KHv, KWv,
         Qa, LWeff, Ps, Ta,
-        dt::Tf, tthresh::Tf, CANMOD::Ti, glacier_tile::Bool,
+        dt::Tf, tthresh::Tf, glacier_tile::Bool,
     ) where {Tf, Ti}
 
     i, j = @index(Global, NTuple)
@@ -72,7 +70,7 @@ end
 
     if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
 
-        if ((CANMOD == 1 && fveg[i, j] == 0) || CANMOD == 0)
+        if (fveg[i, j] == 0)
 
             Tveg[i, j] = Ta[i, j]
             Tcan[i, j] = Ta[i, j]
@@ -171,20 +169,6 @@ end
             LWsci[i, j] = LWeff[i, j]
             LWveg[i, j] = Tf(0.0)
 
-            if (CANMOD == 0)
-                # Add fluxes from canopy in zero-layer model
-                Eveg[i, j] = Tf(0.0)
-                if (fveg[i, j] > eps(Tf))
-                    Eveg[i, j] = -KWv[i, j] * Esrf[i, j] / (KHa[i, j] + KWv[i, j])
-                    H[i, j] = KHa[i, j] * H[i, j] / (KHa[i, j] + KHv[i, j])
-                    Lh = Ls
-                    if (Tveg[i, j] > Tm)
-                        Lh = Lv
-                    end
-                    LE[i, j] = LE[i, j] + Lh * Eveg[i, j]
-                    Rnet[i, j] = Rnet[i, j] + SWveg[i, j] + (Tf(1) - trcn[i, j]) * (LWeff[i, j] + sb * Tsrf[i, j]^Tf(4) - Tf(2) * sb * Tveg[i, j]^Tf(4))
-                end
-            end
         end
 
     end
