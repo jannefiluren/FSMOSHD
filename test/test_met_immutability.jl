@@ -45,7 +45,6 @@ function setup_immutability_example(tile)
     met.Ta .= 271
     met.RH .= 85
     met.Ua .= 0.05
-    met.Udir .= 45
     met.Ps .= 75000
     met.Sf24h .= 12
     met.Tv .= 0.5

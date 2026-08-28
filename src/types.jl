@@ -31,8 +31,6 @@
     ZOFFST::Ti = 0                                           # Measurement height offset (0, 1)
     FSNRHO::Ti = 2                                           # Fresh snow density (0, 1, 2)
     ALRADT::Ti = 1                                           # Albedo decay as function of incoming direct shortwave radiation (0, 1)
-    SNTRAN::Ti = 0                                           # Wind-driven snow transport (0, 1)
-    SNSLID::Ti = 0                                           # Snow slides (0, 1)
     SNOLAY::Ti = 0                                           # Density-dependent layering (0, 1)
     HN_ON::Bool = false                                      # Activate new snow model
     Z0PERT::Bool = false                                     # Activate snow roughness length perturbations
@@ -96,7 +94,6 @@
     tmlt::Tf = 3600 * 100                                    # Melting snow albedo decay time scale (s)
     trho::Tf = 3600 * 200                                    # Snow compaction time scale (s)
     Wirr::Tf = 0.03                                          # Irreducible liquid water content of snow (-)
-    z0gl::Tf = 0.0009                                        # Roughness length of snow on glaciers (m)
     Sfmin::Tf = 10                                           # Minimum snowfall over 24h needed to refresh albedo (kg/m^2)
 
     # Snow layering parameters
@@ -106,15 +103,6 @@
 
     # Snow transport parameters
 
-    dyn_ratio::Tf = 0.09                                     # Dynamic snow holding depth ratio (-)
-    rho_deposit::Tf = 300.0                                  # Constant snow avalanche deposit density (kg/m³)
-    slope_min::Tf = 30.0                                     # Minimum slope for snow slide occurrence (deg)
-    Shd_min::Tf = 0.01                                       # Minimum snow holding depth (m)
-    rho_snow::Tf = 300.0                                     # Constant snow density for transport (kg/m³)
-    snow_slide_slope_floor::Tf = 10.0                        # Slope threshold for calculating snow holding depth normal to slope (deg)
-    snow_slide_shd_a::Tf = 3178.4                            # Parameter for computing snow holding depth (-)
-    snow_slide_shd_b::Tf = -1.998                            # Exponent for computing snow holding depth (-)
-    snow_slide_cos_floor::Tf = 0.001                         # Cosine threshold for calculating vertical snow holding depth (-)
 
     # Ground surface parameters
 
@@ -174,10 +162,7 @@
     dem::Array{Tf, 2} = fill(NaN, Nx, Ny)                    # Grid elevation (m)
     tilefrac::Array{Tf, 2} = ones(Nx, Ny)                    # Tile fraction (-)
     glacierfrac::Array{Tf, 2} = fill(NaN, Nx, Ny)            # Glacier fraction (-)
-    vegsnowd_xy::Array{Tf, 2} = Tf(0.1) * ones(Nx, Ny)       # Vegetation snow holding capacity (m)
     prec_multi::Array{Float64, 2} = fill(NaN, Nx, Ny)        # Precipitation multiplier (-)    TODO use float64 to match matlab/fortran version - change precision later
-    slope::Array{Tf, 2} = fill(NaN, Nx, Ny)                  # Slope angles (deg)
-    Shd::Array{Tf, 2} = fill(NaN, Nx, Ny)                    # Snow holding depth for gravitational transport (m)
 
     # Derived soil parameters
 
@@ -337,17 +322,6 @@
     gammasnow::Vector{Tf} = zeros(Nsmax)                     # Tridiagonal solver work array for snow
     gammasoil::Vector{Tf} = zeros(Nsoil)                     # Tridiagonal solver work array for soil
 
-    # Variables used in snowslide-function
-
-    dSWE_tot_slide::Array{Tf, 2} = zeros(Nx, Ny)             # Cumulated SWE change due to slides (kg/m^2)
-    index_sorted_dem::Array{Ti, 2} = zeros(Ti, Nx * Ny, 2)   # Sorted indices of digital elevation model
-
-    # Variables used in snowtran3d-function
-
-    dSWE_tot_subl::Array{Tf, 2} = zeros(Nx, Ny)              # Cumulated SWE change due to sublimation (kg/m^2)
-    dSWE_tot_salt::Array{Tf, 2} = zeros(Nx, Ny)              # Cumulated SWE change due to saltation (kg/m^2)
-    dSWE_tot_susp::Array{Tf, 2} = zeros(Nx, Ny)              # Cumulated SWE change due to suspension (kg/m^2)
-
 end
 
 @with_kw mutable struct MET{Tf, Ti}
@@ -369,7 +343,6 @@ end
     Ta::Array{Tf, 2} = fill(NaN, Nx, Ny)                     # Air temperature (K)
     RH::Array{Tf, 2} = fill(NaN, Nx, Ny)                     # Relative humidity (%)
     Ua::Array{Tf, 2} = fill(NaN, Nx, Ny)                     # Wind speed (m/s)
-    Udir::Array{Tf, 2} = fill(NaN, Nx, Ny)                   # Wind direction (degrees, clockwise from North)
     Ps::Array{Tf, 2} = fill(NaN, Nx, Ny)                     # Surface air pressure (Pa)
     Tv::Array{Tf, 2} = fill(NaN, Nx, Ny)                     # Time-varying transmissivity for direct shortwave radiation (-)
 

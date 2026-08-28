@@ -12,7 +12,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
 
     @unpack_constants(Tf)
 
-    @unpack HYDROL, DENSTY, HN_ON, SNFRAC, SNTRAN, SNSLID = fsm
+    @unpack HYDROL, DENSTY, HN_ON, SNFRAC = fsm
 
     @unpack tthresh = fsm
 
@@ -372,40 +372,6 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
 
     # Accumulation of new snow, calculation of snow cover fraction and relayering
     snow_layering!(fsm, meteo, snowdepth0, Sice0, t)
-
-    # Initialize thickness and ice content of future possible surface layer of transported snow
-    snowdepth0[:, :] .= 0
-    Sice0[:, :] .= 0
-
-    # Snow transport by wind (if enabled)
-    if SNTRAN == 1
-        # Initialize transport change arrays
-        dSWE_salt = zeros(Tf, Nx, Ny)
-        dSWE_susp = zeros(Tf, Nx, Ny)
-        dSWE_subl = zeros(Tf, Nx, Ny)
-
-        # Compute wind-driven snow transport
-        snowtran3d!(fsm, meteo, snowdepth0, Sice0, dSWE_salt, dSWE_susp, dSWE_subl)
-
-        # Accumulation of transported snow, calculation of snow cover fraction and relayering
-        snow_layering!(fsm, meteo, snowdepth0, Sice0, t)
-    end
-
-    # Initialize thickness and ice content of future possible surface layer of transported snow
-    snowdepth0[:, :] .= 0
-    Sice0[:, :] .= 0
-
-    # Snow slide redistribution (if enabled)
-    if SNSLID == 1
-        # Initialize slide change array    TODO move this to snowslide! routine or add as temporary array to fsm-struct?
-        dSWE_slide = zeros(Tf, Nx, Ny)
-
-        # Compute snow slide transport
-        snowslide!(fsm, snowdepth0, Sice0, dSWE_slide)
-
-        # Accumulation of new snow, calculation of snow cover fraction and relayering
-        snow_layering!(fsm, meteo, snowdepth0, Sice0, t)
-    end
 
     return nothing
 
