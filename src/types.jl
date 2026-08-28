@@ -6,6 +6,7 @@
         AF3 <: AbstractArray{Tf, 3},
         A <: AbstractAlbedo{Tf},
         Can <: AbstractCanopy{Tf},
+        Sub <: AbstractSubstrate{Tf},
         C <: AbstractConductivity{Tf},
     }
 
@@ -32,6 +33,7 @@
 
     ALBEDO::A = PrognosticAlbedo{Tf}(Nx, Ny)                 # Snow albedo scheme (was ALBEDO = 2)
     CANOPY::Can = NoCanopy{Tf}()                             # Canopy scheme (was TILE == "forest")
+    SUBSTR::Sub = SoilSubstrate{Tf}()                        # Substrate scheme (was TILE == "glacier")
     CONDCT::C = DensityConductivity{Tf}()                    # Snow thermal conductivity scheme (was CONDCT = 1)
     DENSTY::Ti = 3                                           # Snow density (0, 1, 2, 3)
     EXCHNG::Ti = 1                                           # Turbulent exchange (0, 1)
@@ -299,6 +301,7 @@ function (::Type{FSM{Tf, Ti}})(;
         Nx = 1, Ny = 1,
         ALBEDO = PrognosticAlbedo{Tf}(Nx, Ny),
         CANOPY = NoCanopy{Tf}(),
+        SUBSTR = SoilSubstrate{Tf}(),
         CONDCT = DensityConductivity{Tf}(),
         kwargs...) where {Tf, Ti}
     return FSM{
@@ -309,8 +312,9 @@ function (::Type{FSM{Tf, Ti}})(;
         Array{Tf, 3},
         typeof(ALBEDO),
         typeof(CANOPY),
+        typeof(SUBSTR),
         typeof(CONDCT),
-    }(; Nx = Nx, Ny = Ny, ALBEDO = ALBEDO, CANOPY = CANOPY, CONDCT = CONDCT, kwargs...)
+    }(; Nx = Nx, Ny = Ny, ALBEDO = ALBEDO, CANOPY = CANOPY, SUBSTR = SUBSTR, CONDCT = CONDCT, kwargs...)
 end
 
 function (::Type{MET{Tf, Ti}})(; kwargs...) where {Tf, Ti}

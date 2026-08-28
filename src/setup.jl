@@ -38,6 +38,8 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
         ALBEDO = build_scheme(Tf, get(config, "ALBEDO", PrognosticAlbedo), Nx, Ny, params),
         CANOPY = build_scheme(Tf, get(config, "CANOPY",
             settings["tile"] == "forest" ? OneLayerCanopy : NoCanopy), Nx, Ny, params),
+        SUBSTR = build_scheme(Tf, get(config, "SUBSTR",
+            settings["tile"] == "glacier" ? IceSubstrate : SoilSubstrate), Nx, Ny, params),
         CONDCT = build_scheme(Tf, get(config, "CONDCT", DensityConductivity), Nx, Ny, params),
     )
     fsm = FSM{Tf, Ti}(; Nx = Nx, Ny = Ny, schemes...)
@@ -96,7 +98,7 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
     end
 
     # Cap surface and soil temperatures for glacier
-    if (fsm.TILE == "glacier")
+    if (fsm.SUBSTR isa IceSubstrate)
         fsm.Tsrf .= min.(fsm.Tsrf, Tm)
         fsm.Tsoil .= min.(fsm.Tsoil, Tm)
     end

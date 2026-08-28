@@ -66,12 +66,11 @@ function thermal!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
     @unpack tilefrac, tthresh = fsm
 
-    @unpack CONDCT, DENSTY, TILE = fsm
+    @unpack CONDCT, DENSTY, SUBSTR = fsm
 
     @unpack ksnow, csoil, ksoil, gs1, Ds1, Ts1, ks1, Tveg0 = fsm
 
     # Strings cannot cross into kernels: resolve the tile test here
-    glacier_tile = TILE == "glacier"
 
     backend = get_backend(gs1)
     kernel! = thermal_kernel!(backend)
@@ -81,7 +80,7 @@ function thermal!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
         Ds, Nsnow, fsnow, Sice, Sliq, theta, Tsnow, Tsoil, Tveg,
         tilefrac,
         tthresh, gsat, rhof,
-        Nsoil, CONDCT, DENSTY, glacier_tile;
+        Nsoil, CONDCT, DENSTY, SUBSTR;
         ndrange = (Int(Nx), Int(Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -97,7 +96,7 @@ end
         theta, Tsnow, Tsoil, Tveg,
         tilefrac,
         tthresh::Tf, gsat::Tf, rhof::Tf,
-        Nsoil::Ti, CONDCT::AbstractConductivity{Tf}, DENSTY::Ti, glacier_tile::Bool,
+        Nsoil::Ti, CONDCT::AbstractConductivity{Tf}, DENSTY::Ti, SUBSTR::AbstractSubstrate{Tf},
     ) where {Tf, Ti}
 
     i, j = @index(Global, NTuple)
@@ -116,7 +115,7 @@ end
 
         for k in 1:Nsoil
 
-            if glacier_tile # Glacier soil properties
+            if SUBSTR isa IceSubstrate # Ice properties
 
                 # Note that hcap_ice is specific heat capacity and has to be converted to volumetric heat capacity
                 csoil[k, i, j] = hcap_ice * rho_ice * Dzsoil[k]

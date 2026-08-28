@@ -14,7 +14,7 @@ bit-identical results to the former plain loops.
 """
 function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
-    @unpack TILE, tthresh = fsm
+    @unpack SUBSTR, tthresh = fsm
 
     @unpack dt = fsm
 
@@ -39,7 +39,6 @@ function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <:
     @unpack Ps, Ta = meteo
 
     # Strings cannot cross into kernels: resolve the tile test here
-    glacier_tile = TILE == "glacier"
 
     backend = get_backend(Tsrf)
     kernel! = ebalsrf_kernel!(backend)
@@ -47,7 +46,7 @@ function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <:
         Tveg, Tcan, Tsrf, Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf,
         Sice, trcn, fveg, tilefrac, SWsrf, SWveg, Ds1, Ts1, ks1,
         KH, KWg, KHa, KHv, KWv, Qa, LWeff, Ps, Ta,
-        dt, tthresh, glacier_tile;
+        dt, tthresh, SUBSTR;
         ndrange = (Int(Nx), Int(Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -61,7 +60,7 @@ end
         SWsrf, SWveg, Ds1, Ts1, ks1,
         KH, KWg, KHa, KHv, KWv,
         Qa, LWeff, Ps, Ta,
-        dt::Tf, tthresh::Tf, glacier_tile::Bool,
+        dt::Tf, tthresh::Tf, SUBSTR::AbstractSubstrate{Tf},
     ) where {Tf}
 
     i, j = @index(Global, NTuple)
@@ -128,7 +127,7 @@ end
         #     - assumes the glacier is an infinite heat reservoir.
         #     - does not conserve energy.
         # The excess energy would correspond to glacier melting, which we don't track.
-        if glacier_tile
+        if SUBSTR isa IceSubstrate
             if (Tsrf[i, j] + dTs > Tm && Sice[1, i, j] <= eps(Tf))
                 Qs = qsat(Ps[i, j], Tm)
                 Esrf[i, j] = rho * KWg[i, j] * (Qs - Qa[i, j])

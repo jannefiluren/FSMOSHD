@@ -1,3 +1,23 @@
+# ---------------------------------------------------------------------------
+# Substrate parameterizations - what lies beneath the snowpack.
+#
+#   OPEN     atmosphere -> snowpack -> soil
+#   FOREST   canopy     -> snowpack -> soil
+#   GLACIER  atmosphere -> snowpack -> ice
+#
+# Substrate is uniform over a tile, so this is a dispatch axis. Both are
+# fieldless for now: the soil property arrays (b, hcap_soil, hcon_soil, sathh,
+# Vsat, Vcrit) are per-cell and still live on FSM. Moving them onto
+# SoilSubstrate would follow the PrognosticAlbedo pattern (array fields as type
+# parameters) and is worth doing, but is a larger change than this stage.
+# ---------------------------------------------------------------------------
+
+struct SoilSubstrate{Tf} <: AbstractSubstrate{Tf} end
+struct IceSubstrate{Tf} <: AbstractSubstrate{Tf} end
+
+SoilSubstrate{Tf}(Nx, Ny; kwargs...) where {Tf} = SoilSubstrate{Tf}()
+IceSubstrate{Tf}(Nx, Ny; kwargs...) where {Tf} = IceSubstrate{Tf}()
+
 """
     soil!(fsm)
 
@@ -15,7 +35,7 @@ the routine is thread-safe per cell (the former shared scratch vectors in
 """
 function soil!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
-    @unpack TILE, tthresh = fsm
+    @unpack SUBSTR, tthresh = fsm
 
     @unpack dt = fsm
 
@@ -30,14 +50,13 @@ function soil!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
     @unpack Gsoil = fsm
 
     # Strings cannot cross into kernels: resolve the tile test here
-    glacier_tile = TILE == "glacier"
 
     backend = get_backend(Tsoil)
     kernel! = soil_kernel!(backend)
     kernel!(
         Tsoil,
         Dzsoil, tilefrac, csoil, ksoil, Gsoil,
-        dt, tthresh, glacier_tile, Val(Int(Nsoil));
+        dt, tthresh, SUBSTR, Val(Int(Nsoil));
         ndrange = (Int(Nx), Int(Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -56,7 +75,7 @@ end
         Tsoil,
         Dzsoil, tilefrac,
         csoil, ksoil, Gsoil,
-        dt::Tf, tthresh::Tf, glacier_tile::Bool,
+        dt::Tf, tthresh::Tf, SUBSTR::AbstractSubstrate{Tf},
         ::Val{Nsoil},
     ) where {Tf, Nsoil}
 
@@ -102,7 +121,7 @@ end
         # Cap glacier temperatures to 0°C
         # This does not conserve energy.
         # The excess energy would correspond to glacier melting, which we don't track.
-        if glacier_tile
+        if SUBSTR isa IceSubstrate
             for k in 1:Nsoil
                 Tsoil[k, i, j] = min(Tsoil[k, i, j], Tm)
             end
