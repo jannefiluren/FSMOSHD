@@ -39,12 +39,6 @@
     ZOFFST::Ti = 0                                           # Measurement height offset (0, 1)
     FSNRHO::Ti = 2                                           # Fresh snow density (0, 1, 2)
     SNOLAY::Ti = 0                                           # Density-dependent layering (0, 1)
-    HN_ON::Bool = false                                      # Activate new snow model
-    Z0PERT::Bool = false                                     # Activate snow roughness length perturbations
-    WCPERT::Bool = false                                     # Activate liquid water capacity perturbations
-    FSPERT::Bool = false                                     # Activate fresh snow density perturbations
-    ALPERT::Bool = false                                     # Activate albedo perturbations
-    SLPERT::Bool = false                                     # Activate settling perturbations
 
     # Tile options
 
@@ -80,6 +74,7 @@
     c_eta::Tf = 250                                          # Second density factor for Crocus B92 compaction (kg/m^3)
     eta0::Tf = 3.7e7                                         # Reference snow viscosity (Pa s)
     eta1::Tf = 7.62237e6                                     # Reference snow viscosity for Crocus B92 compaction (Pa s)
+    Tsnow_min::Tf = -Inf                                     # Floor on snow layer temperature (K); -Inf disables
     hfsn::Tf = 0.1                                           # Snowcover fraction depth scale (m)
     rho0::Tf = 300                                           # Fixed snow density (kg/m^3)
     rhob::Tf = 6                                             # Temperature factor in fresh snow density (kg/m^3/K)
@@ -155,7 +150,6 @@
     fsky_terr::MF = fill(NaN, Nx, Ny)              # Sky view fraction terrain (-)
     dem::MF = fill(NaN, Nx, Ny)                    # Grid elevation (m)
     tilefrac::MF = ones(Nx, Ny)                    # Tile fraction (-)
-    glacierfrac::MF = fill(NaN, Nx, Ny)            # Glacier fraction (-)
     prec_multi::MF64 = fill(NaN, Nx, Ny)        # Precipitation multiplier (-)    TODO use float64 to match matlab/fortran version - change precision later
 
     # Derived soil parameters

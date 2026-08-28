@@ -12,7 +12,7 @@ test on `t` is resolved on the host.
 """
 function snow_layering!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, snowdepth0, Sice0, t) where {Tf <: Real, Ti <: Integer}
 
-    @unpack HN_ON, SNOLAY, SNFRAC = fsm
+    @unpack SNOLAY, SNFRAC, Tsnow_min = fsm
     @unpack tthresh, hfsn = fsm
     @unpack Nsmax, Nx, Ny, Dzsnow, Ds_min, Ds_surflay = fsm
     @unpack rho0 = fsm
@@ -38,7 +38,7 @@ function snow_layering!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, snowdepth0, Sice0,
         swehist, swemin, swemax, snowdepthhist, snowdepthmin, snowdepthmax,
         tilefrac, snowdepth0, Sice0, Ta, slopemu, xi, Ld, Dzsnow,
         tthresh, Ds_min, Ds_surflay, rho0, hfsn,
-        SNOLAY, SNFRAC, HN_ON, update_hist, Val(Int(Nsmax));
+        SNOLAY, SNFRAC, Tsnow_min, update_hist, Val(Int(Nsmax));
         ndrange = (Int(Nx), Int(Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -55,7 +55,7 @@ end
         tilefrac, snowdepth0, Sice0, Ta,
         slopemu, xi, Ld, Dzsnow,
         tthresh::Tf, Ds_min::Tf, Ds_surflay::Tf, rho0::Tf, hfsn::Tf,
-        SNOLAY::Ti, SNFRAC::Ti, HN_ON::Bool, update_hist::Bool,
+        SNOLAY::Ti, SNFRAC::Ti, Tsnow_min::Tf, update_hist::Bool,
         ::Val{Nsmax},
     ) where {Tf, Ti, Nsmax}
 
@@ -130,9 +130,7 @@ end
 
         # New snow temperature
         Tsnow0 = min(Ta[i, j], Tm)
-        if HN_ON
-            Tsnow0 = max(Tsnow0, Tm - 40)
-        end
+        Tsnow0 = max(Tsnow0, Tsnow_min)
 
         if SNOLAY == 0
 
@@ -241,9 +239,7 @@ end
                 for k in 1:Nsnow[i, j]
                     csnow[k] = (Sice[k, i, j] * hcap_ice + Sliq[k, i, j] * hcap_wat) / fsnow[i, j]
                     Tsnow[k, i, j] = Tm + U[k] / csnow[k]
-                    if (HN_ON)
-                        Tsnow[k, i, j] = max(Tsnow[k, i, j], (Tm - Tf(40)))
-                    end
+                    Tsnow[k, i, j] = max(Tsnow[k, i, j], Tsnow_min)
                 end
             end # Existing or new snowpack
 

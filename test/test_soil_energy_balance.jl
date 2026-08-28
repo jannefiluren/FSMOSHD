@@ -16,9 +16,8 @@ function create_minimal_fsm(Tf::Type, Ti::Type)
         Ny = 1,
     )
 
-    # Set tilefrac and glacier fractions
+    # Set tile fraction
     fsm.tilefrac[1, 1] = Tf(1.0)
-    fsm.glacierfrac[1, 1] = Tf(0.0)
 
     # Set default thermal properties
     # Typical soil volumetric heat capacity: ~2.0e6 J/m³/K

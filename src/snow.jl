@@ -18,7 +18,7 @@ called afterwards on the host, as before.
 """
 function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <: Integer}
 
-    @unpack HYDROL, DENSTY, HN_ON, SNFRAC, FSNRHO = fsm
+    @unpack HYDROL, DENSTY, SNFRAC, FSNRHO, Tsnow_min = fsm
 
     @unpack tthresh = fsm
 
@@ -64,7 +64,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
         G, Melt, Esrf, Tsrf, dem, Uaeff, Sfeff, Ta,
         dt, tthresh, Wirr, rho0, rhob, rhoc, rhof, rhos_min, rcld, rmlt,
         snda, trho, eta0, eta1, a_eta, b_eta, c_eta, rhos_max,
-        HYDROL, DENSTY, SNFRAC, FSNRHO, HN_ON, Val(Int(Nsmax));
+        HYDROL, DENSTY, SNFRAC, FSNRHO, Tsnow_min, Val(Int(Nsmax));
         ndrange = (Int(Nx), Int(Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -89,7 +89,7 @@ end
         dt::Tf, tthresh::Tf, Wirr::Tf, rho0::Tf, rhob::Tf, rhoc::Tf, rhof::Tf,
         rhos_min::Tf, rcld::Tf, rmlt::Tf, snda::Tf, trho::Tf, eta0::Tf,
         eta1::Tf, a_eta::Tf, b_eta::Tf, c_eta::Tf, rhos_max::Tf,
-        HYDROL::Ti, DENSTY::Ti, SNFRAC::Ti, FSNRHO::Ti, HN_ON::Bool,
+        HYDROL::Ti, DENSTY::Ti, SNFRAC::Ti, FSNRHO::Ti, Tsnow_min::Tf,
         ::Val{Nsmax},
     ) where {Tf, Ti, Nsmax}
 
@@ -160,9 +160,7 @@ end
             end
             for k in 1:Nsnow[i, j]
                 Tsnow[k, i, j] = Tsnow[k, i, j] + dTssnow[k]
-                if (HN_ON)
-                    Tsnow[k, i, j] = max(Tsnow[k, i, j], (Tm - Tf(40)))
-                end
+                Tsnow[k, i, j] = max(Tsnow[k, i, j], Tsnow_min)
             end
             k = Nsnow[i, j]
             Gsoil[i, j] = Gs[k] * (Tsnow[k, i, j] - Tsoil[1, i, j])
