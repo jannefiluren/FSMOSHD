@@ -65,8 +65,7 @@ function setup_forest_example(SNFRAC)
     fsm.SNFRAC = SNFRAC
 
     # No preferential deposition in canopy gaps
-    fsm.psr = Float32(0)
-    fsm.psf = Float32(1)
+    fsm.CANOPY = OneLayerCanopy{Float32}(psr = 0, psf = 1)
 
     # define meteo data struct
     met = MET{Float32, Int32}()

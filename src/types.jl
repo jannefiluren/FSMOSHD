@@ -5,6 +5,7 @@
         MF64 <: AbstractMatrix{Float64},
         AF3 <: AbstractArray{Tf, 3},
         A <: AbstractAlbedo{Tf},
+        Can <: AbstractCanopy{Tf},
         C <: AbstractConductivity{Tf},
     }
 
@@ -30,6 +31,7 @@
     # Model configuration
 
     ALBEDO::A = PrognosticAlbedo{Tf}(Nx, Ny)                 # Snow albedo scheme (was ALBEDO = 2)
+    CANOPY::Can = NoCanopy{Tf}()                             # Canopy scheme (was TILE == "forest")
     CONDCT::C = DensityConductivity{Tf}()                    # Snow thermal conductivity scheme (was CONDCT = 1)
     DENSTY::Ti = 3                                           # Snow density (0, 1, 2, 3)
     EXCHNG::Ti = 1                                           # Turbulent exchange (0, 1)
@@ -50,8 +52,6 @@
 
     # Canopy parameters
 
-    avg0::Tf = 0.1                                           # Snow-free vegetation albedo (-)
-    avgs::Tf = 0.4                                           # Snow-covered vegetation albedo (-)
     cden::Tf = 0.004                                         # Dense canopy turbulent transfer coefficient (-)
     cvai::Tf = 4.4                                           # Canopy snow capacity per unit vegetation area index (kg/m^2)
     cveg::Tf = 20                                            # Vegetation turbulent transfer coefficient ((s/m)^0.5)
@@ -103,10 +103,6 @@
     gsat::Tf = 0.01                                          # Surface conductance for saturated soil (m/s)
 
     # Additional forest snow process parameters
-
-    fsar::Tf = 0.1                                           # Snow albedo adjustment range dependent on vegetation fraction (-)
-    psf::Tf = 1                                              # Solid precipitation multiplier in forest at minimum canopy cover (-)
-    psr::Tf = 0.1                                            # Additional multiplier range across canopy cover (-)
     wcan::Tf = 2.5                                           # Parameter of exponential wind profile (-)
     zsub::Tf = 2                                             # Sub-canopy reference height (m)
     zgf::Tf = 1                                              # Roughness length adjustment factor depending on vegetation fraction (-)
@@ -302,6 +298,7 @@ end
 function (::Type{FSM{Tf, Ti}})(;
         Nx = 1, Ny = 1,
         ALBEDO = PrognosticAlbedo{Tf}(Nx, Ny),
+        CANOPY = NoCanopy{Tf}(),
         CONDCT = DensityConductivity{Tf}(),
         kwargs...) where {Tf, Ti}
     return FSM{
@@ -311,8 +308,9 @@ function (::Type{FSM{Tf, Ti}})(;
         Matrix{Float64},
         Array{Tf, 3},
         typeof(ALBEDO),
+        typeof(CANOPY),
         typeof(CONDCT),
-    }(; Nx = Nx, Ny = Ny, ALBEDO = ALBEDO, CONDCT = CONDCT, kwargs...)
+    }(; Nx = Nx, Ny = Ny, ALBEDO = ALBEDO, CANOPY = CANOPY, CONDCT = CONDCT, kwargs...)
 end
 
 function (::Type{MET{Tf, Ti}})(; kwargs...) where {Tf, Ti}

@@ -36,6 +36,8 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
     params = copy(get(settings, "params", Dict()))
     schemes = (
         ALBEDO = build_scheme(Tf, get(config, "ALBEDO", PrognosticAlbedo), Nx, Ny, params),
+        CANOPY = build_scheme(Tf, get(config, "CANOPY",
+            settings["tile"] == "forest" ? OneLayerCanopy : NoCanopy), Nx, Ny, params),
         CONDCT = build_scheme(Tf, get(config, "CONDCT", DensityConductivity), Nx, Ny, params),
     )
     fsm = FSM{Tf, Ti}(; Nx = Nx, Ny = Ny, schemes...)

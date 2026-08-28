@@ -174,7 +174,7 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, 
 
     @unpack tthresh, fsky_terr, fveg, tilefrac = fsm
 
-    @unpack avg0, avgs, fsar = fsm
+    @unpack CANOPY = fsm
 
     @unpack alb0, fsky, scap, trcn = fsm
 
@@ -197,7 +197,7 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, 
         fsky_terr, fveg, tilefrac, alb0, fsky, scap, trcn,
         Sice, Sliq, fsnow, Sveg, Tsrf,
         LW, Sdif, Sdir, Sdird, Sf, Sf24h, Ta, Tv,
-        dt, tthresh, avg0, avgs, fsar,
+        dt, tthresh, CANOPY,
         ALBEDO, summer_decay;
         ndrange = (Int(Nx), Int(Ny))
     )
@@ -213,9 +213,9 @@ end
         Sice, Sliq, fsnow, Sveg, Tsrf,
         LW, Sdif, Sdir, Sdird, Sf,
         Sf24h, Ta, Tv,
-        dt::Tf, tthresh::Tf, avg0::Tf, avgs::Tf, fsar::Tf,
+        dt::Tf, tthresh::Tf, CANOPY::AbstractCanopy{Tf},
         ALBEDO::AbstractAlbedo{Tf}, summer_decay::Bool,
-    ) where {Tf, Ti}
+    ) where {Tf}
 
     i, j = @index(Global, NTuple)
 
@@ -232,7 +232,7 @@ end
         # Surface and canopy net shortwave radiation
 
         # Surface albedo
-        asrf = albs[i, j] * (Tf(1) - fveg[i, j] * fsar)
+        asrf = albs[i, j] * (Tf(1) - fveg[i, j] * canopy_fsar(CANOPY))
         if (fsnow[i, j] <= eps(Tf))
             asrf = alb0[i, j]
             albs[i, j] = alb0[i, j]
@@ -243,7 +243,7 @@ end
         if (scap[i, j] > eps(Tf))
             fcans = Sveg[i, j] / scap[i, j]
         end
-        aveg = (Tf(1) - fcans) * avg0 + fcans * avgs
+        aveg = (Tf(1) - fcans) * canopy_avg0(CANOPY) + fcans * canopy_avgs(CANOPY)
         acan = fveg[i, j] * aveg
         # Canopy surface albedo for computing terrain radiation over canopy
         alb[i, j] = fveg[i, j] * aveg + (Tf(1) - fveg[i, j]) * asrf
@@ -252,7 +252,7 @@ end
         asrf_out[i, j] = alb[i, j]
 
         # Solar radiation trasmission
-        if (fveg[i, j] == 0)
+        if CANOPY isa NoCanopy
             # No canopy: open-sky transmission
             SWveg[i, j] = Tf(0)
             SWsrf[i, j] = (Tf(1) - alb[i, j]) * (Sdir[i, j] + Sdif[i, j])
@@ -277,7 +277,7 @@ end
         LWt[i, j] = fsky_terr[i, j] * LW[i, j] + (Tf(1) - fsky_terr[i, j]) * sb * Ta[i, j]^Tf(4)
 
         # LWeff equals LWt except when EBALFOR is used, where terrain impacts are accounted for already
-        if (fveg[i, j] == 0)
+        if CANOPY isa NoCanopy
             LWeff[i, j] = LWt[i, j]
         else
             LWeff[i, j] = LW[i, j]

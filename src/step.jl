@@ -36,20 +36,13 @@ function step!(fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, t) where {Tf, Ti}
     thermal!(fsm)
 
     # 4. Iterative energy balance solution
-    tile_type = fsm.TILE
     for _ in 1:fsm.Nitr
         sfexch!(fsm, met)
-        if tile_type == "forest"
-            ebalfor!(fsm, met)
-        else
-            ebalsrf!(fsm, met)
-        end
+        surface_balance!(fsm.CANOPY, fsm, met)
     end
 
-    # 5. Forest-specific canopy processing
-    if tile_type == "forest"
-        canopy!(fsm, met)
-    end
+    # 5. Canopy interception / unloading (a no-op without canopy)
+    canopy!(fsm.CANOPY, fsm, met)
 
     # 6. Snow processes
     snow!(fsm, met, t)

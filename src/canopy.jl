@@ -1,3 +1,55 @@
+# ---------------------------------------------------------------------------
+# Canopy parameterizations
+#
+# Whether a tile has canopy is a property of the tile, not of a cell: after the
+# Stage 4 mask narrowing, every active cell of a canopy tile has fveg > 0 and
+# every active cell of a NoCanopy tile has fveg == 0. That is what makes this a
+# dispatch axis rather than a per-cell branch.
+#
+# Both schemes hold scalars only, so they are isbits and cross into a kernel by
+# value.
+# ---------------------------------------------------------------------------
+
+struct NoCanopy{Tf} <: AbstractCanopy{Tf} end
+
+@kwdef struct OneLayerCanopy{Tf} <: AbstractCanopy{Tf}
+    fsar::Tf = 0.1                       # Albedo adjustment range vs vegetation fraction (-)
+    avg0::Tf = 0.1                       # Snow-free vegetation albedo (-)
+    avgs::Tf = 0.4                       # Snow-covered vegetation albedo (-)
+    psf::Tf = 1                          # Solid precipitation multiplier at min canopy cover (-)
+    psr::Tf = 0.1                        # Solid precipitation multiplier range (-)
+end
+
+NoCanopy{Tf}(Nx, Ny; kwargs...) where {Tf} = NoCanopy{Tf}()
+OneLayerCanopy{Tf}(Nx, Ny; kwargs...) where {Tf} = OneLayerCanopy{Tf}(; kwargs...)
+
+
+# Neutral values let the shared radiation prologue run without branching: with no
+# canopy, fveg == 0 makes fsar's contribution vanish and aveg is multiplied by
+# acan == 0, so any finite value is correct.
+canopy_fsar(c::OneLayerCanopy) = c.fsar
+canopy_fsar(::NoCanopy{Tf}) where {Tf} = zero(Tf)
+canopy_avg0(c::OneLayerCanopy) = c.avg0
+canopy_avg0(::NoCanopy{Tf}) where {Tf} = zero(Tf)
+canopy_avgs(c::OneLayerCanopy) = c.avgs
+canopy_avgs(::NoCanopy{Tf}) where {Tf} = zero(Tf)
+
+"""
+    surface_balance!(canopy, fsm, met)
+
+Solve the surface energy balance. `NoCanopy` uses the surface-only solver; `OneLayerCanopy`
+uses the joint surface+canopy solver. Replaces the `TILE == "forest"` test in `step!`.
+"""
+surface_balance!(::NoCanopy, fsm, met) = ebalsrf!(fsm, met)
+surface_balance!(::OneLayerCanopy, fsm, met) = ebalfor!(fsm, met)
+
+"""
+    canopy!(canopy, fsm, met)
+
+Canopy interception, sublimation and unloading. A no-op without canopy.
+"""
+canopy!(::NoCanopy, fsm, met) = nothing
+
 """
     canopy!(fsm, meteo)
 
@@ -10,7 +62,7 @@ launched over the whole grid (see `ebalsrf!` for the pattern).
 - `fsm::FSM`: Model state structure (modified in-place)
 - `meteo::MET`: Current meteorological conditions (read-only)
 """
-function canopy!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
+function canopy!(::OneLayerCanopy, fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
     @unpack tthresh = fsm
 
@@ -18,7 +70,7 @@ function canopy!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: 
 
     @unpack Nx, Ny, dt = fsm
 
-    @unpack tcnc, tcnm, psf, psr = fsm
+    @unpack tcnc, tcnm, CANOPY = fsm
 
     @unpack scap = fsm
 
@@ -35,7 +87,7 @@ function canopy!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: 
     kernel!(
         unload, intcpt, Sbveg, Sveg, Sfeff,
         scap, Tveg, fveg, pmultf, tilefrac, Eveg,
-        dt, tthresh, tcnc, tcnm, psf, psr;
+        dt, tthresh, tcnc, tcnm, CANOPY;
         ndrange = (Int(Nx), Int(Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -47,7 +99,7 @@ end
         unload, intcpt, Sbveg, Sveg, Sfeff,
         scap, Tveg, fveg, pmultf,
         tilefrac, Eveg,
-        dt::Tf, tthresh::Tf, tcnc::Tf, tcnm::Tf, psf::Tf, psr::Tf,
+        dt::Tf, tthresh::Tf, tcnc::Tf, tcnm::Tf, CANOPY::OneLayerCanopy{Tf},
     ) where {Tf}
 
     i, j = @index(Global, NTuple)
@@ -67,7 +119,7 @@ end
         intcpt[i, j] = (scap[i, j] - Sveg[i, j]) * (Tf(1) - exp(-fveg[i, j] * Sfeff[i, j] * dt / scap[i, j]))
         Sveg[i, j] = Sveg[i, j] + intcpt[i, j]
         Sfeff[i, j] = Sfeff[i, j] - intcpt[i, j] / dt
-        Sfeff[i, j] = (psf - psr * fveg[i, j]) * Sfeff[i, j] # including preferential deposition in canopy gaps; might have to be revisited to ensure mass conservation, potentially integrate with pmultf
+        Sfeff[i, j] = (CANOPY.psf - CANOPY.psr * fveg[i, j]) * Sfeff[i, j] # including preferential deposition in canopy gaps; might have to be revisited to ensure mass conservation, potentially integrate with pmultf
 
         # sublimation
         Evegs = Tf(0)
