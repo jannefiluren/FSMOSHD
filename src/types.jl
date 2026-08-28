@@ -4,6 +4,7 @@
         MF <: AbstractMatrix{Tf}, MI <: AbstractMatrix{Ti},
         MF64 <: AbstractMatrix{Float64},
         AF3 <: AbstractArray{Tf, 3},
+        C <: AbstractConductivity{Tf},
     }
 
     # Layer configuration
@@ -29,7 +30,7 @@
 
     ALBEDO::Ti = 2                                           # Snow albedo (0, 1, 2)
     CANMOD::Ti = 0                                           # Forest canopy (0, 1)
-    CONDCT::Ti = 1                                           # Snow thermal conductivity (0, 1)
+    CONDCT::C = DensityConductivity{Tf}()                    # Snow thermal conductivity scheme (was CONDCT = 1)
     DENSTY::Ti = 3                                           # Snow density (0, 1, 2, 3)
     EXCHNG::Ti = 1                                           # Turbulent exchange (0, 1)
     HYDROL::Ti = 2                                           # Snow hydraulics (0, 1, 2)
@@ -318,14 +319,15 @@ end
 # unchanged. Use on_architecture(arch, fsm) (architectures.jl) to move a
 # structure to another architecture, e.g. the GPU.
 
-function (::Type{FSM{Tf, Ti}})(; kwargs...) where {Tf, Ti}
+function (::Type{FSM{Tf, Ti}})(; CONDCT = DensityConductivity{Tf}(), kwargs...) where {Tf, Ti}
     return FSM{
         Tf, Ti,
         Vector{Tf},
         Matrix{Tf}, Matrix{Ti},
         Matrix{Float64},
         Array{Tf, 3},
-    }(; kwargs...)
+        typeof(CONDCT),
+    }(; CONDCT = CONDCT, kwargs...)
 end
 
 function (::Type{MET{Tf, Ti}})(; kwargs...) where {Tf, Ti}

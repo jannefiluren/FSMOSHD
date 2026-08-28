@@ -30,20 +30,22 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
 
     @unpack_constants(Tf)
 
-    # Create fsm object
-    fsm = FSM{Tf, Ti}(Nx = Nx, Ny = Ny)
+    # Create fsm object. Parameterizations are type parameters, so they must be
+    # chosen at construction: setfield! cannot change a field's type afterwards.
+    config = get(settings, "config", Dict())
+    schemes = (CONDCT = get(config, "CONDCT", DensityConductivity{Tf}()),)
+    fsm = FSM{Tf, Ti}(; Nx = Nx, Ny = Ny, schemes...)
 
     # Set tile
     fsm.TILE = settings["tile"]
 
     # Apply model configuration
-    if haskey(settings, "config")
-        for (key, value) in settings["config"]
-            if value isa Int
-                value = Ti(value)
-            end
-            setfield!(fsm, Symbol(key), value)
+    for (key, value) in config
+        haskey(schemes, Symbol(key)) && continue   # already applied at construction
+        if value isa Int
+            value = Ti(value)
         end
+        setfield!(fsm, Symbol(key), value)
     end
 
     # Apply parameter overrides

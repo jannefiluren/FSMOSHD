@@ -3,6 +3,8 @@ module FlexibleSnowModelOSHD
 using Parameters
 using Dates
 
+abstract type AbstractConductivity{Tf <: Real} end
+
 # KernelAbstractions is imported qualified because it exports its own CPU/GPU
 # names, which would clash with the architecture types defined here.
 # NOTE: @Const is deliberately NOT used on kernel arguments - on the CPU
@@ -36,6 +38,7 @@ include("step.jl")
 include("snowcoverfraction.jl")
 
 export FSM, MET
+export AbstractConductivity, FixedConductivity, DensityConductivity, snow_conductivity!
 export AbstractArchitecture, CPU, GPU, on_architecture
 export canopy!, radiation!, thermal!, sfexch!, ebalsrf!, ebalfor!, snow!, soil!, snowcoverfraction!
 export qsat, tridiag!, ludcmp!

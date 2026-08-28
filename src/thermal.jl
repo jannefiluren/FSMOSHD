@@ -1,3 +1,45 @@
+@kwdef struct FixedConductivity{Tf} <: AbstractConductivity{Tf}
+    kfix::Tf = 0.24                                          # Fixed thermal conductivity of snow (W/m/K)
+end
+
+@kwdef struct DensityConductivity{Tf} <: AbstractConductivity{Tf}
+    bthr::Tf = 2                                             # Snow thermal conductivity exponent (-)
+end
+
+FixedConductivity{Tf}(Nx, Ny; kwargs...) where {Tf} = FixedConductivity{Tf}(; kwargs...)
+DensityConductivity{Tf}(Nx, Ny; kwargs...) where {Tf} = DensityConductivity{Tf}(; kwargs...)
+
+"""
+    snow_conductivity!(scheme, ksnow, Ds, Sice, Sliq, fsnow, Nsnow, params, i, j)
+
+Fill `ksnow[1:Nsnow[i,j], i, j]` for one column. Every `AbstractConductivity` implements this.
+Only the active layers are written; `thermal!` guards the one read that can reach below the pack.
+
+Both schemes hold scalars only, so they are `isbits` and cross into a kernel by value.
+"""
+function snow_conductivity! end
+
+@inline function snow_conductivity!(c::FixedConductivity, ksnow, Ds, Sice, Sliq, fsnow, Nsnow, params, i, j)
+    for k in 1:Nsnow[i, j]
+        ksnow[k, i, j] = c.kfix
+    end
+    return nothing
+end
+
+@inline function snow_conductivity!(c::DensityConductivity, ksnow, Ds, Sice, Sliq, fsnow, Nsnow, params, i, j)
+    (; rhof, hcon_ice, rho_ice, DENSTY) = params
+    Tf = eltype(Ds)
+    for k in 1:Nsnow[i, j]
+        rhos = rhof
+        # TODO the DENSTY test goes away with DENSTY == 0 (roadmap Stage 8)
+        if ((DENSTY != 0) && (Ds[k, i, j] > eps(Tf)) && fsnow[i, j] > eps(Tf))
+            rhos = (Sice[k, i, j] + Sliq[k, i, j]) / Ds[k, i, j] / fsnow[i, j]
+        end
+        ksnow[k, i, j] = hcon_ice * (rhos / rho_ice)^c.bthr
+    end
+    return nothing
+end
+
 """
     thermal!(fsm)
 
@@ -16,7 +58,7 @@ function thermal!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
     @unpack Dzsnow, Dzsoil, Nsmax, Nsoil, Nx, Ny = fsm
 
-    @unpack bthr, gsat, kfix, rhof = fsm
+    @unpack gsat, rhof = fsm
 
     @unpack b, hcap_soil, hcon_soil, sathh, Vcrit, Vsat = fsm
 
@@ -38,7 +80,7 @@ function thermal!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
         Dzsoil, b, hcap_soil, hcon_soil, sathh, Vcrit, Vsat,
         Ds, Nsnow, fsnow, Sice, Sliq, theta, Tsnow, Tsoil, Tveg,
         tilefrac,
-        tthresh, bthr, gsat, kfix, rhof,
+        tthresh, gsat, rhof,
         Nsoil, CONDCT, DENSTY, glacier_tile;
         ndrange = (Int(Nx), Int(Ny))
     )
@@ -54,8 +96,8 @@ end
         Ds, Nsnow, fsnow, Sice, Sliq,
         theta, Tsnow, Tsoil, Tveg,
         tilefrac,
-        tthresh::Tf, bthr::Tf, gsat::Tf, kfix::Tf, rhof::Tf,
-        Nsoil::Ti, CONDCT::Ti, DENSTY::Ti, glacier_tile::Bool,
+        tthresh::Tf, gsat::Tf, rhof::Tf,
+        Nsoil::Ti, CONDCT::AbstractConductivity{Tf}, DENSTY::Ti, glacier_tile::Bool,
     ) where {Tf, Ti}
 
     i, j = @index(Global, NTuple)
@@ -66,20 +108,8 @@ end
 
         # Thermal conductivity of snow
 
-        # Fixed
-        for k in axes(ksnow, 1)
-            ksnow[k, i, j] = kfix
-        end
-        if (CONDCT == 1)
-            # Density function
-            for k in 1:Nsnow[i, j]
-                rhos = rhof
-                if ((DENSTY != 0) && (Ds[k, i, j] > eps(Tf)) && fsnow[i, j] > eps(Tf))
-                    rhos = (Sice[k, i, j] + Sliq[k, i, j]) / Ds[k, i, j] / fsnow[i, j]
-                end
-                ksnow[k, i, j] = hcon_ice * (rhos / rho_ice)^bthr
-            end
-        end
+        cond_params = (; rhof, hcon_ice, rho_ice, DENSTY)
+        snow_conductivity!(CONDCT, ksnow, Ds, Sice, Sliq, fsnow, Nsnow, cond_params, i, j)
 
         # Heat capacity and thermal conductivity of soil
         dPsidT = -rho_ice * Lf / (rho_wat * grav * Tm)
@@ -146,7 +176,10 @@ end
         # Note that this 'trick' has not yet been tested for top layers < 10cm!
         Ds1[i, j] = max(Dzsoil[1], Ds[1, i, j])
         Ts1[i, j] = Tsoil[1, i, j] + (Tsnow[1, i, j] - Tsoil[1, i, j]) * Ds[1, i, j] / Dzsoil[1]
-        ks1[i, j] = Dzsoil[1] / (Tf(2) * Ds[1, i, j] / ksnow[1, i, j] + (Dzsoil[1] - Tf(2) * Ds[1, i, j]) / ksoil[1, i, j])
+        # Snow thermal resistance is zero when there is no snow in the first layer.
+        # Required because the conductivity schemes fill only the active layers.
+        snow_R = Ds[1, i, j] > zero(Tf) ? Tf(2) * Ds[1, i, j] / ksnow[1, i, j] : zero(Tf)
+        ks1[i, j] = Dzsoil[1] / (snow_R + (Dzsoil[1] - Tf(2) * Ds[1, i, j]) / ksoil[1, i, j])
         if (Ds[1, i, j] > Tf(0.5) * Dzsoil[1])
             ks1[i, j] = ksnow[1, i, j]
         end
