@@ -1,4 +1,28 @@
 """
+    build_scheme(Tf, requested, Nx, Ny, params)
+
+Instantiate a parameterization. `requested` is either a type - constructed at precision `Tf` on an
+`Nx` by `Ny` grid, consuming any `params` entry named like one of its fields - or a ready-made
+instance, returned unchanged.
+
+Routing matters: a scheme's parameters live on the scheme, so an entry such as "adm" would
+otherwise be set on `FSM`, where nothing reads it any more.
+"""
+function build_scheme(Tf, requested, Nx, Ny, params)
+
+    requested isa Type || return requested
+
+    kwargs = Dict{Symbol, Any}()
+    for name in fieldnames(requested)
+        key = string(name)
+        haskey(params, key) && (kwargs[name] = pop!(params, key))
+    end
+
+    return requested{Tf}(Nx, Ny; kwargs...)
+
+end
+
+"""
     setup([arch], Tf, Ti, landuse, Nx, Ny, settings)
 
 Initialize the FSM snow model with specified configuration and domain properties.
@@ -33,7 +57,11 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
     # Create fsm object. Parameterizations are type parameters, so they must be
     # chosen at construction: setfield! cannot change a field's type afterwards.
     config = get(settings, "config", Dict())
-    schemes = (CONDCT = get(config, "CONDCT", DensityConductivity{Tf}()),)
+    params = copy(get(settings, "params", Dict()))
+    schemes = (
+        ALBEDO = build_scheme(Tf, get(config, "ALBEDO", PrognosticAlbedo), Nx, Ny, params),
+        CONDCT = build_scheme(Tf, get(config, "CONDCT", DensityConductivity), Nx, Ny, params),
+    )
     fsm = FSM{Tf, Ti}(; Nx = Nx, Ny = Ny, schemes...)
 
     # Set tile
@@ -49,18 +77,16 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
     end
 
     # Apply parameter overrides
-    if haskey(settings, "params")
-        for (key, value) in settings["params"]
-            field = Symbol(key)
-            existing = getfield(fsm, field)
-            target_type = eltype(existing)
-            if existing isa AbstractArray && !(value isa AbstractArray)
-                # scalar overriding an array field: fill the entire array
-                fill!(existing, target_type(value))
-            else
-                # scalar to scalar, or array to array: assign directly
-                setfield!(fsm, field, target_type.(value))
-            end
+    for (key, value) in params
+        field = Symbol(key)
+        existing = getfield(fsm, field)
+        target_type = eltype(existing)
+        if existing isa AbstractArray && !(value isa AbstractArray)
+            # scalar overriding an array field: fill the entire array
+            fill!(existing, target_type(value))
+        else
+            # scalar to scalar, or array to array: assign directly
+            setfield!(fsm, field, target_type.(value))
         end
     end
 

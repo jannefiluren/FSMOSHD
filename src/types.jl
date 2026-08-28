@@ -4,6 +4,7 @@
         MF <: AbstractMatrix{Tf}, MI <: AbstractMatrix{Ti},
         MF64 <: AbstractMatrix{Float64},
         AF3 <: AbstractArray{Tf, 3},
+        A <: AbstractAlbedo{Tf},
         C <: AbstractConductivity{Tf},
     }
 
@@ -28,7 +29,7 @@
 
     # Model configuration
 
-    ALBEDO::Ti = 2                                           # Snow albedo (0, 1, 2)
+    ALBEDO::A = PrognosticAlbedo{Tf}(Nx, Ny)                 # Snow albedo scheme (was ALBEDO = 2)
     CANMOD::Ti = 0                                           # Forest canopy (0, 1)
     CONDCT::C = DensityConductivity{Tf}()                    # Snow thermal conductivity scheme (was CONDCT = 1)
     DENSTY::Ti = 3                                           # Snow density (0, 1, 2, 3)
@@ -37,7 +38,6 @@
     SNFRAC::Ti = 3                                           # Snow cover fraction (0, 1, 2, 3, 4)
     ZOFFST::Ti = 0                                           # Measurement height offset (0, 1)
     FSNRHO::Ti = 2                                           # Fresh snow density (0, 1, 2)
-    ALRADT::Ti = 1                                           # Albedo decay as function of incoming direct shortwave radiation (0, 1)
     SNOLAY::Ti = 0                                           # Density-dependent layering (0, 1)
     HN_ON::Bool = false                                      # Activate new snow model
     Z0PERT::Bool = false                                     # Activate snow roughness length perturbations
@@ -76,15 +76,11 @@
     # Snow parameters
 
     a_eta::Tf = 0.1                                          # Temperature factor for Crocus B92 compaction (K^-1)
-    asmx::Tf = 0.86                                          # Maximum albedo for fresh snow (-)
-    asmn::Tf = 0.6                                           # Minimum albedo for melting snow (-)
     b_eta::Tf = 0.023                                        # First density factor for Crocus B92 compaction (m^3/kg)
-    bthr::Tf = 2                                             # Snow thermal conductivity exponent (-)
     c_eta::Tf = 250                                          # Second density factor for Crocus B92 compaction (kg/m^3)
     eta0::Tf = 3.7e7                                         # Reference snow viscosity (Pa s)
     eta1::Tf = 7.62237e6                                     # Reference snow viscosity for Crocus B92 compaction (Pa s)
     hfsn::Tf = 0.1                                           # Snowcover fraction depth scale (m)
-    kfix::Tf = 0.24                                          # Fixed thermal conductivity of snow (W/m/K)
     rho0::Tf = 300                                           # Fixed snow density (kg/m^3)
     rhob::Tf = 6                                             # Temperature factor in fresh snow density (kg/m^3/K)
     rhoc::Tf = 26                                            # Wind factor in fresh snow density (kg s^0.5/m^3.5)
@@ -96,12 +92,8 @@
     rmlt::Tf = 500                                           # Maximum density for melting snow (kg/m^3)
     Salb::Tf = 10                                            # Albedo decay constant (kg/m^2)
     snda::Tf = 2.8e-6                                        # Thermal metamorphism parameter (1/s)
-    Talb::Tf = -2                                            # Albedo decay temperature threshold (C)
-    tcld::Tf = 3600 * 1000                                   # Cold snow albedo decay time scale (s)
-    tmlt::Tf = 3600 * 100                                    # Melting snow albedo decay time scale (s)
     trho::Tf = 3600 * 200                                    # Snow compaction time scale (s)
     Wirr::Tf = 0.03                                          # Irreducible liquid water content of snow (-)
-    Sfmin::Tf = 10                                           # Minimum snowfall over 24h needed to refresh albedo (kg/m^2)
 
     # Snow layering parameters
 
@@ -118,8 +110,6 @@
 
     # Additional forest snow process parameters
 
-    adfs::Tf = 3                                             # Snow albedo adjustment dependent on shortwave radiation (-)
-    adfl::Tf = 2                                             # Snow albedo adjustment dependent on longwave radiation (-)
     fsar::Tf = 0.1                                           # Snow albedo adjustment range dependent on vegetation fraction (-)
     psf::Tf = 1                                              # Solid precipitation multiplier in forest at minimum canopy cover (-)
     psr::Tf = 0.1                                            # Additional multiplier range across canopy cover (-)
@@ -131,9 +121,6 @@
 
     # Surface parameters
 
-    adm::Tf = 100                                            # Melting snow albedo decay time (h)
-    adc::MF = Tf(1000) * ones(Nx, Ny)              # Cold snow albedo decay time (h)
-    afs::MF = asmx * ones(Nx, Ny)                  # Maximum albedo for fresh snow
     z0_snow::MF = 0.002 * ones(Nx, Ny)             # Roughness length of snow (m)
 
     # Surface properties
@@ -319,15 +306,20 @@ end
 # unchanged. Use on_architecture(arch, fsm) (architectures.jl) to move a
 # structure to another architecture, e.g. the GPU.
 
-function (::Type{FSM{Tf, Ti}})(; CONDCT = DensityConductivity{Tf}(), kwargs...) where {Tf, Ti}
+function (::Type{FSM{Tf, Ti}})(;
+        Nx = 1, Ny = 1,
+        ALBEDO = PrognosticAlbedo{Tf}(Nx, Ny),
+        CONDCT = DensityConductivity{Tf}(),
+        kwargs...) where {Tf, Ti}
     return FSM{
         Tf, Ti,
         Vector{Tf},
         Matrix{Tf}, Matrix{Ti},
         Matrix{Float64},
         Array{Tf, 3},
+        typeof(ALBEDO),
         typeof(CONDCT),
-    }(; CONDCT = CONDCT, kwargs...)
+    }(; Nx = Nx, Ny = Ny, ALBEDO = ALBEDO, CONDCT = CONDCT, kwargs...)
 end
 
 function (::Type{MET{Tf, Ti}})(; kwargs...) where {Tf, Ti}

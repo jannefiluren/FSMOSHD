@@ -3,7 +3,11 @@ module FlexibleSnowModelOSHD
 using Parameters
 using Dates
 
-abstract type AbstractConductivity{Tf <: Real} end
+# Every physics parameterization derives from this, which is what lets
+# on_architecture (architectures.jl) move any of them in one generic method.
+abstract type AbstractParameterization{Tf <: Real} end
+abstract type AbstractConductivity{Tf} <: AbstractParameterization{Tf} end
+abstract type AbstractAlbedo{Tf} <: AbstractParameterization{Tf} end
 
 # KernelAbstractions is imported qualified because it exports its own CPU/GPU
 # names, which would clash with the architecture types defined here.
@@ -38,7 +42,9 @@ include("step.jl")
 include("snowcoverfraction.jl")
 
 export FSM, MET
+export AbstractParameterization
 export AbstractConductivity, FixedConductivity, DensityConductivity, snow_conductivity!
+export AbstractAlbedo, DiagnosticAlbedo, DecayAlbedo, PrognosticAlbedo, snow_albedo!
 export AbstractArchitecture, CPU, GPU, on_architecture
 export canopy!, radiation!, thermal!, sfexch!, ebalsrf!, ebalfor!, snow!, soil!, snowcoverfraction!
 export qsat, tridiag!, ludcmp!

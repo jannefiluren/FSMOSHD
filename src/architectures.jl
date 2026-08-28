@@ -57,6 +57,16 @@ function on_architecture(arch::GPU, a::AbstractArray)
     return out
 end
 
+# Parameterizations are moved generically: a scheme holding only scalars is
+# isbits and needs nothing, and one holding arrays is rebuilt with each field
+# moved. This works because array-valued scheme fields are type parameters, so
+# the rebuilt struct can hold the target architecture's array type.
+function on_architecture(arch::AbstractArchitecture, s::AbstractParameterization)
+    isbitstype(typeof(s)) && return s
+    T = typeof(s).name.wrapper
+    return T(map(f -> on_architecture(arch, getfield(s, f)), fieldnames(typeof(s)))...)
+end
+
 function on_architecture(arch::AbstractArchitecture, fsm::FSM)
     values = map(name -> on_architecture(arch, getfield(fsm, name)), fieldnames(typeof(fsm)))
     return FSM(values...)
