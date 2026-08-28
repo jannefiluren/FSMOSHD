@@ -1,0 +1,67 @@
+# FSM output baseline manifest
+# source commit : 6c4dda59e9b9a02937ddb80f80e1f625be544516  (Bump version to 0.2.0, main)
+# domain        : 25 x 31  (data/domain_data.nc)
+# precision     : Float32 / Int32
+# tile configs  : as in test/test_regression.jl
+#
+# hash is Base.hash of the full Nx*Ny*Nt Float32 array and is the authority.
+# min/max/mean are for human triage when a hash differs; they are not the check.
+#
+# tile     variable   hash               nonfinite            min            max           mean
+open       Ds         9e174027d4639b22          0              0        4.35631        0.39896
+open       Esrf       be16b6186cbe3984          0   -2.29368e-05    0.000158713    6.24801e-06
+open       Eveg       1ec78189f35545d           0              0              0              0
+open       G          816516c49fe0393e          0       -84.2178          249.7       -3.92047
+open       H          8f4ae2abc3c11962          0       -92.6161        409.233         6.0474
+open       LE         9f270274103e6587          0       -65.0259        396.941        15.7955
+open       Melt       3eae2e0a16c6b477          0              0     0.00137815     3.3591e-05
+open       Rnet       817970dc16d89b52          0       -96.6862        659.182        29.1418
+open       SWsrf      e52992f4e982db34          0              0        805.331        73.5485
+open       Sice       7393636615cc9a4a          0              0        522.395        104.448
+open       Sliq       9b6bf8f0c63793de          0              0        15.6527        1.03454
+open       Sveg       1ec78189f35545d           0              0              0              0
+open       Tcan       890c2aab97c10d98          0         253.83        299.385        275.289
+open       Tsnow      df8c46120653beb7          0        246.289         273.15        269.213
+open       Tsrf       fce2891332f4a283          0        233.069        302.559        270.025
+open       Tveg       890c2aab97c10d98          0         253.83        299.385        275.289
+open       albs       dc06584c5dc42ad5          0            0.2           0.86        0.53735
+open       fsnow      94c8c84430c99da4          0              0              1        0.55561
+open       snowdepth  e610fc0b77b6c1fd          0              0        1.64501       0.354032
+forest     Ds         fbfcfd8ebba60e19          0              0        1.32845       0.133981
+forest     Esrf       c68e3bca3284138a          0   -3.09604e-05    9.53972e-05    2.50661e-06
+forest     Eveg       7dd51725c644a7c1          0   -1.24348e-05    0.000462608    3.20974e-06
+forest     G          9c120fe4750c902e          0       -74.3599        215.662     -0.0990044
+forest     H          bea475109e03674f          0       -917.534        484.885        -3.1551
+forest     LE         441f8cf1708df690          0       -87.7728        1210.86        14.9074
+forest     Melt       bba5154a82387a37          0              0     0.00113858    1.16268e-05
+forest     Rnet       d38f7c3b69a8200b          0        -125.35        633.489        12.2162
+forest     SWsrf      b10e615fa9e74beb          0              0        469.751        22.2319
+forest     Sice       f027447f4fed1171          0              0        397.069        22.2264
+forest     Sliq       aefc508fb7febc12          0              0        11.4846       0.324428
+forest     Sveg       bc2b66b80f27fd04          0              0        14.3762       0.185492
+forest     Tcan       c783794760667e1e          0        255.767        299.968        280.605
+forest     Tsnow      3a40485c4e01020c          0        254.463         273.15        272.377
+forest     Tsrf       d397ffd76b921891          0        243.853        305.528        279.475
+forest     Tveg       56cbe1cb0bae30f1          0        254.861        308.484        280.599
+forest     albs       35692395dab50f25          0            0.2           0.86       0.661027
+forest     fsnow      8cbd6a739631d2d0          0              0       0.999714       0.154576
+forest     snowdepth  2f35b4a9fab73e12          0              0        1.32808      0.0742639
+glacier    Ds         26d55b435955cfd3          0              0        1.71967       0.068027
+glacier    Esrf       dd6f941b1ac2d16a          0   -8.50795e-05     4.2595e-05   -2.14663e-08
+glacier    Eveg       1ec78189f35545d           0              0              0              0
+glacier    G          8216dd208e55cc5           0       -95.2226        321.478      -0.268166
+glacier    H          58c0f72996260f1f          0       -234.553        81.7703      -0.762629
+glacier    LE         9a730b9f90caef2e          0       -212.784        120.757     -0.0440494
+glacier    Melt       5b8ebd0c889709ff          0              0     0.00119015    4.41761e-06
+glacier    Rnet       e899fdcaf917565d          0        -107.79        755.149        1.83092
+glacier    SWsrf      da019ec4a3c4831e          0              0        801.688        5.23214
+glacier    Sice       fe28ffe25373d307          0              0        571.547        18.1082
+glacier    Sliq       f6f65a338366eb84          0              0        17.0728       0.173385
+glacier    Sveg       1ec78189f35545d           0              0              0              0
+glacier    Tcan       6f7e448b7c2be60b          0         253.83        290.385        283.807
+glacier    Tsnow      1e20dfea7274b620          0        245.149         273.15        272.568
+glacier    Tsrf       cb4dbd425d8d515c          0        232.845        288.692        272.391
+glacier    Tveg       6f7e448b7c2be60b          0         253.83        290.385        283.807
+glacier    albs       d2d81dde9a56e1db          0            0.2           0.86       0.830779
+glacier    fsnow      834cb2a6cd39b010          0              0       0.999987      0.0682758
+glacier    snowdepth  964c5273b2363e41          0              0        1.71386      0.0630111
