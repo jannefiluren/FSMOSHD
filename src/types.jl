@@ -206,34 +206,10 @@ function FSM(grid::Grid, params::Parameters{Tf, Ti}, landuse::Landuse, state::St
         typeof(diag), typeof(physics)}(grid, params, landuse, state, diag, physics)
 end
 
-@inline function Base.getproperty(fsm::FSM, name::Symbol)
-    name === :grid    && return getfield(fsm, :grid)
-    name === :params  && return getfield(fsm, :params)
-    name === :landuse && return getfield(fsm, :landuse)
-    name === :state   && return getfield(fsm, :state)
-    name === :diag    && return getfield(fsm, :diag)
-    name === :physics && return getfield(fsm, :physics)
-    g = getfield(fsm, :grid);     hasfield(typeof(g), name)  && return getfield(g, name)
-    p = getfield(fsm, :params);   hasfield(typeof(p), name)  && return getfield(p, name)
-    l = getfield(fsm, :landuse);  hasfield(typeof(l), name)  && return getfield(l, name)
-    s = getfield(fsm, :state);    hasfield(typeof(s), name)  && return getfield(s, name)
-    d = getfield(fsm, :diag);     hasfield(typeof(d), name)  && return getfield(d, name)
-    ph = getfield(fsm, :physics); hasfield(typeof(ph), name) && return getfield(ph, name)
-    throw(ErrorException("type FSM has no property $name"))
-end
-
-@inline function Base.setproperty!(fsm::FSM, name::Symbol, x)
-    (name === :grid || name === :params || name === :landuse ||
-     name === :state || name === :diag || name === :physics) && return setfield!(fsm, name, x)
-    p = getfield(fsm, :params)
-    if hasfield(typeof(p), name)          # Parameters is immutable: functional update
-        v = convert(fieldtype(typeof(p), name), x)
-        return setfield!(fsm, :params, reconstruct(p; NamedTuple{(name,)}((v,))...))
-    end
-    ph = getfield(fsm, :physics)          # re-set a scheme to another of the same type
-    hasfield(typeof(ph), name) && return setfield!(fsm, :physics, merge(ph, NamedTuple{(name,)}((x,))))
-    throw(ErrorException("FSM property $name is not settable; mutate arrays in place with .="))
-end
+# No getproperty/setproperty! forwarding: fields are reached explicitly through
+# their sub-struct (fsm.state.Ds, fsm.diag.KH, fsm.params.dt, ...). Each
+# sub-struct is its own namespace, so a field name may repeat across them without
+# ambiguity.
 
 # FSM{Tf, Ti}(; Nx, Ny, schemes...) builds the model on plain CPU Arrays
 function (::Type{FSM{Tf, Ti}})(;

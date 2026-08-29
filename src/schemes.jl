@@ -61,3 +61,47 @@ function build_scheme(Tf, requested, Nx, Ny, params)
     return requested{Tf}(Nx, Ny; kwargs...)
 
 end
+
+# Route a scalar into the immutable Parameters via a functional update.
+@inline function set_param!(fsm, sym::Symbol, value)
+    v = convert(fieldtype(typeof(fsm.params), sym), value)
+    fsm.params = reconstruct(fsm.params; NamedTuple{(sym,)}((v,))...)
+    return fsm
+end
+
+"""
+    apply_config!(fsm, config, schemes)
+
+Apply each configuration flag (a `Parameters` scalar) onto `fsm.params`. Scheme
+keys are skipped - they were already built into the physics bundle.
+"""
+function apply_config!(fsm, config, schemes)
+    for (key, value) in config
+        sym = Symbol(key)
+        haskey(schemes, sym) && continue
+        hasfield(typeof(fsm.params), sym) || throw(ArgumentError("unknown config flag \"$key\""))
+        set_param!(fsm, sym, value)
+    end
+    return fsm
+end
+
+"""
+    apply_params!(fsm, params)
+
+Apply parameter overrides: a `Parameters` scalar is reconstructed onto `fsm.params`;
+a `Landuse` per-cell array is filled (scalar) or copied (array) in place.
+"""
+function apply_params!(fsm, params)
+    for (key, value) in params
+        sym = Symbol(key)
+        if hasfield(typeof(fsm.params), sym)
+            set_param!(fsm, sym, value)
+        elseif hasfield(typeof(fsm.landuse), sym)
+            arr = getfield(fsm.landuse, sym)
+            value isa AbstractArray ? (arr .= eltype(arr).(value)) : fill!(arr, eltype(arr)(value))
+        else
+            throw(ArgumentError("unknown parameter override \"$key\""))
+        end
+    end
+    return fsm
+end

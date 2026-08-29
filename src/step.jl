@@ -36,13 +36,13 @@ function step!(fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, t) where {Tf, Ti}
     thermal!(fsm)
 
     # 4. Iterative energy balance solution
-    for _ in 1:fsm.Nitr
+    for _ in 1:fsm.params.Nitr
         sfexch!(fsm, met)
-        surface_balance!(fsm.CANOPY, fsm, met)
+        surface_balance!(fsm.physics.CANOPY, fsm, met)
     end
 
     # 5. Canopy interception / unloading (a no-op without canopy)
-    canopy!(fsm.CANOPY, fsm, met)
+    canopy!(fsm.physics.CANOPY, fsm, met)
 
     # 6. Snow processes
     snow!(fsm, met, t)

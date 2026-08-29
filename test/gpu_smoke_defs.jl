@@ -46,14 +46,14 @@ const configs = [
 # Initial snowpack, set on the CPU structure before moving it to the device
 function init_snowpack!(fsm)
     for j in 1:Ny, i in 1:Nx
-        fsm.Nsnow[i, j] = 2
-        fsm.fsnow[i, j] = 1.0f0
+        fsm.state.Nsnow[i, j] = 2
+        fsm.state.fsnow[i, j] = 1.0f0
         for (k, ds) in enumerate((0.1f0, 0.2f0))
-            fsm.Ds[k, i, j] = ds
-            fsm.Sice[k, i, j] = (150.0f0 + 10.0f0 * (i % 5)) * ds
-            fsm.Sliq[k, i, j] = 0.0f0
-            fsm.Tsnow[k, i, j] = 263.0f0 + k
-            fsm.histowet[k, i, j] = 0.0f0
+            fsm.state.Ds[k, i, j] = ds
+            fsm.state.Sice[k, i, j] = (150.0f0 + 10.0f0 * (i % 5)) * ds
+            fsm.state.Sliq[k, i, j] = 0.0f0
+            fsm.state.Tsnow[k, i, j] = 263.0f0 + k
+            fsm.state.histowet[k, i, j] = 0.0f0
         end
     end
     return nothing

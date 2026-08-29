@@ -18,13 +18,10 @@ function setup_open_example(SNFRAC)
     lus["prec_multi"] = Dict("data" => [1.0;;])
 
     # define custom settings
-    settings = Dict("tile" => "open")
+    settings = Dict("tile" => "open", "config" => Dict("SNFRAC" => SNFRAC))
 
     # create fsm struct
     fsm = setup(Float32, Int32, lus, 1, 1, settings)
-
-    # Set snow cover fraction scheme
-    fsm.SNFRAC = SNFRAC
 
     # define meteo data struct
     met = MET{Float32, Int32}()
@@ -56,16 +53,19 @@ function setup_forest_example(SNFRAC)
     lus["vfhp"] = Dict("data" => [0.5;;]) # Hemispherical sky-view fraction including canopy
 
     # define custom settings
-    settings = Dict("tile" => "forest", "config" => Dict("EXCHNG" => 2, "ZOFFST" => 1))
+    settings = Dict(
+        "tile" => "forest",
+        "config" => Dict(
+            "EXCHNG" => 2,
+            "ZOFFST" => 1,
+            "SNFRAC" => SNFRAC,
+            # No preferential deposition in canopy gaps
+            "CANOPY" => OneLayerCanopy{Float32}(psr = 0, psf = 1),
+        ),
+    )
 
     # create fsm struct
     fsm = setup(Float32, Int32, lus, 1, 1, settings)
-
-    # Set snow cover fraction scheme
-    fsm.SNFRAC = SNFRAC
-
-    # No preferential deposition in canopy gaps
-    fsm.CANOPY = OneLayerCanopy{Float32}(psr = 0, psf = 1)
 
     # define meteo data struct
     met = MET{Float32, Int32}()
@@ -86,8 +86,8 @@ function run_fsm(fsm, met, df_meteo)
     Sbveg = zeros(nrow(df_meteo))
 
     # change in storage
-    dSWE = -sum(fsm.Sice[:, 1, 1] .+ fsm.Sliq[:, 1, 1])
-    dSveg = -fsm.Sveg[1, 1]
+    dSWE = -sum(fsm.state.Sice[:, 1, 1] .+ fsm.state.Sliq[:, 1, 1])
+    dSveg = -fsm.state.Sveg[1, 1]
 
     # time loop
     for (i, row) in zip(1:nrow(df_meteo), eachrow(df_meteo))
@@ -100,8 +100,8 @@ function run_fsm(fsm, met, df_meteo)
         met.Sdif .= row["Sdif"]
         met.Sdird .= row["Sdir"]
         met.LW .= row["LW"]
-        met.Sf .= row["Sf"] / fsm.dt  # Convert accumulation (kg/m^2) to rate (kg/m^2/s)
-        met.Rf .= row["Rf"] / fsm.dt  # Convert accumulation (kg/m^2) to rate (kg/m^2/s)
+        met.Sf .= row["Sf"] / fsm.params.dt  # Convert accumulation (kg/m^2) to rate (kg/m^2/s)
+        met.Rf .= row["Rf"] / fsm.params.dt  # Convert accumulation (kg/m^2) to rate (kg/m^2/s)
         met.Ta .= row["Ta"]
         met.RH .= row["RH"]
         met.Ua .= row["Ua"]
@@ -116,15 +116,15 @@ function run_fsm(fsm, met, df_meteo)
         step!(fsm, met, t)
 
         # record mass fluxes
-        Roff[i] = fsm.Roff[1, 1]
-        Sbsrf[i] = fsm.Sbsrf[1, 1]
-        Sbveg[i] = fsm.Sbveg[1, 1]
+        Roff[i] = fsm.diag.Roff[1, 1]
+        Sbsrf[i] = fsm.diag.Sbsrf[1, 1]
+        Sbveg[i] = fsm.diag.Sbveg[1, 1]
 
     end
 
     # change in storage
-    dSWE += sum(fsm.Sice[:, 1, 1] .+ fsm.Sliq[:, 1, 1])
-    dSveg += fsm.Sveg[1, 1]
+    dSWE += sum(fsm.state.Sice[:, 1, 1] .+ fsm.state.Sliq[:, 1, 1])
+    dSveg += fsm.state.Sveg[1, 1]
 
     return (
         prec = sum(prec),

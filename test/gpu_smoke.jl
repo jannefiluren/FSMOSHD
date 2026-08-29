@@ -98,14 +98,14 @@ const configs = [
 # Initial snowpack, set on the CPU structure before moving it to the device
 function init_snowpack!(fsm)
     for j in 1:Ny, i in 1:Nx
-        fsm.Nsnow[i, j] = 2
-        fsm.fsnow[i, j] = 1.0f0
+        fsm.state.Nsnow[i, j] = 2
+        fsm.state.fsnow[i, j] = 1.0f0
         for (k, ds) in enumerate((0.1f0, 0.2f0))
-            fsm.Ds[k, i, j] = ds
-            fsm.Sice[k, i, j] = (150.0f0 + 10.0f0 * (i % 5)) * ds
-            fsm.Sliq[k, i, j] = 0.0f0
-            fsm.Tsnow[k, i, j] = 263.0f0 + k
-            fsm.histowet[k, i, j] = 0.0f0
+            fsm.state.Ds[k, i, j] = ds
+            fsm.state.Sice[k, i, j] = (150.0f0 + 10.0f0 * (i % 5)) * ds
+            fsm.state.Sliq[k, i, j] = 0.0f0
+            fsm.state.Tsnow[k, i, j] = 263.0f0 + k
+            fsm.state.histowet[k, i, j] = 0.0f0
         end
     end
     return nothing
@@ -173,25 +173,28 @@ end
 # ---------------------------------------------------------------------------
 
 const compare_fields = [
-    # state
-    :Tsrf, :fsnow, :albs, :Ds, :Sice, :Sliq, :Tsnow, :Tsoil, :theta, :histowet,
-    :Sveg, :Tveg, :Tcan, :Qcan,
-    :swemin, :swemax, :swehist, :snowdepthmin, :snowdepthmax, :snowdepthhist,
+    # (sub-struct, field) — state
+    (:state, :Tsrf), (:state, :fsnow), (:state, :albs), (:state, :Ds), (:state, :Sice),
+    (:state, :Sliq), (:state, :Tsnow), (:state, :Tsoil), (:state, :theta), (:state, :histowet),
+    (:state, :Sveg), (:state, :Tveg), (:state, :Tcan), (:state, :Qcan),
+    (:state, :swemin), (:state, :swemax), (:state, :swehist),
+    (:state, :snowdepthmin), (:state, :snowdepthmax), (:state, :snowdepthhist),
     # fluxes and diagnostics
-    :H, :LE, :G, :Rnet, :Esrf, :Eveg, :Melt, :Roff, :meltflux_out, :Sbsrf, :Gsoil,
+    (:diag, :H), (:diag, :LE), (:diag, :G), (:diag, :Rnet), (:diag, :Esrf), (:diag, :Eveg),
+    (:diag, :Melt), (:diag, :Roff), (:diag, :meltflux_out), (:diag, :Sbsrf), (:diag, :Gsoil),
 ]
 
 function compare_case(name, fsm_cpu, fsm_dev; rtol = 1.0f-4, atol = 1.0f-5)
     println("\n--- $name ---------------------------------------------------")
     ok = true
 
-    ndiff = count(fsm_cpu.Nsnow .!= fsm_dev.Nsnow)
+    ndiff = count(fsm_cpu.state.Nsnow .!= fsm_dev.state.Nsnow)
     @printf("  %-15s %s (%d differing cells)\n", "Nsnow", ndiff == 0 ? "PASS" : "FAIL", ndiff)
     ok &= ndiff == 0
 
-    for field in compare_fields
-        a = getfield(fsm_cpu, field)
-        b = getfield(fsm_dev, field)
+    for (sub, field) in compare_fields
+        a = getfield(getfield(fsm_cpu, sub), field)
+        b = getfield(getfield(fsm_dev, sub), field)
         maxabs = maximum(abs.(a .- b))
         pass = isapprox(a, b; rtol = rtol, atol = atol)
         @printf("  %-15s %s (max abs diff %.3e)\n", field, pass ? "PASS" : "FAIL", maxabs)

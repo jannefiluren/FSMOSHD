@@ -51,111 +51,89 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
     # Tile type is a setup-local input, not stored on the model (Stage 7).
     tile = settings["tile"]
 
-    # Apply model configuration (config flags live on Parameters).
-    for (key, value) in config
-        haskey(schemes, Symbol(key)) && continue   # already applied at construction
-        if value isa Int
-            value = Ti(value)
-        end
-        setproperty!(fsm, Symbol(key), value)
-    end
+    # Apply config flags and parameter overrides to the right sub-struct.
+    apply_config!(fsm, config, schemes)
+    apply_params!(fsm, params)
 
-    # Apply parameter overrides (arrays mutated in place; scalars onto Parameters).
-    for (key, value) in params
-        field = Symbol(key)
-        existing = getproperty(fsm, field)
-        target_type = eltype(existing)
-        if existing isa AbstractArray
-            if value isa AbstractArray
-                existing .= target_type.(value)      # array override, in place
-            else
-                fill!(existing, target_type(value))  # scalar fills the array
-            end
-        else
-            setproperty!(fsm, field, target_type.(value))   # scalar to scalar
-        end
-    end
+    lu = fsm.landuse
+    st = fsm.state
 
     # Settings specific for FSNRHO=0 (fixed fresh snow density)
-    if (fsm.FSNRHO == 0)
-        fsm.rhof = fsm.rho0
+    if fsm.params.FSNRHO == 0
+        fsm.params = reconstruct(fsm.params; rhof = fsm.params.rho0)
     end
 
     # Derived soil parameters
-    mask = fsm.fcly .+ fsm.fsnd .> Tf(1)
-    fsm.fcly[mask] .= Tf(1) .- fsm.fsnd[mask]
+    mask = lu.fcly .+ lu.fsnd .> Tf(1)
+    lu.fcly[mask] .= Tf(1) .- lu.fsnd[mask]
 
-    fsm.b .= Tf(3.1) .+ Tf(15.7) .* fsm.fcly .- Tf(0.3) .* fsm.fsnd
-    fsm.hcap_soil .= (Tf(2.128) .* fsm.fcly .+ Tf(2.385) .* fsm.fsnd) .* Tf(1.0e6) ./ (fsm.fcly .+ fsm.fsnd)
-    fsm.sathh .= Tf(10) .^ (Tf(0.17) .- Tf(0.63) .* fsm.fcly .- Tf(1.58) .* fsm.fsnd)
-    fsm.Vsat .= Tf(0.505) .- Tf(0.037) .* fsm.fcly .- Tf(0.142) .* fsm.fsnd
-    fsm.Vcrit .= fsm.Vsat .* (fsm.sathh ./ Tf(3.364)) .^ (Tf(1) ./ fsm.b)
-    hcon_min = (hcon_clay .^ fsm.fcly) .* (hcon_sand .^ (Tf(1) .- fsm.fcly))
-    fsm.hcon_soil .= (hcon_air .^ fsm.Vsat) .* (hcon_min .^ (Tf(1) .- fsm.Vsat))
+    lu.b .= Tf(3.1) .+ Tf(15.7) .* lu.fcly .- Tf(0.3) .* lu.fsnd
+    lu.hcap_soil .= (Tf(2.128) .* lu.fcly .+ Tf(2.385) .* lu.fsnd) .* Tf(1.0e6) ./ (lu.fcly .+ lu.fsnd)
+    lu.sathh .= Tf(10) .^ (Tf(0.17) .- Tf(0.63) .* lu.fcly .- Tf(1.58) .* lu.fsnd)
+    lu.Vsat .= Tf(0.505) .- Tf(0.037) .* lu.fcly .- Tf(0.142) .* lu.fsnd
+    lu.Vcrit .= lu.Vsat .* (lu.sathh ./ Tf(3.364)) .^ (Tf(1) ./ lu.b)
+    hcon_min = (hcon_clay .^ lu.fcly) .* (hcon_sand .^ (Tf(1) .- lu.fcly))
+    lu.hcon_soil .= (hcon_air .^ lu.Vsat) .* (hcon_min .^ (Tf(1) .- lu.Vsat))
 
     # Initial soil profiles
-    for k in 1:fsm.Nsoil
-        fsm.theta[k, :, :] .= fsm.fsat * fsm.Vsat[:, :]
-        fsm.Tsoil[k, :, :] .= fsm.Tprof
+    for k in 1:fsm.grid.Nsoil
+        st.theta[k, :, :] .= fsm.params.fsat * lu.Vsat[:, :]
+        st.Tsoil[k, :, :] .= fsm.params.Tprof
     end
 
     # Cap surface and soil temperatures for glacier
-    if (fsm.SUBSTR isa IceSubstrate)
-        fsm.Tsrf .= min.(fsm.Tsrf, Tm)
-        fsm.Tsoil .= min.(fsm.Tsoil, Tm)
+    if fsm.physics.SUBSTR isa IceSubstrate
+        st.Tsrf .= min.(st.Tsrf, Tm)
+        st.Tsoil .= min.(st.Tsoil, Tm)
     end
 
     # Load terrain properties from landuse data
-    fsm.fsky_terr .= Tf.(landuse["skyvf"]["data"])
-    fsm.dem .= Tf.(landuse["elevation"]["data"])
-    fsm.prec_multi .= landuse["prec_multi"]["data"]   # TODO hack float64
+    lu.fsky_terr .= Tf.(landuse["skyvf"]["data"])
+    lu.dem .= Tf.(landuse["elevation"]["data"])
+    lu.prec_multi .= landuse["prec_multi"]["data"]   # TODO hack float64
 
     # Set tile fractions non open tiles
-    if (tile != "open")
-        fsm.tilefrac .= Tf.(landuse[lowercase(tile)]["data"])
+    if tile != "open"
+        lu.tilefrac .= Tf.(landuse[lowercase(tile)]["data"])
     end
 
     # Initialize snow cover fraction specific variables
-    fsm.slopemu .= Tf.(landuse["slopemu"]["data"])
-    fsm.xi .= Tf.(landuse["xi"]["data"])
-    fsm.Ld .= Tf.(landuse["Ld"]["data"])
+    lu.slopemu .= Tf.(landuse["slopemu"]["data"])
+    lu.xi .= Tf.(landuse["xi"]["data"])
+    lu.Ld .= Tf.(landuse["Ld"]["data"])
 
     # Canopy properties
-    if (tile == "forest")
+    if tile == "forest"
 
-        fsm.fveg .= Tf.(landuse["fveg"]["data"])
-        fsm.hcan .= Tf.(landuse["hcan"]["data"])
-        fsm.lai .= Tf.(landuse["lai"]["data"])
-        fsm.vfhp .= Tf.(landuse["vfhp"]["data"])
-        fsm.fves .= Tf.(landuse["fves"]["data"])
+        lu.fveg .= Tf.(landuse["fveg"]["data"])
+        lu.hcan .= Tf.(landuse["hcan"]["data"])
+        lu.lai .= Tf.(landuse["lai"]["data"])
+        lu.vfhp .= Tf.(landuse["vfhp"]["data"])
+        lu.fves .= Tf.(landuse["fves"]["data"])
 
-        fsm.pmultf .= Tf.((1 .- (1 .- landuse["prec_multi"]["data"]) .* (1 .- landuse["forest"]["data"] * fsm.pmultf_for)) ./ landuse["prec_multi"]["data"])   # TODO if this works, integrate with prec_multi instead...
+        lu.pmultf .= Tf.((1 .- (1 .- landuse["prec_multi"]["data"]) .* (1 .- landuse["forest"]["data"] * fsm.params.pmultf_for)) ./ landuse["prec_multi"]["data"])   # TODO if this works, integrate with prec_multi instead...
 
-        fsm.VAI[:, :] = fsm.lai[:, :]
-        fsm.trcn[:, :] = Tf(1) .- Tf(0.9) .* fsm.fveg[:, :]
-        fsm.fsky .= fsm.vfhp ./ fsm.trcn
+        lu.VAI[:, :] = lu.lai[:, :]
+        lu.trcn[:, :] = Tf(1) .- Tf(0.9) .* lu.fveg[:, :]
+        lu.fsky .= lu.vfhp ./ lu.trcn
         # Handle values where fsky > 1
-        mask = fsm.fsky .> Tf(1)
-        fsm.trcn[mask] .= fsm.vfhp[mask]
-        fsm.fsky[mask] .= Tf(1)
+        mask = lu.fsky .> Tf(1)
+        lu.trcn[mask] .= lu.vfhp[mask]
+        lu.fsky[mask] .= Tf(1)
     end
 
-    # A tile is a configuration plus the cells whose data is valid for that configuration.
-    # tilefrac >= tthresh is the mask; narrow it here by the configuration's own requirement,
-    # so the kernels never have to re-derive it per cell. For a canopy tile that requirement
-    # is fveg > 0: a cell with no canopy does not belong to the forest tile, and its area is
-    # covered by the open tile, which spans the whole domain.
-    if (tile == "forest")
-        canopy_free = (fsm.tilefrac .>= fsm.tthresh) .& (fsm.fveg .<= 0)
+    # Narrow the tile mask by the configuration's data requirement (canopy tile: fveg > 0).
+    if tile == "forest"
+        canopy_free = (lu.tilefrac .>= fsm.params.tthresh) .& (lu.fveg .<= 0)
         dropped = count(canopy_free)
         if dropped > 0
             @warn "forest tile: $dropped active cell(s) have fveg == 0 and are excluded from the tile"
-            fsm.tilefrac[canopy_free] .= Tf(0)
+            lu.tilefrac[canopy_free] .= Tf(0)
         end
     end
 
-    fsm.canh[:, :] = Tf(12500) * fsm.VAI[:, :]
-    fsm.scap[:, :] = fsm.cvai * fsm.VAI[:, :]
+    lu.canh[:, :] = Tf(12500) * lu.VAI[:, :]
+    lu.scap[:, :] = fsm.params.cvai * lu.VAI[:, :]
 
     # The whole setup above runs on the CPU (it uses scalar indexing); the
     # finished structure is moved to the target architecture in one step.

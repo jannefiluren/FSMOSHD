@@ -120,8 +120,8 @@ function run_simulations(settings, Tf = Float32, Ti = Int32)
         met.Sdif[:, :] = data_meteo["Sdif"][:, :, timestep]
         met.Sdird[:, :] = data_meteo["Sdird"][:, :, timestep]
         met.LW[:, :] = data_meteo["LW"][:, :, timestep]
-        met.Sf[:, :] = data_meteo["Sf"][:, :, timestep] ./ fsm.dt  # Convert accumulation to rate (kg/m^2/s)
-        met.Rf[:, :] = data_meteo["Rf"][:, :, timestep] ./ fsm.dt  # Convert accumulation to rate (kg/m^2/s)
+        met.Sf[:, :] = data_meteo["Sf"][:, :, timestep] ./ fsm.params.dt  # Convert accumulation to rate (kg/m^2/s)
+        met.Rf[:, :] = data_meteo["Rf"][:, :, timestep] ./ fsm.params.dt  # Convert accumulation to rate (kg/m^2/s)
         met.Ta[:, :] = data_meteo["Ta"][:, :, timestep]
         met.RH[:, :] = data_meteo["RH"][:, :, timestep]
         met.Ua[:, :] = data_meteo["Ua"][:, :, timestep]
@@ -132,9 +132,9 @@ function run_simulations(settings, Tf = Float32, Ti = Int32)
 
         # Update snowfall tracking
         curr_hour = Dates.value(Hour(t)) + 1
-        met.Sf24h_f64 .+= met.Sf .* fsm.dt  # Convert rate back to accumulation for 24h sum
+        met.Sf24h_f64 .+= met.Sf .* fsm.params.dt  # Convert rate back to accumulation for 24h sum
         met.Sf24h_f64 .-= met.Sf_history_f64[:, :, curr_hour]
-        met.Sf_history_f64[:, :, curr_hour] .= met.Sf .* fsm.dt
+        met.Sf_history_f64[:, :, curr_hour] .= met.Sf .* fsm.params.dt
         met.Sf24h[:, :] .= met.Sf24h_f64
 
         # Run model
@@ -144,28 +144,28 @@ function run_simulations(settings, Tf = Float32, Ti = Int32)
         simulation_results["timestamps"][timestep] = string(t)
 
         # Store state variables
-        simulation_results["Tsrf"][:, :, timestep] .= fsm.Tsrf
-        simulation_results["Tsnow"][:, :, timestep] .= fsm.Tsnow[1, :, :]  # First snow layer
-        simulation_results["Sice"][:, :, timestep] .= dropdims(sum(fsm.Sice, dims = 1), dims = 1)  # Total snow ice
-        simulation_results["Sliq"][:, :, timestep] .= dropdims(sum(fsm.Sliq, dims = 1), dims = 1)  # Total snow liquid
-        simulation_results["fsnow"][:, :, timestep] .= fsm.fsnow
-        simulation_results["albs"][:, :, timestep] .= fsm.albs
-        simulation_results["Sveg"][:, :, timestep] .= fsm.Sveg
-        simulation_results["Tveg"][:, :, timestep] .= fsm.Tveg
-        simulation_results["Tcan"][:, :, timestep] .= fsm.Tcan
+        simulation_results["Tsrf"][:, :, timestep] .= fsm.state.Tsrf
+        simulation_results["Tsnow"][:, :, timestep] .= fsm.state.Tsnow[1, :, :]  # First snow layer
+        simulation_results["Sice"][:, :, timestep] .= dropdims(sum(fsm.state.Sice, dims = 1), dims = 1)  # Total snow ice
+        simulation_results["Sliq"][:, :, timestep] .= dropdims(sum(fsm.state.Sliq, dims = 1), dims = 1)  # Total snow liquid
+        simulation_results["fsnow"][:, :, timestep] .= fsm.state.fsnow
+        simulation_results["albs"][:, :, timestep] .= fsm.state.albs
+        simulation_results["Sveg"][:, :, timestep] .= fsm.state.Sveg
+        simulation_results["Tveg"][:, :, timestep] .= fsm.state.Tveg
+        simulation_results["Tcan"][:, :, timestep] .= fsm.state.Tcan
 
         # Store flux variables
-        simulation_results["SWsrf"][:, :, timestep] .= fsm.SWsrf
-        simulation_results["H"][:, :, timestep] .= fsm.H
-        simulation_results["LE"][:, :, timestep] .= fsm.LE
-        simulation_results["G"][:, :, timestep] .= fsm.G
-        simulation_results["Melt"][:, :, timestep] .= fsm.Melt
-        simulation_results["Esrf"][:, :, timestep] .= fsm.Esrf
-        simulation_results["Eveg"][:, :, timestep] .= fsm.Eveg
-        simulation_results["Rnet"][:, :, timestep] .= fsm.Rnet
+        simulation_results["SWsrf"][:, :, timestep] .= fsm.diag.SWsrf
+        simulation_results["H"][:, :, timestep] .= fsm.diag.H
+        simulation_results["LE"][:, :, timestep] .= fsm.diag.LE
+        simulation_results["G"][:, :, timestep] .= fsm.diag.G
+        simulation_results["Melt"][:, :, timestep] .= fsm.diag.Melt
+        simulation_results["Esrf"][:, :, timestep] .= fsm.diag.Esrf
+        simulation_results["Eveg"][:, :, timestep] .= fsm.diag.Eveg
+        simulation_results["Rnet"][:, :, timestep] .= fsm.diag.Rnet
 
         # Store diagnostic variables
-        simulation_results["Ds"][:, :, timestep] .= dropdims(sum(fsm.Ds, dims = 1), dims = 1)  # Total snow depth
+        simulation_results["Ds"][:, :, timestep] .= dropdims(sum(fsm.state.Ds, dims = 1), dims = 1)  # Total snow depth
         simulation_results["snowdepth"][:, :, timestep] .= simulation_results["Ds"][:, :, timestep] .* simulation_results["fsnow"][:, :, timestep]
 
     end
