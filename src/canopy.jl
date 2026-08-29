@@ -64,23 +64,25 @@ launched over the whole grid (see `ebalsrf!` for the pattern).
 """
 function canopy!(::OneLayerCanopy, fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
-    @unpack tthresh = fsm
+    (; tthresh) = fsm.params
 
-    @unpack Sfeff = fsm
+    (; Sfeff) = fsm.diag
 
-    @unpack Nx, Ny, dt = fsm
+    (; Nx, Ny) = fsm.grid
+    (; dt) = fsm.params
 
-    @unpack tcnc, tcnm, CANOPY = fsm
+    (; tcnc, tcnm) = fsm.params
+    (; CANOPY) = fsm.physics
 
-    @unpack scap = fsm
+    (; scap) = fsm.landuse
 
-    @unpack Sveg, Tveg = fsm
+    (; Sveg, Tveg) = fsm.state
 
-    @unpack fveg, pmultf, tilefrac = fsm
+    (; fveg, pmultf, tilefrac) = fsm.landuse
 
-    @unpack Eveg = fsm
+    (; Eveg) = fsm.diag
 
-    @unpack intcpt, Sbveg, unload = fsm
+    (; intcpt, Sbveg, unload) = fsm.diag
 
     backend = get_backend(Sveg)
     kernel! = canopy_kernel!(backend)

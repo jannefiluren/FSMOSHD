@@ -15,7 +15,7 @@ function drive!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: I
 
     @unpack_constants(Tf)
 
-    @unpack es, Qa, Uaeff, Sfeff = fsm
+    (; es, Qa, Uaeff, Sfeff) = fsm.diag
 
     @unpack Ua, Sf, Ta, RH, Ps = meteo
 

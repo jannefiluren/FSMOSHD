@@ -14,27 +14,28 @@ bit-identical results to the former plain loops.
 """
 function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
-    @unpack SUBSTR, tthresh = fsm
+    (; SUBSTR) = fsm.physics
+    (; tthresh) = fsm.params
 
-    @unpack dt = fsm
+    (; dt) = fsm.params
 
-    @unpack Nx, Ny = fsm
+    (; Nx, Ny) = fsm.grid
 
-    @unpack trcn = fsm
+    (; trcn) = fsm.landuse
 
-    @unpack Sice, Tcan, Tsrf, Tveg = fsm
+    (; Sice, Tcan, Tsrf, Tveg) = fsm.state
 
-    @unpack fveg, tilefrac = fsm
+    (; fveg, tilefrac) = fsm.landuse
 
-    @unpack SWsrf = fsm
+    (; SWsrf) = fsm.diag
 
-    @unpack Ds1, Ts1, ks1 = fsm
+    (; Ds1, Ts1, ks1) = fsm.diag
 
-    @unpack Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf = fsm
+    (; Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf) = fsm.diag
 
-    @unpack KH, KWg, KHa, KHv, KWv, SWveg = fsm
+    (; KH, KWg, KHa, KHv, KWv, SWveg) = fsm.diag
 
-    @unpack Qa, LWeff = fsm
+    (; Qa, LWeff) = fsm.diag
 
     @unpack Ps, Ta = meteo
 

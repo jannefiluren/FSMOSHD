@@ -56,19 +56,21 @@ cell, so the fusion is exact.
 """
 function thermal!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
-    @unpack Dzsnow, Dzsoil, Nsmax, Nsoil, Nx, Ny = fsm
+    (; Dzsnow, Dzsoil, Nsmax, Nsoil, Nx, Ny) = fsm.grid
 
-    @unpack gsat, rhof = fsm
+    (; gsat, rhof) = fsm.params
 
-    @unpack b, hcap_soil, hcon_soil, sathh, Vcrit, Vsat = fsm
+    (; b, hcap_soil, hcon_soil, sathh, Vcrit, Vsat) = fsm.landuse
 
-    @unpack Ds, Nsnow, fsnow, Sice, Sliq, theta, Tsnow, Tsoil, Tveg = fsm
+    (; Ds, Nsnow, fsnow, Sice, Sliq, theta, Tsnow, Tsoil, Tveg) = fsm.state
 
-    @unpack tilefrac, tthresh = fsm
+    (; tilefrac) = fsm.landuse
+    (; tthresh) = fsm.params
 
-    @unpack CONDCT, DENSTY, SUBSTR = fsm
+    (; CONDCT, SUBSTR) = fsm.physics
+    (; DENSTY) = fsm.params
 
-    @unpack ksnow, csoil, ksoil, gs1, Ds1, Ts1, ks1, Tveg0 = fsm
+    (; ksnow, csoil, ksoil, gs1, Ds1, Ts1, ks1, Tveg0) = fsm.diag
 
     # Strings cannot cross into kernels: resolve the tile test here
 

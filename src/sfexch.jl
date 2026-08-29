@@ -12,27 +12,28 @@ launched over the whole grid (see `ebalsrf!` for the pattern).
 """
 function sfexch!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
-    @unpack ZOFFST, EXCHNG, SNFRAC = fsm
+    (; ZOFFST, EXCHNG, SNFRAC) = fsm.params
 
-    @unpack tthresh = fsm
+    (; tthresh) = fsm.params
 
-    @unpack zT, zU = fsm
+    (; zT, zU) = fsm.params
 
-    @unpack Nx, Ny = fsm
+    (; Nx, Ny) = fsm.grid
 
-    @unpack bstb, cden, cveg, gsnf, rchd, rchz, wcan, zsub, zgf, zgr, khcf, z0_snow = fsm
+    (; bstb, cden, cveg, gsnf, rchd, rchz, wcan, zsub, zgf, zgr, khcf) = fsm.params
+    (; z0_snow) = fsm.landuse
 
-    @unpack VAI, z0sf = fsm
+    (; VAI, z0sf) = fsm.landuse
 
-    @unpack Qcan, fsnow, Sice, Sveg, Tcan, Tsrf, Tveg, Ds = fsm
+    (; Qcan, fsnow, Sice, Sveg, Tcan, Tsrf, Tveg, Ds) = fsm.state
 
-    @unpack fveg, fves, hcan, tilefrac = fsm
+    (; fveg, fves, hcan, tilefrac) = fsm.landuse
 
-    @unpack KH, KHa, KHg, KHv, KWg, KWv, Usc = fsm
+    (; KH, KHa, KHg, KHv, KWg, KWv, Usc) = fsm.diag
 
-    @unpack gs1 = fsm
+    (; gs1) = fsm.diag
 
-    @unpack Qa, Uaeff = fsm
+    (; Qa, Uaeff) = fsm.diag
 
     @unpack Ta, Ps = meteo
 

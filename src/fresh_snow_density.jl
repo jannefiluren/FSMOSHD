@@ -51,6 +51,6 @@ end
 Convenience method taking the configuration and parameters from `fsm`.
 """
 function fresh_snow_density!(fsm::FSM{Tf, Ti}, Ta, Ua, dem) where {Tf <: Real, Ti <: Integer}
-    @unpack FSNRHO, rho0, rhob, rhoc, rhof, rhos_min = fsm
+    (; FSNRHO, rho0, rhob, rhoc, rhof, rhos_min) = fsm.params
     return fresh_snow_density(FSNRHO, rho0, rhob, rhoc, rhof, rhos_min, Tf(Ta), Tf(Ua), Tf(dem))
 end

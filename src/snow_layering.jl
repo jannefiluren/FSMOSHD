@@ -12,17 +12,18 @@ test on `t` is resolved on the host.
 """
 function snow_layering!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, snowdepth0, Sice0, t) where {Tf <: Real, Ti <: Integer}
 
-    @unpack SNOLAY, SNFRAC, Tsnow_min = fsm
-    @unpack tthresh, hfsn = fsm
-    @unpack Nsmax, Nx, Ny, Dzsnow, Ds_min, Ds_surflay = fsm
-    @unpack rho0 = fsm
-    @unpack Sice, Sliq, Ds, histowet, Nsnow, fsnow, Tsnow = fsm
-    @unpack tilefrac = fsm
+    (; SNOLAY, SNFRAC, Tsnow_min) = fsm.params
+    (; tthresh, hfsn) = fsm.params
+    (; Nsmax, Nx, Ny, Dzsnow) = fsm.grid
+    (; Ds_min, Ds_surflay) = fsm.params
+    (; rho0) = fsm.params
+    (; Sice, Sliq, Ds, histowet, Nsnow, fsnow, Tsnow) = fsm.state
+    (; tilefrac) = fsm.landuse
     @unpack Ta = meteo
-    @unpack Ds0 = fsm
-    @unpack swehist, swemin, swemax = fsm
-    @unpack snowdepthhist, snowdepthmin, snowdepthmax = fsm
-    @unpack slopemu, xi, Ld = fsm
+    (; Ds0) = fsm.diag
+    (; swehist, swemin, swemax) = fsm.state
+    (; snowdepthhist, snowdepthmin, snowdepthmax) = fsm.state
+    (; slopemu, xi, Ld) = fsm.landuse
 
     # Initialize Ds0
     Ds0 .= Tf(0)

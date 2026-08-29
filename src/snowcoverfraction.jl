@@ -273,10 +273,10 @@ function-local (they were always pure workspace).
 """
 function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::DateTime, i::Int, j::Int, SWEbuffer::AbstractArray{Tf}, snowdepthbuffer::AbstractArray{Tf}, diffSWEbuffer::AbstractArray{Tf}) where {Tf <: Real, Ti <: Integer}
 
-    @unpack SNFRAC, hfsn = fsm
-    @unpack fsnow, swehist, swemin, swemax = fsm
-    @unpack snowdepthhist, snowdepthmin, snowdepthmax = fsm
-    @unpack slopemu, xi, Ld = fsm
+    (; SNFRAC, hfsn) = fsm.params
+    (; fsnow, swehist, swemin, swemax) = fsm.state
+    (; snowdepthhist, snowdepthmin, snowdepthmax) = fsm.state
+    (; slopemu, xi, Ld) = fsm.landuse
 
     # update history of SWE and hs only if they correspond to 6:00am values
     update_hist = 4.5 < hour(t) < 5.5

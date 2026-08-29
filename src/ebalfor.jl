@@ -14,23 +14,24 @@ solves its own 4x4 linear system (`ludcmp!`) using kernel-local
 """
 function ebalfor!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
-    @unpack tthresh = fsm
+    (; tthresh) = fsm.params
 
-    @unpack Qa, LWeff = fsm
+    (; Qa, LWeff) = fsm.diag
 
     @unpack Ps, Ta = meteo
 
-    @unpack Nx, Ny, dt = fsm
+    (; Nx, Ny) = fsm.grid
+    (; dt) = fsm.params
 
-    @unpack canh, fsky, trcn = fsm
+    (; canh, fsky, trcn) = fsm.landuse
 
-    @unpack Qcan, Sice, Tcan, Tsrf, Tveg = fsm
+    (; Qcan, Sice, Tcan, Tsrf, Tveg) = fsm.state
 
-    @unpack fveg, tilefrac = fsm
+    (; fveg, tilefrac) = fsm.landuse
 
-    @unpack Ds1, KHa, KHg, KHv, KWg, KWv, ks1, SWsrf, SWveg, Ts1, Tveg0 = fsm
+    (; Ds1, KHa, KHg, KHv, KWg, KWv, ks1, SWsrf, SWveg, Ts1, Tveg0) = fsm.diag
 
-    @unpack Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf = fsm
+    (; Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf) = fsm.diag
 
     backend = get_backend(Tsrf)
     kernel! = ebalfor_kernel!(backend)

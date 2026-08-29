@@ -18,29 +18,29 @@ called afterwards on the host, as before.
 """
 function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <: Integer}
 
-    @unpack HYDROL, DENSTY, SNFRAC, FSNRHO, Tsnow_min = fsm
+    (; HYDROL, DENSTY, SNFRAC, FSNRHO, Tsnow_min) = fsm.params
 
-    @unpack tthresh = fsm
+    (; tthresh) = fsm.params
 
-    @unpack dt = fsm
+    (; dt) = fsm.params
 
-    @unpack Dzsoil, Nsmax, Nx, Ny = fsm
+    (; Dzsoil, Nsmax, Nx, Ny) = fsm.grid
 
-    @unpack a_eta, b_eta, c_eta, eta0, eta1, rho0, rhob, rhoc, rhof, rhos_min, rcld, rmlt, snda, trho, Wirr, rhos_max = fsm
+    (; a_eta, b_eta, c_eta, eta0, eta1, rho0, rhob, rhoc, rhof, rhos_min, rcld, rmlt, snda, trho, Wirr, rhos_max) = fsm.params
 
-    @unpack Ds, Nsnow, fsnow, rgrn, Sice, Sliq, Tsnow, Tsoil, Tsrf, histowet = fsm
+    (; Ds, Nsnow, fsnow, rgrn, Sice, Sliq, Tsnow, Tsoil, Tsrf, histowet) = fsm.state
 
-    @unpack dem, tilefrac = fsm
+    (; dem, tilefrac) = fsm.landuse
 
-    @unpack ksnow, ksoil = fsm
+    (; ksnow, ksoil) = fsm.diag
 
-    @unpack Esrf, G, Melt = fsm
+    (; Esrf, G, Melt) = fsm.diag
 
-    @unpack Gsoil, Roff, meltflux_out, Sbsrf, Roff_bare, Roff_snow, unload = fsm
+    (; Gsoil, Roff, meltflux_out, Sbsrf, Roff_bare, Roff_snow, unload) = fsm.diag
 
-    @unpack snowdepth0, Sice0 = fsm
+    (; snowdepth0, Sice0) = fsm.diag
 
-    @unpack Sfeff, Uaeff = fsm
+    (; Sfeff, Uaeff) = fsm.diag
 
     @unpack Rf, Ta = meteo
 
