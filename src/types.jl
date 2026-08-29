@@ -13,24 +13,18 @@ end
     zU::Tf = 10                                      # Wind speed measurement height (m)
     zRH::Tf = 10                                     # Relative humidity measurement height (m)
     DENSTY::Ti = 3                                   # Snow density (0, 1, 2, 3)
-    EXCHNG::Ti = 1                                   # Turbulent exchange (0, 1)
     HYDROL::Ti = 2                                   # Snow hydraulics (0, 1, 2)
     SNFRAC::Ti = 3                                   # Snow cover fraction (0, 1, 2, 3, 4)
-    ZOFFST::Ti = 0                                   # Measurement height offset (0, 1)
     FSNRHO::Ti = 2                                   # Fresh snow density (0, 1, 2)
     SNOLAY::Ti = 0                                   # Density-dependent layering (0, 1)
     tthresh::Tf = 0.1                                # Tile threshold
     Nitr::Ti = 4                                     # Iterations for surface energy balance
-    cden::Tf = 0.004                                 # Dense canopy turbulent transfer coefficient (-)
     cvai::Tf = 4.4                                   # Canopy snow capacity per unit vegetation area index (kg/m^2)
-    cveg::Tf = 20                                    # Vegetation turbulent transfer coefficient ((s/m)^0.5)
     Gcn1::Tf = 0.5                                   # Leaf angle distribution parameter (-)
     Gcn2::Tf = 0                                     # Leaf angle distribution parameter (-)
     gsnf::Tf = 0                                     # Snow-free vegetation moisture conductance (m/s)
     kdif::Tf = 0.5                                   # Diffuse radiation extinction coefficient (-)
     kveg::Tf = 1                                     # Canopy cover coefficient (-)
-    rchd::Tf = 0.67                                  # Ratio of displacement height to canopy height (-)
-    rchz::Tf = 0.2                                   # Ratio of roughness length to canopy height (-)
     tcnc::Tf = 3600 * 240                            # Canopy unloading time scale for cold snow (s)
     tcnm::Tf = 3600 * 48                             # Canopy unloading time scale for melting snow (s)
     pmultf_for::Tf = 0.5                             # Multiplier for snowfall in forest (-)
@@ -56,13 +50,8 @@ end
     Wirr::Tf = 0.03                                  # Irreducible liquid water content of snow (-)
     Ds_min::Tf = 0.01                                # Minimum possible snow layer thickness (m)
     Ds_surflay::Tf = 0.5                             # Maximum thickness of surface fine snow layering (m)
-    bstb::Tf = 5                                     # Atmospheric stability parameter (-)
     gsat::Tf = 0.01                                  # Surface conductance for saturated soil (m/s)
-    wcan::Tf = 2.5                                   # Parameter of exponential wind profile (-)
     zsub::Tf = 2                                     # Sub-canopy reference height (m)
-    zgf::Tf = 1                                      # Roughness length adjustment factor vs vegetation fraction (-)
-    zgr::Tf = 0                                      # Roughness length adjustment range vs vegetation fraction (-)
-    khcf::Tf = 3                                     # Diffusivity adjustment for canopy effects (-)
     fsat::Tf = 0.5                                   # Initial soil moisture as fraction of saturation
     Tprof::Tf = 285                                  # Initial soil layer temperatures (K)
 end
@@ -217,7 +206,10 @@ function (::Type{FSM{Tf, Ti}})(;
         ALBEDO = PrognosticAlbedo{Tf}(Nx, Ny),
         CANOPY = NoCanopy{Tf}(),
         SUBSTR = SoilSubstrate{Tf}(),
-        CONDCT = DensityConductivity{Tf}()) where {Tf, Ti}
+        CONDCT = DensityConductivity{Tf}(),
+        reference_height = AboveGround{Tf}(),
+        surface_layer = OpenSurfaceLayer{Tf}(),
+        stability = LouisStabilityCorrection{Tf}()) where {Tf, Ti}
 
     grid    = Grid{Ti, Vector{Tf}}(; Nx = Nx, Ny = Ny)
     GT      = typeof(grid)
@@ -225,7 +217,8 @@ function (::Type{FSM{Tf, Ti}})(;
     landuse = Landuse{Tf, GT, Matrix{Tf}, Matrix{Float64}}(; grid = grid)
     state   = State{Tf, Ti, GT, Matrix{Tf}, Matrix{Ti}, Array{Tf, 3}}(; grid = grid)
     diag    = Diagnostics{Tf, GT, Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
-    physics = (ALBEDO = ALBEDO, CANOPY = CANOPY, SUBSTR = SUBSTR, CONDCT = CONDCT)
+    physics = (ALBEDO = ALBEDO, CANOPY = CANOPY, SUBSTR = SUBSTR, CONDCT = CONDCT,
+        reference_height = reference_height, surface_layer = surface_layer, stability = stability)
 
     all(s -> s isa AbstractParameterization{Tf}, values(physics)) ||
         throw(ArgumentError("physics scheme precision does not match model Tf = $Tf"))

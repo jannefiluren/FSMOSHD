@@ -32,8 +32,12 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
 
     # Create fsm object. Parameterizations are type parameters, so they must be
     # chosen at construction: setfield! cannot change a field's type afterwards.
-    config = get(settings, "config", Dict())
+    config = copy(get(settings, "config", Dict()))
     params = copy(get(settings, "params", Dict()))
+    # EXCHNG/ZOFFST are integer flags that select surface-exchange schemes; consume
+    # them here so they are not re-applied as Parameters below.
+    EXCHNG = Int(pop!(config, "EXCHNG", 1))
+    ZOFFST = Int(pop!(config, "ZOFFST", 0))
     schemes = (
         ALBEDO = build_scheme(Tf, get(config, "ALBEDO", PrognosticAlbedo), Nx, Ny, params),
         CANOPY = build_scheme(Tf, get(config, "CANOPY",
@@ -41,6 +45,9 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
         SUBSTR = build_scheme(Tf, get(config, "SUBSTR",
             settings["tile"] == "glacier" ? IceSubstrate : SoilSubstrate), Nx, Ny, params),
         CONDCT = build_scheme(Tf, get(config, "CONDCT", DensityConductivity), Nx, Ny, params),
+        reference_height = build_scheme(Tf, ZOFFST == 0 ? AboveGround : AboveCanopy, Nx, Ny, params),
+        surface_layer = build_scheme(Tf, EXCHNG == 2 ? ForestSurfaceLayer : OpenSurfaceLayer, Nx, Ny, params),
+        stability = build_scheme(Tf, EXCHNG == 1 ? LouisStabilityCorrection : NoStabilityCorrection, Nx, Ny, params),
     )
     fsm = FSM{Tf, Ti}(; Nx = Nx, Ny = Ny, schemes...)
 

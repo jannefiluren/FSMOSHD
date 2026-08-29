@@ -10,6 +10,9 @@ abstract type AbstractConductivity{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractAlbedo{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractCanopy{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractSubstrate{Tf} <: AbstractParameterization{Tf} end
+abstract type AbstractReferenceHeight{Tf} <: AbstractParameterization{Tf} end
+abstract type AbstractSurfaceLayer{Tf} <: AbstractParameterization{Tf} end
+abstract type AbstractStabilityCorrection{Tf} <: AbstractParameterization{Tf} end
 
 # KernelAbstractions is imported qualified because it exports its own CPU/GPU
 # names, which would clash with the architecture types defined here.
@@ -50,6 +53,9 @@ export AbstractConductivity, FixedConductivity, DensityConductivity, snow_conduc
 export AbstractAlbedo, DiagnosticAlbedo, DecayAlbedo, PrognosticAlbedo, snow_albedo!
 export AbstractCanopy, NoCanopy, OneLayerCanopy, surface_balance!
 export AbstractSubstrate, SoilSubstrate, IceSubstrate
+export AbstractReferenceHeight, AboveGround, AboveCanopy
+export AbstractSurfaceLayer, OpenSurfaceLayer, ForestSurfaceLayer
+export AbstractStabilityCorrection, NoStabilityCorrection, LouisStabilityCorrection
 export AbstractArchitecture, CPU, GPU, on_architecture
 export canopy!, radiation!, thermal!, sfexch!, ebalsrf!, ebalfor!, snow!, soil!, snowcoverfraction!
 export qsat, tridiag!, ludcmp!
