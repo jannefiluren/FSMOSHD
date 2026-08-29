@@ -51,26 +51,28 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
     # Tile type is a setup-local input, not stored on the model (Stage 7).
     tile = settings["tile"]
 
-    # Apply model configuration
+    # Apply model configuration (config flags live on Parameters).
     for (key, value) in config
         haskey(schemes, Symbol(key)) && continue   # already applied at construction
         if value isa Int
             value = Ti(value)
         end
-        setfield!(fsm, Symbol(key), value)
+        setproperty!(fsm, Symbol(key), value)
     end
 
-    # Apply parameter overrides
+    # Apply parameter overrides (arrays mutated in place; scalars onto Parameters).
     for (key, value) in params
         field = Symbol(key)
-        existing = getfield(fsm, field)
+        existing = getproperty(fsm, field)
         target_type = eltype(existing)
-        if existing isa AbstractArray && !(value isa AbstractArray)
-            # scalar overriding an array field: fill the entire array
-            fill!(existing, target_type(value))
+        if existing isa AbstractArray
+            if value isa AbstractArray
+                existing .= target_type.(value)      # array override, in place
+            else
+                fill!(existing, target_type(value))  # scalar fills the array
+            end
         else
-            # scalar to scalar, or array to array: assign directly
-            setfield!(fsm, field, target_type.(value))
+            setproperty!(fsm, field, target_type.(value))   # scalar to scalar
         end
     end
 

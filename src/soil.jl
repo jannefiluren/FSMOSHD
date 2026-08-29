@@ -1,62 +1,23 @@
-# ---------------------------------------------------------------------------
-# Substrate parameterizations - what lies beneath the snowpack.
-#
-#   OPEN     atmosphere -> snowpack -> soil
-#   FOREST   canopy     -> snowpack -> soil
-#   GLACIER  atmosphere -> snowpack -> ice
-#
-# Substrate is uniform over a tile, so this is a dispatch axis. Both are
-# fieldless for now: the soil property arrays (b, hcap_soil, hcon_soil, sathh,
-# Vsat, Vcrit) are per-cell and still live on FSM. Moving them onto
-# SoilSubstrate would follow the PrognosticAlbedo pattern (array fields as type
-# parameters) and is worth doing, but is a larger change than this stage.
-# ---------------------------------------------------------------------------
-
 struct SoilSubstrate{Tf} <: AbstractSubstrate{Tf} end
 struct IceSubstrate{Tf} <: AbstractSubstrate{Tf} end
 
 SoilSubstrate{Tf}(Nx, Ny; kwargs...) where {Tf} = SoilSubstrate{Tf}()
 IceSubstrate{Tf}(Nx, Ny; kwargs...) where {Tf} = IceSubstrate{Tf}()
 
-"""
-    soil!(fsm)
-
-Soil thermal processes and heat conduction calculations.
-
-The per-cell physics lives in `soil_kernel!`, a KernelAbstractions kernel
-launched over the whole grid (see `ebalsrf!` for the pattern). Each cell
-solves its own tridiagonal system using kernel-local `MVector` scratch, so
-the routine is thread-safe per cell (the former shared scratch vectors in
-`FSM` are no longer used). The number of soil layers is passed as
-`Val(Nsoil)` because the scratch size must be known at compile time.
-
-# Arguments
-- `fsm::FSM`: Model state structure (modified in-place)
-"""
 function soil!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
-    @unpack SUBSTR, tthresh = fsm
-
-    @unpack dt = fsm
-
-    @unpack Dzsoil, Nsoil, Nx, Ny = fsm
-
-    @unpack Tsoil = fsm
-
-    @unpack tilefrac = fsm
-
-    @unpack csoil, ksoil = fsm
-
-    @unpack Gsoil = fsm
-
-    # Strings cannot cross into kernels: resolve the tile test here
+    (; SUBSTR) = fsm.physics
+    (; Dzsoil, Nsoil, Nx, Ny) = fsm.grid
+    (; Tsoil) = fsm.state
+    (; tilefrac) = fsm.landuse
+    (; csoil, ksoil, Gsoil) = fsm.diag
+    params = fsm.params
 
     backend = get_backend(Tsoil)
     kernel! = soil_kernel!(backend)
     kernel!(
-        Tsoil,
-        Dzsoil, tilefrac, csoil, ksoil, Gsoil,
-        dt, tthresh, SUBSTR, Val(Int(Nsoil));
+        Tsoil, Dzsoil, tilefrac, csoil, ksoil, Gsoil,
+        params, SUBSTR, Val(Int(Nsoil));
         ndrange = (Int(Nx), Int(Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -64,63 +25,52 @@ function soil!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
     return nothing
 end
 
-# inbounds = true keeps the kernel-local MVector scratch off the heap (the
-# bounds-check error paths would otherwise capture it, forcing a heap
-# allocation per grid cell). NOTE: a raw @inbounds block written directly in
-# a @kernel body must NOT be used instead - it interferes with the
-# KernelAbstractions CPU code transformation and silently corrupts results.
-# Tests run with --check-bounds=yes, which overrides this, so all indexing
-# stays validated in CI.
 @kernel inbounds = true function soil_kernel!(
-        Tsoil,
-        Dzsoil, tilefrac,
-        csoil, ksoil, Gsoil,
-        dt::Tf, tthresh::Tf, SUBSTR::AbstractSubstrate{Tf},
-        ::Val{Nsoil},
+        Tsoil, Dzsoil, tilefrac, csoil, ksoil, Gsoil,
+        params::Parameters{Tf}, SUBSTR::AbstractSubstrate{Tf}, ::Val{Nsoil},
     ) where {Tf, Nsoil}
 
     i, j = @index(Global, NTuple)
 
     @unpack_constants(Tf)
+    (; dt, tthresh) = params
 
-    if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
+    if (tilefrac[i, j] >= tthresh)
 
-        # Kernel-local scratch (one set per grid cell)
-        asoil = zero(MVector{Nsoil, Tf})
-        bsoil = zero(MVector{Nsoil, Tf})
-        cssoil = zero(MVector{Nsoil, Tf})
-        dTssoil = zero(MVector{Nsoil, Tf})
-        Gssoil = zero(MVector{Nsoil, Tf})
-        rhssoil = zero(MVector{Nsoil, Tf})
-        gammasoil = zero(MVector{Nsoil, Tf})
+        a = zero(MVector{Nsoil, Tf})
+        b = zero(MVector{Nsoil, Tf})
+        c = zero(MVector{Nsoil, Tf})
+        dTs = zero(MVector{Nsoil, Tf})
+        Gs = zero(MVector{Nsoil, Tf})
+        rhs = zero(MVector{Nsoil, Tf})
+        gamma = zero(MVector{Nsoil, Tf})
 
+        # Soil temperature update
         for k in 1:(Nsoil - 1)
-            Gssoil[k] = Tf(2) / (Dzsoil[k] / ksoil[k, i, j] + Dzsoil[k + 1] / ksoil[k + 1, i, j])
+            Gs[k] = Tf(2) / (Dzsoil[k] / ksoil[k, i, j] + Dzsoil[k + 1] / ksoil[k + 1, i, j])
         end
-        asoil[1] = Tf(0)
-        bsoil[1] = csoil[1, i, j] + Gssoil[1] * dt
-        cssoil[1] = -Gssoil[1] * dt
-        rhssoil[1] = (Gsoil[i, j] - Gssoil[1] * (Tsoil[1, i, j] - Tsoil[2, i, j])) * dt
+        a[1] = Tf(0)
+        b[1] = csoil[1, i, j] + Gs[1] * dt
+        c[1] = -Gs[1] * dt
+        rhs[1] = (Gsoil[i, j] - Gs[1] * (Tsoil[1, i, j] - Tsoil[2, i, j])) * dt
         for k in 2:(Nsoil - 1)
-            asoil[k] = cssoil[k - 1]
-            bsoil[k] = csoil[k, i, j] + (Gssoil[k - 1] + Gssoil[k]) * dt
-            cssoil[k] = -Gssoil[k] * dt
-            rhssoil[k] = Gssoil[k - 1] * (Tsoil[k - 1, i, j] - Tsoil[k, i, j]) * dt + Gssoil[k] * (Tsoil[k + 1, i, j] - Tsoil[k, i, j]) * dt
+            a[k] = c[k - 1]
+            b[k] = csoil[k, i, j] + (Gs[k - 1] + Gs[k]) * dt
+            c[k] = -Gs[k] * dt
+            rhs[k] = Gs[k - 1] * (Tsoil[k - 1, i, j] - Tsoil[k, i, j]) * dt + Gs[k] * (Tsoil[k + 1, i, j] - Tsoil[k, i, j]) * dt
         end
         k = Nsoil
-        Gssoil[k] = ksoil[k, i, j] / Dzsoil[k]
-        asoil[k] = cssoil[k - 1]
-        bsoil[k] = csoil[k, i, j] + (Gssoil[k - 1] + Gssoil[k]) * dt
-        cssoil[k] = Tf(0)
-        rhssoil[k] = Gssoil[k - 1] * (Tsoil[k - 1, i, j] - Tsoil[k, i, j]) * dt
-        tridiag!(dTssoil, Nsoil, gammasoil, Nsoil, asoil, bsoil, cssoil, rhssoil)
+        Gs[k] = ksoil[k, i, j] / Dzsoil[k]
+        a[k] = c[k - 1]
+        b[k] = csoil[k, i, j] + (Gs[k - 1] + Gs[k]) * dt
+        c[k] = Tf(0)
+        rhs[k] = Gs[k - 1] * (Tsoil[k - 1, i, j] - Tsoil[k, i, j]) * dt
+        tridiag!(dTs, Nsoil, gamma, Nsoil, a, b, c, rhs)
         for k in 1:Nsoil
-            Tsoil[k, i, j] = Tsoil[k, i, j] + dTssoil[k]
+            Tsoil[k, i, j] = Tsoil[k, i, j] + dTs[k]
         end
 
-        # Cap glacier temperatures to 0°C
-        # This does not conserve energy.
-        # The excess energy would correspond to glacier melting, which we don't track.
+        # In case of ice substracte cap temperatures to melting point (not energy conserving)
         if SUBSTR isa IceSubstrate
             for k in 1:Nsoil
                 Tsoil[k, i, j] = min(Tsoil[k, i, j], Tm)

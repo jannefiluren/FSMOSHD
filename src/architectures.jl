@@ -67,6 +67,17 @@ function on_architecture(arch::AbstractArchitecture, s::AbstractParameterization
     return T(map(f -> on_architecture(arch, getfield(s, f)), fieldnames(typeof(s)))...)
 end
 
+# Parameters is scalar-only (isbits), so it moves unchanged; the other sub-structs
+# and the physics NamedTuple are rebuilt with each array field moved.
+on_architecture(::AbstractArchitecture, p::Parameters) = p
+
+function on_architecture(arch::AbstractArchitecture, x::Union{Grid, Landuse, State, Diagnostics})
+    T = typeof(x).name.wrapper
+    return T(map(f -> on_architecture(arch, getfield(x, f)), fieldnames(typeof(x)))...)
+end
+
+on_architecture(arch::AbstractArchitecture, nt::NamedTuple) = map(x -> on_architecture(arch, x), nt)
+
 function on_architecture(arch::AbstractArchitecture, fsm::FSM)
     values = map(name -> on_architecture(arch, getfield(fsm, name)), fieldnames(typeof(fsm)))
     return FSM(values...)

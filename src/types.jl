@@ -1,261 +1,258 @@
-@with_kw mutable struct FSM{
-        Tf, Ti,
-        VF <: AbstractVector{Tf},
-        MF <: AbstractMatrix{Tf}, MI <: AbstractMatrix{Ti},
-        MF64 <: AbstractMatrix{Float64},
-        AF3 <: AbstractArray{Tf, 3},
-        A <: AbstractAlbedo{Tf},
-        Can <: AbstractCanopy{Tf},
-        Sub <: AbstractSubstrate{Tf},
-        C <: AbstractConductivity{Tf},
-    }
-
-    # Layer configuration
-
+@with_kw struct Grid{Ti, VF <: AbstractVector}
     Dzsnow::VF = [0.1, 0.2, 0.4]                     # Maximum snow layer thicknesses (m)
     Dzsoil::VF = [0.1, 0.2, 0.4, 0.8]                # Maximum soil layer thicknesses (m)
-    Nsmax::Ti = length(Dzsnow)                               # Number of snow layers
-    Nsoil::Ti = length(Dzsoil)                               # Number of soil layers
+    Nsmax::Ti = length(Dzsnow)                       # Number of snow layers
+    Nsoil::Ti = length(Dzsoil)                       # Number of soil layers
+    Nx::Ti = 1                                       # First array dimension (rows)
+    Ny::Ti = 1                                       # Second array dimension (columns)
+end
 
-    # Domain size
+@with_kw struct Parameters{Tf, Ti}
+    dt::Tf = 3600                                    # Time step (s)
+    zT::Tf = 10                                      # Temperature measurement height (m)
+    zU::Tf = 10                                      # Wind speed measurement height (m)
+    zRH::Tf = 10                                     # Relative humidity measurement height (m)
+    DENSTY::Ti = 3                                   # Snow density (0, 1, 2, 3)
+    EXCHNG::Ti = 1                                   # Turbulent exchange (0, 1)
+    HYDROL::Ti = 2                                   # Snow hydraulics (0, 1, 2)
+    SNFRAC::Ti = 3                                   # Snow cover fraction (0, 1, 2, 3, 4)
+    ZOFFST::Ti = 0                                   # Measurement height offset (0, 1)
+    FSNRHO::Ti = 2                                   # Fresh snow density (0, 1, 2)
+    SNOLAY::Ti = 0                                   # Density-dependent layering (0, 1)
+    tthresh::Tf = 0.1                                # Tile threshold
+    Nitr::Ti = 4                                     # Iterations for surface energy balance
+    cden::Tf = 0.004                                 # Dense canopy turbulent transfer coefficient (-)
+    cvai::Tf = 4.4                                   # Canopy snow capacity per unit vegetation area index (kg/m^2)
+    cveg::Tf = 20                                    # Vegetation turbulent transfer coefficient ((s/m)^0.5)
+    Gcn1::Tf = 0.5                                   # Leaf angle distribution parameter (-)
+    Gcn2::Tf = 0                                     # Leaf angle distribution parameter (-)
+    gsnf::Tf = 0                                     # Snow-free vegetation moisture conductance (m/s)
+    kdif::Tf = 0.5                                   # Diffuse radiation extinction coefficient (-)
+    kveg::Tf = 1                                     # Canopy cover coefficient (-)
+    rchd::Tf = 0.67                                  # Ratio of displacement height to canopy height (-)
+    rchz::Tf = 0.2                                   # Ratio of roughness length to canopy height (-)
+    tcnc::Tf = 3600 * 240                            # Canopy unloading time scale for cold snow (s)
+    tcnm::Tf = 3600 * 48                             # Canopy unloading time scale for melting snow (s)
+    pmultf_for::Tf = 0.5                             # Multiplier for snowfall in forest (-)
+    a_eta::Tf = 0.1                                  # Temperature factor for Crocus B92 compaction (K^-1)
+    b_eta::Tf = 0.023                                # First density factor for Crocus B92 compaction (m^3/kg)
+    c_eta::Tf = 250                                  # Second density factor for Crocus B92 compaction (kg/m^3)
+    eta0::Tf = 3.7e7                                 # Reference snow viscosity (Pa s)
+    eta1::Tf = 7.62237e6                             # Reference snow viscosity for Crocus B92 compaction (Pa s)
+    Tsnow_min::Tf = -Inf                             # Floor on snow layer temperature (K); -Inf disables
+    hfsn::Tf = 0.1                                   # Snowcover fraction depth scale (m)
+    rho0::Tf = 300                                   # Fixed snow density (kg/m^3)
+    rhob::Tf = 6                                     # Temperature factor in fresh snow density (kg/m^3/K)
+    rhoc::Tf = 26                                    # Wind factor in fresh snow density (kg s^0.5/m^3.5)
+    rhof::Tf = 109                                   # Fresh snow density (kg/m^3)
+    rhos_min::Tf = 50                                # Minimum snow density (kg/m^3)
+    rhos_max::Tf = 750                               # Maximum snow density (kg/m^3)
+    rcld::Tf = 300                                   # Maximum density for cold snow (kg/m^3)
+    rgr0::Tf = 5.0e-5                                # Fresh snow grain radius (m)
+    rmlt::Tf = 500                                   # Maximum density for melting snow (kg/m^3)
+    Salb::Tf = 10                                    # Albedo decay constant (kg/m^2)
+    snda::Tf = 2.8e-6                                # Thermal metamorphism parameter (1/s)
+    trho::Tf = 3600 * 200                            # Snow compaction time scale (s)
+    Wirr::Tf = 0.03                                  # Irreducible liquid water content of snow (-)
+    Ds_min::Tf = 0.01                                # Minimum possible snow layer thickness (m)
+    Ds_surflay::Tf = 0.5                             # Maximum thickness of surface fine snow layering (m)
+    bstb::Tf = 5                                     # Atmospheric stability parameter (-)
+    gsat::Tf = 0.01                                  # Surface conductance for saturated soil (m/s)
+    wcan::Tf = 2.5                                   # Parameter of exponential wind profile (-)
+    zsub::Tf = 2                                     # Sub-canopy reference height (m)
+    zgf::Tf = 1                                      # Roughness length adjustment factor vs vegetation fraction (-)
+    zgr::Tf = 0                                      # Roughness length adjustment range vs vegetation fraction (-)
+    khcf::Tf = 3                                     # Diffusivity adjustment for canopy effects (-)
+    fsat::Tf = 0.5                                   # Initial soil moisture as fraction of saturation
+    Tprof::Tf = 285                                  # Initial soil layer temperatures (K)
+end
 
-    Nx::Ti = 1                                               # Size of first array dimension (rows)
-    Ny::Ti = 1                                               # Size of second array dimension (columns)
+@with_kw struct Landuse{Tf, GT, MF <: AbstractMatrix{Tf}, MF64 <: AbstractMatrix{Float64}}
+    grid::GT
+    z0_snow::MF = 0.002 * ones(grid.Nx, grid.Ny)    # Roughness length of snow (m)
+    alb0::MF = 0.2 * ones(grid.Nx, grid.Ny)         # Snow-free ground albedo (-)
+    z0sf::MF = 0.2 * ones(grid.Nx, grid.Ny)         # Snow-free roughness length (m)
+    fcly::MF = 0.3 * ones(grid.Nx, grid.Ny)         # Soil clay fraction (-)
+    fsnd::MF = 0.6 * ones(grid.Nx, grid.Ny)         # Soil sand fraction (-)
+    VAI::MF = zeros(grid.Nx, grid.Ny)               # Vegetation area index (-)
+    vfhp::MF = fill(NaN, grid.Nx, grid.Ny)          # Hemispherical sky-view fraction incl. canopy (-)
+    canh::MF = fill(NaN, grid.Nx, grid.Ny)          # Canopy heat capacity (J/K/m^2)
+    fsky::MF = ones(grid.Nx, grid.Ny)               # Sky view fraction (-)
+    fveg::MF = zeros(grid.Nx, grid.Ny)              # Canopy cover fraction (-)  = 1-exp(-kveg*VAI), VAI=0
+    fves::MF = zeros(grid.Nx, grid.Ny)              # Stand-scale canopy cover fraction (-)
+    hcan::MF = zeros(grid.Nx, grid.Ny)              # Canopy height (m)
+    lai::MF = fill(NaN, grid.Nx, grid.Ny)           # Leaf area index (-)
+    pmultf::MF = fill(NaN, grid.Nx, grid.Ny)        # Precipitation multiplier reverting open-area correction (-)
+    scap::MF = fill(NaN, grid.Nx, grid.Ny)          # Canopy snow capacity (kg/m^2)
+    trcn::MF = ones(grid.Nx, grid.Ny)               # Canopy transmissivity (-)  = exp(-kdif*VAI), VAI=0
+    slopemu::MF = fill(NaN, grid.Nx, grid.Ny)       # Slope parameter (-)
+    xi::MF = fill(NaN, grid.Nx, grid.Ny)            # Terrain correlation length (m)
+    Ld::MF = fill(NaN, grid.Nx, grid.Ny)            # Grid cell size (m)
+    fsky_terr::MF = fill(NaN, grid.Nx, grid.Ny)     # Sky view fraction terrain (-)
+    dem::MF = fill(NaN, grid.Nx, grid.Ny)           # Grid elevation (m)
+    tilefrac::MF = ones(grid.Nx, grid.Ny)           # Tile fraction (-)
+    prec_multi::MF64 = fill(NaN, grid.Nx, grid.Ny)  # Precipitation multiplier (-)  TODO float64 legacy
+    b::MF = zeros(grid.Nx, grid.Ny)                 # Clapp-Hornberger exponent (-)
+    hcap_soil::MF = zeros(grid.Nx, grid.Ny)         # Volumetric heat capacity of dry soil (J/K/m^3)
+    hcon_soil::MF = zeros(grid.Nx, grid.Ny)         # Thermal conductivity of dry soil (W/m/K)
+    sathh::MF = zeros(grid.Nx, grid.Ny)             # Saturated soil water pressure (m)
+    Vsat::MF = zeros(grid.Nx, grid.Ny)              # Volumetric soil moisture at saturation (-)
+    Vcrit::MF = zeros(grid.Nx, grid.Ny)             # Volumetric soil moisture at critical point (-)
+end
 
-    # Driving data
+@with_kw struct State{Tf, Ti, GT, MF <: AbstractMatrix{Tf}, MI <: AbstractMatrix{Ti}, AF <: AbstractArray{Tf, 3}}
+    grid::GT
+    albs::MF = Tf(0.85) * ones(grid.Nx, grid.Ny)                 # Snow albedo (-)
+    Ds::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)                 # Snow layer thicknesses (m)
+    Nsnow::MI = zeros(Ti, grid.Nx, grid.Ny)                      # Number of snow layers
+    Qcan::MF = zeros(grid.Nx, grid.Ny)                           # Canopy air space humidity (kg/kg)
+    rgrn::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)               # Snow layer grain radius (m)
+    Sice::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)               # Ice content of snow layers (kg/m^2)
+    Sliq::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)               # Liquid content of snow layers (kg/m^2)
+    Sveg::MF = zeros(grid.Nx, grid.Ny)                           # Snow mass on vegetation (kg/m^2)
+    Tcan::MF = Tf(285) * ones(grid.Nx, grid.Ny)                  # Canopy air space temperature (K)
+    theta::AF = zeros(grid.Nsoil, grid.Nx, grid.Ny)              # Volumetric moisture content of soil layers (-)
+    Tsnow::AF = Tf(273.15) * ones(grid.Nsmax, grid.Nx, grid.Ny)  # Snow layer temperatures (K)
+    Tsoil::AF = Tf(285) * ones(grid.Nsoil, grid.Nx, grid.Ny)     # Soil layer temperatures (K)
+    Tsrf::MF = Tf(285) * ones(grid.Nx, grid.Ny)                  # Surface skin temperature (K)
+    fsnow::MF = zeros(grid.Nx, grid.Ny)                          # Snow cover fraction (-)
+    Tveg::MF = Tf(285) * ones(grid.Nx, grid.Ny)                  # Vegetation temperature (K)
+    snowdepthmin::MF = zeros(grid.Nx, grid.Ny)                   # Min snow depth at time of swemin (m)
+    snowdepthmax::MF = zeros(grid.Nx, grid.Ny)                   # Max snow depth at time of swemax (m)
+    snowdepthhist::AF = zeros(14, grid.Nx, grid.Ny)              # Snow depth over last 14 days (m)
+    swemin::MF = zeros(grid.Nx, grid.Ny)                         # Minimum SWE during the season (kg/m^2)
+    swemax::MF = zeros(grid.Nx, grid.Ny)                         # Maximum SWE during the season (kg/m^2)
+    swehist::AF = zeros(14, grid.Nx, grid.Ny)                    # SWE over last 14 days (kg/m^2)
+    histowet::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)           # Historical past wetting of a layer (-)
+end
 
-    dt::Tf = 3600                                            # Time step (s)
-    zT::Tf = 10                                              # Temperature measurement height (m)
-    zU::Tf = 10                                              # Wind speed measurement height (m)
-    zRH::Tf = 10                                             # Relative humidity measurement height (m)
+@with_kw struct Diagnostics{Tf, GT, MF <: AbstractMatrix{Tf}, AF <: AbstractArray{Tf, 3}}
+    grid::GT
+    # drive
+    es::MF = zeros(grid.Nx, grid.Ny)                 # Saturation vapour pressure (Pa)
+    Qa::MF = zeros(grid.Nx, grid.Ny)                 # Specific humidity (kg/kg)
+    Uaeff::MF = zeros(grid.Nx, grid.Ny)              # Wind speed with lower bound applied (m/s)
+    Sfeff::MF = zeros(grid.Nx, grid.Ny)              # Snowfall reaching the surface (kg/m^2/s)
+    # radiation
+    alb::MF = zeros(grid.Nx, grid.Ny)                # Albedo (-)
+    asrf_out::MF = zeros(grid.Nx, grid.Ny)           # Surface albedo (-)
+    SWveg::MF = zeros(grid.Nx, grid.Ny)              # Net shortwave absorbed by vegetation (W/m^2)
+    SWsrf::MF = zeros(grid.Nx, grid.Ny)              # Net shortwave absorbed by the surface (W/m^2)
+    SWsci::MF = zeros(grid.Nx, grid.Ny)              # Subcanopy incoming shortwave (W/m^2)
+    LWt::MF = zeros(grid.Nx, grid.Ny)                # Incoming longwave corrected for topography (W/m^2)
+    LWeff::MF = zeros(grid.Nx, grid.Ny)              # Incoming longwave used in the energy balance (W/m^2)
+    # thermal
+    ksnow::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)  # Thermal conductivity of snow (W/m/K)
+    csoil::AF = zeros(grid.Nsoil, grid.Nx, grid.Ny)  # Areal heat capacity of soil (J/K/m^2)
+    ksoil::AF = zeros(grid.Nsoil, grid.Nx, grid.Ny)  # Thermal conductivity of soil (W/m/K)
+    gs1::MF = zeros(grid.Nx, grid.Ny)                # Surface moisture conductance (m/s)
+    Ds1::MF = zeros(grid.Nx, grid.Ny)                # Surface layer thickness (m)
+    Ts1::MF = zeros(grid.Nx, grid.Ny)                # Surface layer temperature (K)
+    ks1::MF = zeros(grid.Nx, grid.Ny)                # Surface thermal conductivity (W/m/K)
+    Tveg0::MF = zeros(grid.Nx, grid.Ny)              # Vegetation temperature at start of timestep (K)
+    # sfexch
+    KH::MF = zeros(grid.Nx, grid.Ny)                 # Eddy diffusivity for heat to the atmosphere (m/s)
+    KHa::MF = zeros(grid.Nx, grid.Ny)                # Eddy diffusivity from the canopy air space (m/s)
+    KHg::MF = zeros(grid.Nx, grid.Ny)                # Eddy diffusivity for heat from the ground (m/s)
+    KHv::MF = zeros(grid.Nx, grid.Ny)                # Eddy diffusivity for heat from vegetation (m/s)
+    KWg::MF = zeros(grid.Nx, grid.Ny)                # Eddy diffusivity for water from the ground (m/s)
+    KWv::MF = zeros(grid.Nx, grid.Ny)                # Eddy diffusivity for water from vegetation (m/s)
+    Usc::MF = zeros(grid.Nx, grid.Ny)                # Wind speed in canopy layer (m/s)
+    # ebalsrf
+    Esrf::MF = zeros(grid.Nx, grid.Ny)               # Moisture flux from the surface (kg/m^2/s)
+    Eveg::MF = zeros(grid.Nx, grid.Ny)               # Moisture flux from vegetation (kg/m^2/s)
+    G::MF = zeros(grid.Nx, grid.Ny)                  # Heat flux into the surface (W/m^2)
+    H::MF = zeros(grid.Nx, grid.Ny)                  # Sensible heat flux to the atmosphere (W/m^2)
+    Hsrf::MF = zeros(grid.Nx, grid.Ny)               # Sensible heat flux from the surface (W/m^2)
+    LE::MF = zeros(grid.Nx, grid.Ny)                 # Latent heat flux to the atmosphere (W/m^2)
+    LEsrf::MF = zeros(grid.Nx, grid.Ny)              # Latent heat flux from the surface (W/m^2)
+    LWsci::MF = zeros(grid.Nx, grid.Ny)              # Subcanopy incoming longwave (W/m^2)
+    LWveg::MF = zeros(grid.Nx, grid.Ny)              # Net longwave absorbed by vegetation (W/m^2)
+    Melt::MF = zeros(grid.Nx, grid.Ny)               # Surface melt rate (kg/m^2/s)
+    Rnet::MF = zeros(grid.Nx, grid.Ny)               # Net radiation (W/m^2)
+    Rsrf::MF = zeros(grid.Nx, grid.Ny)               # Net radiation at surface (W/m^2)
+    # canopy
+    intcpt::MF = zeros(grid.Nx, grid.Ny)             # Canopy interception (kg/m^2)
+    Sbveg::MF = zeros(grid.Nx, grid.Ny)              # Sublimation from vegetation (kg/m^2)
+    unload::MF = zeros(grid.Nx, grid.Ny)             # Snow mass unloaded from canopy (kg/m^2)
+    # snow
+    Gsoil::MF = zeros(grid.Nx, grid.Ny)              # Heat flux into soil (W/m^2)
+    Roff::MF = zeros(grid.Nx, grid.Ny)               # Total runoff (kg/m^2)
+    meltflux_out::MF = zeros(grid.Nx, grid.Ny)       # Runoff from snowmelt at base of snow (kg/m^2)
+    Sbsrf::MF = zeros(grid.Nx, grid.Ny)              # Sublimation from the snow surface (kg/m^2)
+    Roff_bare::MF = zeros(grid.Nx, grid.Ny)          # Bare soil runoff (kg/m^2)
+    Roff_snow::MF = zeros(grid.Nx, grid.Ny)          # Runoff at base of snow (kg/m^2)
+    snowdepth0::MF = zeros(grid.Nx, grid.Ny)         # Snow depth at start of timestep (m)
+    Sice0::MF = zeros(grid.Nx, grid.Ny)              # Ice content at start of timestep (kg/m^2)
+    # snow_layering
+    Ds0::MF = zeros(grid.Nx, grid.Ny)                # Snow layer thickness at start of timestep (m)
+end
 
-    # Model configuration
+mutable struct FSM{Tf, Ti, G, P, L, S, D, PH}
+    grid::G
+    params::P
+    landuse::L
+    state::S
+    diag::D
+    physics::PH
+end
 
-    ALBEDO::A = PrognosticAlbedo{Tf}(Nx, Ny)                 # Snow albedo scheme (was ALBEDO = 2)
-    CANOPY::Can = NoCanopy{Tf}()                             # Canopy scheme (was TILE == "forest")
-    SUBSTR::Sub = SoilSubstrate{Tf}()                        # Substrate scheme (was TILE == "glacier")
-    CONDCT::C = DensityConductivity{Tf}()                    # Snow thermal conductivity scheme (was CONDCT = 1)
-    DENSTY::Ti = 3                                           # Snow density (0, 1, 2, 3)
-    EXCHNG::Ti = 1                                           # Turbulent exchange (0, 1)
-    HYDROL::Ti = 2                                           # Snow hydraulics (0, 1, 2)
-    SNFRAC::Ti = 3                                           # Snow cover fraction (0, 1, 2, 3, 4)
-    ZOFFST::Ti = 0                                           # Measurement height offset (0, 1)
-    FSNRHO::Ti = 2                                           # Fresh snow density (0, 1, 2)
-    SNOLAY::Ti = 0                                           # Density-dependent layering (0, 1)
+# Positional constructor used by on_architecture
+function FSM(grid::Grid, params::Parameters{Tf, Ti}, landuse::Landuse, state::State,
+        diag::Diagnostics, physics) where {Tf, Ti}
+    return FSM{Tf, Ti, typeof(grid), typeof(params), typeof(landuse), typeof(state),
+        typeof(diag), typeof(physics)}(grid, params, landuse, state, diag, physics)
+end
 
-    # Tile options
+@inline function Base.getproperty(fsm::FSM, name::Symbol)
+    name === :grid    && return getfield(fsm, :grid)
+    name === :params  && return getfield(fsm, :params)
+    name === :landuse && return getfield(fsm, :landuse)
+    name === :state   && return getfield(fsm, :state)
+    name === :diag    && return getfield(fsm, :diag)
+    name === :physics && return getfield(fsm, :physics)
+    g = getfield(fsm, :grid);     hasfield(typeof(g), name)  && return getfield(g, name)
+    p = getfield(fsm, :params);   hasfield(typeof(p), name)  && return getfield(p, name)
+    l = getfield(fsm, :landuse);  hasfield(typeof(l), name)  && return getfield(l, name)
+    s = getfield(fsm, :state);    hasfield(typeof(s), name)  && return getfield(s, name)
+    d = getfield(fsm, :diag);     hasfield(typeof(d), name)  && return getfield(d, name)
+    ph = getfield(fsm, :physics); hasfield(typeof(ph), name) && return getfield(ph, name)
+    throw(ErrorException("type FSM has no property $name"))
+end
 
-    tthresh::Tf = 0.1                                        # Tile threshold
+@inline function Base.setproperty!(fsm::FSM, name::Symbol, x)
+    (name === :grid || name === :params || name === :landuse ||
+     name === :state || name === :diag || name === :physics) && return setfield!(fsm, name, x)
+    p = getfield(fsm, :params)
+    if hasfield(typeof(p), name)          # Parameters is immutable: functional update
+        v = convert(fieldtype(typeof(p), name), x)
+        return setfield!(fsm, :params, reconstruct(p; NamedTuple{(name,)}((v,))...))
+    end
+    ph = getfield(fsm, :physics)          # re-set a scheme to another of the same type
+    hasfield(typeof(ph), name) && return setfield!(fsm, :physics, merge(ph, NamedTuple{(name,)}((x,))))
+    throw(ErrorException("FSM property $name is not settable; mutate arrays in place with .="))
+end
 
-    # Numerical solution parameters
+# FSM{Tf, Ti}(; Nx, Ny, schemes...) builds the model on plain CPU Arrays
+function (::Type{FSM{Tf, Ti}})(;
+        Nx = 1, Ny = 1,
+        ALBEDO = PrognosticAlbedo{Tf}(Nx, Ny),
+        CANOPY = NoCanopy{Tf}(),
+        SUBSTR = SoilSubstrate{Tf}(),
+        CONDCT = DensityConductivity{Tf}()) where {Tf, Ti}
 
-    Nitr = 4                                                 # Number of iterations for surface energy balance
+    grid    = Grid{Ti, Vector{Tf}}(; Nx = Nx, Ny = Ny)
+    GT      = typeof(grid)
+    params  = Parameters{Tf, Ti}()
+    landuse = Landuse{Tf, GT, Matrix{Tf}, Matrix{Float64}}(; grid = grid)
+    state   = State{Tf, Ti, GT, Matrix{Tf}, Matrix{Ti}, Array{Tf, 3}}(; grid = grid)
+    diag    = Diagnostics{Tf, GT, Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
+    physics = (ALBEDO = ALBEDO, CANOPY = CANOPY, SUBSTR = SUBSTR, CONDCT = CONDCT)
 
-    # Canopy parameters
+    all(s -> s isa AbstractParameterization{Tf}, values(physics)) ||
+        throw(ArgumentError("physics scheme precision does not match model Tf = $Tf"))
 
-    cden::Tf = 0.004                                         # Dense canopy turbulent transfer coefficient (-)
-    cvai::Tf = 4.4                                           # Canopy snow capacity per unit vegetation area index (kg/m^2)
-    cveg::Tf = 20                                            # Vegetation turbulent transfer coefficient ((s/m)^0.5)
-    Gcn1::Tf = 0.5                                           # Leaf angle distribution parameter (-)
-    Gcn2::Tf = 0                                             # Leaf angle distribution parameter (-)
-    gsnf::Tf = 0                                             # Snow-free vegetation moisture conductance (m/s)
-    kdif::Tf = 0.5                                           # Diffuse radiation extinction coefficient (-)
-    kveg::Tf = 1                                             # Canopy cover coefficient (-)
-    rchd::Tf = 0.67                                          # Ratio of displacement height to canopy height (-)
-    rchz::Tf = 0.2                                           # Ratio of roughness length to canopy height (-)
-    tcnc::Tf = 3600 * 240                                    # Canopy unloading time scale for cold snow (s)
-    tcnm::Tf = 3600 * 48                                     # Canopy unloading time scale for melting snow (s)
-    pmultf_for::Tf = 0.5                                     # Multiplier for snowfall in forest (-)
-
-    # Snow parameters
-
-    a_eta::Tf = 0.1                                          # Temperature factor for Crocus B92 compaction (K^-1)
-    b_eta::Tf = 0.023                                        # First density factor for Crocus B92 compaction (m^3/kg)
-    c_eta::Tf = 250                                          # Second density factor for Crocus B92 compaction (kg/m^3)
-    eta0::Tf = 3.7e7                                         # Reference snow viscosity (Pa s)
-    eta1::Tf = 7.62237e6                                     # Reference snow viscosity for Crocus B92 compaction (Pa s)
-    Tsnow_min::Tf = -Inf                                     # Floor on snow layer temperature (K); -Inf disables
-    hfsn::Tf = 0.1                                           # Snowcover fraction depth scale (m)
-    rho0::Tf = 300                                           # Fixed snow density (kg/m^3)
-    rhob::Tf = 6                                             # Temperature factor in fresh snow density (kg/m^3/K)
-    rhoc::Tf = 26                                            # Wind factor in fresh snow density (kg s^0.5/m^3.5)
-    rhof::Tf = 109                                           # Fresh snow density (kg/m^3)
-    rhos_min::Tf = 50                                        # Minimum snow density (kg/m^3)
-    rhos_max::Tf = 750                                       # Maximum snow density (kg/m^3)
-    rcld::Tf = 300                                           # Maximum density for cold snow (kg/m^3)
-    rgr0::Tf = 5.0e-5                                        # Fresh snow grain radius (m)
-    rmlt::Tf = 500                                           # Maximum density for melting snow (kg/m^3)
-    Salb::Tf = 10                                            # Albedo decay constant (kg/m^2)
-    snda::Tf = 2.8e-6                                        # Thermal metamorphism parameter (1/s)
-    trho::Tf = 3600 * 200                                    # Snow compaction time scale (s)
-    Wirr::Tf = 0.03                                          # Irreducible liquid water content of snow (-)
-
-    # Snow layering parameters
-
-    Ds_min::Tf = 0.01                                        # Minimum possible snow layer thickness (m)
-    Ds_surflay::Tf = 0.5                                     # Maximum thickness of surface fine snow layering (m)
-
-    # Snow transport parameters
-
-
-    # Ground surface parameters
-
-    bstb::Tf = 5                                             # Atmospheric stability parameter (-)
-    gsat::Tf = 0.01                                          # Surface conductance for saturated soil (m/s)
-
-    # Additional forest snow process parameters
-    wcan::Tf = 2.5                                           # Parameter of exponential wind profile (-)
-    zsub::Tf = 2                                             # Sub-canopy reference height (m)
-    zgf::Tf = 1                                              # Roughness length adjustment factor depending on vegetation fraction (-)
-    zgr::Tf = 0                                              # Roughness length adjustment range depending on vegetation fraction (-)
-    khcf::Tf = 3                                             # Diffusivity adjustment for canopy effects (-)
-
-    # Surface parameters
-
-    z0_snow::MF = 0.002 * ones(Nx, Ny)             # Roughness length of snow (m)
-
-    # Surface properties
-
-    alb0::MF = 0.2 * ones(Nx, Ny)                  # Snow-free ground albedo (-)
-    z0sf::MF = 0.2 * ones(Nx, Ny)                  # Snow-free roughness length (m)
-    fcly::MF = 0.3 * ones(Nx, Ny)                  # Soil clay fraction (-)
-    fsnd::MF = 0.6 * ones(Nx, Ny)                  # Soil sand fraction (-)
-    fsat::Tf = 0.5                                           # Initial moisture content of soil layers as fractions of saturation
-    Tprof::Tf = 285                                          # Initial soil layer temperatures (K)
-
-    # Canopy parameters (dummy values should be filled from landuse data)
-
-    VAI::MF = zeros(Nx, Ny)                        # Vegetation area index (-)
-    vfhp::MF = fill(NaN, Nx, Ny)                   # Hemispherical sky-view fraction including canopy (-)
-    canh::MF = fill(NaN, Nx, Ny)                   # Canopy heat capacity (J/K/m^2)
-    fsky::MF = ones(Nx, Ny)                        # Sky view fraction (-)
-    fveg::MF = Tf(1) .- exp.(-kveg .* VAI[:, :])   # Canopy cover fraction (-)
-    fves::MF = Tf(1) .- exp.(-kveg .* VAI[:, :])   # Stand-scale canopy cover fraction (-)
-    hcan::MF = zeros(Nx, Ny)                       # Canopy height (m)
-    lai::MF = fill(NaN, Nx, Ny)                    # Leaf area index (-)
-    pmultf::MF = fill(NaN, Nx, Ny)                 # Precipitation multiplier to revert correction applied to open area (-)
-    scap::MF = fill(NaN, Nx, Ny)                   # Canopy snow capacity (kg/m^2)
-    trcn::MF = exp.(-kdif .* VAI[:, :])            # Canopy transmissivity (-)
-
-
-    # Terrain properties
-
-    slopemu::MF = fill(NaN, Nx, Ny)                # Slope parameter (-)
-    xi::MF = fill(NaN, Nx, Ny)                     # Terrain correlation length (m)
-    Ld::MF = fill(NaN, Nx, Ny)                     # Grid cell size (m)
-    fsky_terr::MF = fill(NaN, Nx, Ny)              # Sky view fraction terrain (-)
-    dem::MF = fill(NaN, Nx, Ny)                    # Grid elevation (m)
-    tilefrac::MF = ones(Nx, Ny)                    # Tile fraction (-)
-    prec_multi::MF64 = fill(NaN, Nx, Ny)        # Precipitation multiplier (-)    TODO use float64 to match matlab/fortran version - change precision later
-
-    # Derived soil parameters
-
-    b::MF = zeros(Nx, Ny)                          # Clapp-Hornberger exponent (-)
-    hcap_soil::MF = zeros(Nx, Ny)                  # Volumetric heat capacity of dry soil (J/K/m^3)
-    hcon_soil::MF = zeros(Nx, Ny)                  # Thermal conductivity of dry soil (W/m/K)
-    sathh::MF = zeros(Nx, Ny)                      # Saturated soil water pressure (m)
-    Vsat::MF = zeros(Nx, Ny)                       # Volumetric soil moisture at saturation (-)
-    Vcrit::MF = zeros(Nx, Ny)                      # Volumetric soil moisture at critical point (-)
-
-    # State variables
-
-    albs::MF = Tf(0.85) * ones(Nx, Ny)             # Snow albedo (-)
-    Ds::AF3 = zeros(Nsmax, Nx, Ny)                  # Snow layer thicknesses (m)
-    Nsnow::MI = zeros(Ti, Nx, Ny)                  # Number of snow layers
-    Qcan::MF = zeros(Nx, Ny)                       # Canopy air space humidity (kg/kg)
-    rgrn::AF3 = zeros(Nsmax, Nx, Ny)                # Snow layer grain radius (m)
-    Sice::AF3 = zeros(Nsmax, Nx, Ny)                # Ice content of snow layers (kg/m^2)
-    Sliq::AF3 = zeros(Nsmax, Nx, Ny)                # Liquid content of snow layers (kg/m^2)
-    Sveg::MF = zeros(Nx, Ny)                       # Snow mass on vegetation (kg/m^2)
-    Tcan::MF = Tf(285) * ones(Nx, Ny)              # Canopy air space temperature (K)
-    theta::AF3 = zeros(Nsoil, Nx, Ny)               # Volumetric moisture content of soil layers (-)
-    Tsnow::AF3 = Tf(273.15) * ones(Nsmax, Nx, Ny)   # Snow layer temperatures (K)
-    Tsoil::AF3 = Tf(285) * ones(Nsoil, Nx, Ny)      # Soil layer temperatures (K)
-    Tsrf::MF = Tf(285) * ones(Nx, Ny)              # Surface skin temperature (K)
-    fsnow::MF = zeros(Nx, Ny)                      # Snow cover fraction (-)
-    Tveg::MF = Tf(285) * ones(Nx, Ny)              # Vegetation temperature (K)
-    snowdepthmin::MF = zeros(Nx, Ny)               # Minimum snow depth at time step of swemin (m)
-    snowdepthmax::MF = zeros(Nx, Ny)               # Maximum snow depth at time step of swemax (m)
-    snowdepthhist::AF3 = zeros(14, Nx, Ny)          # History of snow depth during last 14 days with most recent entries first (m)
-    swemin::MF = zeros(Nx, Ny)                     # Minimum SWE during the season (kg/m^2)
-    swemax::MF = zeros(Nx, Ny)                     # Maximum SWE during the season (kg/m^2)
-    swehist::AF3 = zeros(14, Nx, Ny)                # History of SWE during last 14 days with most recent entries first (kg/m^2)
-    histowet::AF3 = zeros(Nsmax, Nx, Ny)            # Historical variable for past wetting of a layer (-)
-
-    # Variables used in drive-function
-
-    es::MF = zeros(Nx, Ny)                         # Saturation vapour pressure (Pa)
-    Qa::MF = zeros(Nx, Ny)                         # Specific humidity (kg/kg)
-    Uaeff::MF = zeros(Nx, Ny)                     # Wind speed with lower bound applied (m/s)
-    Sfeff::MF = zeros(Nx, Ny)                     # Snowfall rate reaching the surface, adjusted by canopy processes (kg/m^2/s)
-
-    # Variables used in radiation-function
-
-    alb::MF = zeros(Nx, Ny)                        # Albedo (-)
-    asrf_out::MF = zeros(Nx, Ny)                   # Surface albedo (-)
-    SWveg::MF = zeros(Nx, Ny)                      # Net short wave radiation absorbed by vegetation (W/m^2)
-    SWsrf::MF = zeros(Nx, Ny)                      # Net short wave radiation absorbed by the surface (W/m^2)
-    SWsci::MF = zeros(Nx, Ny)                      # Subcanopy incoming shortwave radiation (W/m^2)
-    LWt::MF = zeros(Nx, Ny)                                  # Incoming longwave radiation corrected for subgrid topography (W/m^2)
-    LWeff::MF = zeros(Nx, Ny)                      # Incoming longwave radiation used in the energy balance, terrain-corrected where applicable (W/m^2)
-
-    # Variables used in thermal-function
-
-    ksnow::AF3 = zeros(Nsmax, Nx, Ny)               # Thermal conductivity of snow (W/m/K)
-    csoil::AF3 = zeros(Nsoil, Nx, Ny)               # Areal heat capacity of soil (J/K/m^2)
-    ksoil::AF3 = zeros(Nsoil, Nx, Ny)               # Thermal conductivity of soil (W/m/K)
-    gs1::MF = zeros(Nx, Ny)                        # Surface moisture conductance (m/s)
-    Ds1::MF = zeros(Nx, Ny)                        # Surface layer thickness (m)
-    Ts1::MF = zeros(Nx, Ny)                        # Surface layer temperature (K)
-    ks1::MF = zeros(Nx, Ny)                        # Surface thermal conductivity (W/m/K)
-    Tveg0::MF = zeros(Nx, Ny)                      # Vegetation temperature at start of timestep (K)
-
-    # Variables used in sfexch-function
-
-    KH::MF = zeros(Nx, Ny)                         # Eddy diffusivity for heat to the atmosphere (m/s)
-    KHa::MF = zeros(Nx, Ny)                        # Eddy diffusivity from the canopy air space (m/s)
-    KHg::MF = zeros(Nx, Ny)                        # Eddy diffusivity for heat from the ground (m/s)
-    KHv::MF = zeros(Nx, Ny)                        # Eddy diffusivity for heat from vegetation (m/s)
-    KWg::MF = zeros(Nx, Ny)                        # Eddy diffusivity for water from the ground (m/s)
-    KWv::MF = zeros(Nx, Ny)                        # Eddy diffusivity for water from vegetation (m/s)
-    Usc::MF = zeros(Nx, Ny)                        # Wind speed in canopy layer (m/s)
-
-    # Variables used in ebalsrf-function
-
-    Esrf::MF = zeros(Nx, Ny)                       # Moisture flux from the surface (kg/m^2/s)
-    Eveg::MF = zeros(Nx, Ny)                       # Moisture flux from vegetation (kg/m^2/s)
-    G::MF = zeros(Nx, Ny)                          # Heat flux into the surface (W/m^2)
-    H::MF = zeros(Nx, Ny)                          # Sensible heat flux to the atmosphere (W/m^2)
-    Hsrf::MF = zeros(Nx, Ny)                       # Sensible heat flux from the surface (W/m^2)
-    LE::MF = zeros(Nx, Ny)                         # Latent heat flux to the atmosphere (W/m^2)
-    LEsrf::MF = zeros(Nx, Ny)                      # Latent heat flux from the surface (W/m^2)
-    LWsci::MF = zeros(Nx, Ny)                      # Subcanopy incoming longwave radiation (W/m^2)
-    LWveg::MF = zeros(Nx, Ny)                      # Net longwave radiation absorbed by vegetation (W/m^2)
-    Melt::MF = zeros(Nx, Ny)                       # Surface melt rate (kg/m^2/s)
-    Rnet::MF = zeros(Nx, Ny)                       # Net radiation (W/m^2)
-    Rsrf::MF = zeros(Nx, Ny)                       # Net radiation at surface (W/m^2)
-
-    # Variables used in canopy-function
-
-    intcpt::MF = zeros(Nx, Ny)                     # Canopy interception (kg/m^2)
-    Sbveg::MF = zeros(Nx, Ny)                      # Sublimation from vegetation (kg/m^2)
-    unload::MF = zeros(Nx, Ny)                     # Snow mass unloaded from canopy (kg/m^2)
-
-    # Variables used in snow-function
-
-    Gsoil::MF = zeros(Nx, Ny)                      # Heat flux into soil (W/m^2)
-    Roff::MF = zeros(Nx, Ny)                       # Total runoff (kg/m^2)
-    meltflux_out::MF = zeros(Nx, Ny)               # Runoff from snowmelt at base of snow (kg/m^2)
-    Sbsrf::MF = zeros(Nx, Ny)                      # Sublimation from the snow surface (kg/m^2)
-    Roff_bare::MF = zeros(Nx, Ny)                  # Bare soil runoff (kg/m^2)
-    Roff_snow::MF = zeros(Nx, Ny)                  # Runoff at base of snow (kg/m^2)
-    snowdepth0::MF = zeros(Nx, Ny)                 # Snow depth at start of timestep (m)
-    Sice0::MF = zeros(Nx, Ny)                      # Ice content at start of timestep (kg/m^2)
-
-    # Variables used in snow_layering-function
-
-    Ds0::MF = zeros(Nx, Ny)                        # Snow layer thickness at start of timestep (m)
-
+    return FSM(grid, params, landuse, state, diag, physics)
 end
 
 @with_kw mutable struct MET{
@@ -266,8 +263,8 @@ end
 
     # Domain size
 
-    Nx::Ti = 1                                               # Size of first array dimension (rows)
-    Ny::Ti = 1                                               # Size of second array dimension (columns)
+    Nx::Ti = 1                                     # Size of first array dimension (rows)
+    Ny::Ti = 1                                     # Size of second array dimension (columns)
 
     # Meteorological variables
 
@@ -286,34 +283,9 @@ end
 
     # Snowfall tracking variables
 
-    Sf24h_f64::MF64 = zeros(Nx, Ny)             # Total snowfall over 24h (kg/m^2)  TODO intermediate variable using Float64 to match matlab/fortran code - remove later
-    Sf_history_f64::AF64_3 = zeros(Nx, Ny, 24)    # History of snowfall over the last 24h (kg/m^2)  TODO using Float64 to match matlab/fortran code - change precision later
+    Sf24h_f64::MF64 = zeros(Nx, Ny)                # Total snowfall over 24h (kg/m^2)  TODO intermediate variable using Float64 to match matlab/fortran code - remove later
+    Sf_history_f64::AF64_3 = zeros(Nx, Ny, 24)     # History of snowfall over the last 24h (kg/m^2)  TODO using Float64 to match matlab/fortran code - change precision later
 
-end
-
-# Convenience constructors: FSM{Tf, Ti}(...) and MET{Tf, Ti}(...) build the
-# structures backed by plain CPU Arrays, so existing call sites keep working
-# unchanged. Use on_architecture(arch, fsm) (architectures.jl) to move a
-# structure to another architecture, e.g. the GPU.
-
-function (::Type{FSM{Tf, Ti}})(;
-        Nx = 1, Ny = 1,
-        ALBEDO = PrognosticAlbedo{Tf}(Nx, Ny),
-        CANOPY = NoCanopy{Tf}(),
-        SUBSTR = SoilSubstrate{Tf}(),
-        CONDCT = DensityConductivity{Tf}(),
-        kwargs...) where {Tf, Ti}
-    return FSM{
-        Tf, Ti,
-        Vector{Tf},
-        Matrix{Tf}, Matrix{Ti},
-        Matrix{Float64},
-        Array{Tf, 3},
-        typeof(ALBEDO),
-        typeof(CANOPY),
-        typeof(SUBSTR),
-        typeof(CONDCT),
-    }(; Nx = Nx, Ny = Ny, ALBEDO = ALBEDO, CANOPY = CANOPY, SUBSTR = SUBSTR, CONDCT = CONDCT, kwargs...)
 end
 
 function (::Type{MET{Tf, Ti}})(; kwargs...) where {Tf, Ti}
