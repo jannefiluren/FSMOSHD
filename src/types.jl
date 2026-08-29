@@ -71,6 +71,8 @@ end
     grid::GT
     z0_snow::MF = 0.002 * ones(grid.Nx, grid.Ny)    # Roughness length of snow (m)
     alb0::MF = 0.2 * ones(grid.Nx, grid.Ny)         # Snow-free ground albedo (-)
+    afs::MF = 0.86 * ones(grid.Nx, grid.Ny)         # Maximum albedo for fresh snow (-)  [Decay/Prognostic albedo]
+    adc::MF = 1000 * ones(grid.Nx, grid.Ny)         # Cold snow albedo decay time (h)  [Prognostic albedo]
     z0sf::MF = 0.2 * ones(grid.Nx, grid.Ny)         # Snow-free roughness length (m)
     fcly::MF = 0.3 * ones(grid.Nx, grid.Ny)         # Soil clay fraction (-)
     fsnd::MF = 0.6 * ones(grid.Nx, grid.Ny)         # Soil sand fraction (-)

@@ -1,11 +1,5 @@
-# ---------------------------------------------------------------------------
-# Snow albedo parameterizations
-#
-# Array-valued parameters are type parameters (MF), not concrete `Array`s, so a
-# scheme can be rebuilt holding the target architecture's array type - see the
-# generic on_architecture in architectures.jl. DiagnosticAlbedo holds only
-# scalars and is therefore isbits, crossing into a kernel by value for free.
-# ---------------------------------------------------------------------------
+# Snow albedo parameterizations. All schemes hold only scalars (isbits); the
+# per-cell afs/adc maps live on Landuse and are passed in as arrays.
 
 @kwdef struct DiagnosticAlbedo{Tf} <: AbstractAlbedo{Tf}
     amin::Tf = 0.6                       # Minimum albedo for melting snow (-)
@@ -13,38 +7,25 @@
     Talb::Tf = -2                        # Albedo decay temperature threshold (C)
 end
 
-struct DecayAlbedo{Tf, MF <: AbstractMatrix{Tf}} <: AbstractAlbedo{Tf}
-    afs::MF                              # Maximum albedo for fresh snow (-)
-    amin::Tf                             # Minimum albedo for melting snow (-)
-    tcld::Tf                             # Cold snow albedo decay time scale (s)
-    tmlt::Tf                             # Melting snow albedo decay time scale (s)
-    adfs::Tf                             # Albedo adjustment, shortwave (-)
-    adfl::Tf                             # Albedo adjustment, longwave (-)
-    Sfmin::Tf                            # Min 24h snowfall to refresh albedo (kg/m^2)
+@kwdef struct DecayAlbedo{Tf} <: AbstractAlbedo{Tf}
+    amin::Tf = 0.6                       # Minimum albedo for melting snow (-)
+    tcld::Tf = 3600 * 1000               # Cold snow albedo decay time scale (s)
+    tmlt::Tf = 3600 * 100                # Melting snow albedo decay time scale (s)
+    adfs::Tf = 3                         # Albedo adjustment, shortwave (-)
+    adfl::Tf = 2                         # Albedo adjustment, longwave (-)
+    Sfmin::Tf = 10                       # Min 24h snowfall to refresh albedo (kg/m^2)
 end
 
-struct PrognosticAlbedo{Tf, MF <: AbstractMatrix{Tf}} <: AbstractAlbedo{Tf}
-    ALRADT::Bool                         # Aspect-dependent decay tuning
-    adc::MF                              # Cold snow albedo decay time (h)
-    adm::Tf                              # Melting snow albedo decay time (h)
-    afs::MF                              # Maximum albedo for fresh snow (-)
-    amin::Tf                             # Minimum albedo for melting snow (-)
-    Sfmin::Tf                            # Min 24h snowfall to refresh albedo (kg/m^2)
+@kwdef struct PrognosticAlbedo{Tf} <: AbstractAlbedo{Tf}
+    ALRADT::Bool = true                  # Aspect-dependent decay tuning
+    adm::Tf = 100                        # Melting snow albedo decay time (h)
+    amin::Tf = 0.6                       # Minimum albedo for melting snow (-)
+    Sfmin::Tf = 10                       # Min 24h snowfall to refresh albedo (kg/m^2)
 end
 
 DiagnosticAlbedo{Tf}(Nx, Ny; kwargs...) where {Tf} = DiagnosticAlbedo{Tf}(; kwargs...)
-
-function DecayAlbedo{Tf}(Nx, Ny; afs = 0.86, amin = 0.6, tcld = 3600 * 1000,
-        tmlt = 3600 * 100, adfs = 3, adfl = 2, Sfmin = 10) where {Tf}
-    return DecayAlbedo(grid_array(Tf, afs, Nx, Ny), Tf(amin), Tf(tcld), Tf(tmlt),
-        Tf(adfs), Tf(adfl), Tf(Sfmin))
-end
-
-function PrognosticAlbedo{Tf}(Nx, Ny; ALRADT = true, adc = 1000, adm = 100,
-        afs = 0.86, amin = 0.6, Sfmin = 10) where {Tf}
-    return PrognosticAlbedo(ALRADT, grid_array(Tf, adc, Nx, Ny), Tf(adm),
-        grid_array(Tf, afs, Nx, Ny), Tf(amin), Tf(Sfmin))
-end
+DecayAlbedo{Tf}(Nx, Ny; kwargs...) where {Tf} = DecayAlbedo{Tf}(; kwargs...)
+PrognosticAlbedo{Tf}(Nx, Ny; kwargs...) where {Tf} = PrognosticAlbedo{Tf}(; kwargs...)
 
 """
     snow_albedo!(scheme, albs, states, params, i, j)
@@ -65,9 +46,9 @@ function snow_albedo! end
 end
 
 @inline function snow_albedo!(c::DecayAlbedo{Tf}, albs, states, params, i, j) where {Tf}
-    (; Tsrf, fveg, trcn, fsky) = states
+    (; Tsrf, fveg, trcn, fsky, afs) = states
     (; Tm, dt, summer_decay, Sdir, Sdif, Sf, Tv) = params
-    afs_loc = c.afs[i, j]
+    afs_loc = afs[i, j]
 
     tau = c.tcld
     if (Tsrf[i, j] >= Tm)
@@ -99,12 +80,12 @@ end
 end
 
 @inline function snow_albedo!(c::PrognosticAlbedo{Tf}, albs, states, params, i, j) where {Tf}
-    (; Tsrf, Sice, Sliq) = states
+    (; Tsrf, Sice, Sliq, afs, adc) = states
     (; Tm, dt, Sdir, Sdird, Sf, Sf24h) = params
 
-    adc_loc = c.adc[i, j]
+    adc_loc = adc[i, j]
     adm_loc = c.adm
-    afs_loc = c.afs[i, j]
+    afs_loc = afs[i, j]
 
     SWEtmp = Tf(0.0)
     for si in 1:size(Sice, 1)
@@ -170,31 +151,22 @@ operations cannot run inside kernels.
 """
 function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <: Integer}
 
-    @unpack Nx, Ny, dt = fsm
-
-    @unpack tthresh, fsky_terr, fveg, tilefrac = fsm
-
-    @unpack CANOPY = fsm
-
-    @unpack alb0, fsky, scap, trcn = fsm
-
-    @unpack albs, Sice, Sliq, fsnow, Sveg, Tsrf = fsm
-
-    @unpack ALBEDO = fsm
-
-    @unpack alb, asrf_out, SWveg, SWsrf, SWsci, LWt, LWeff = fsm
-
-    @unpack LW, Sdif, Sdir, Sdird, Sf, Sf24h, Ta, Tv = meteo
+    (; Nx, Ny) = fsm.grid
+    (; dt, tthresh) = fsm.params
+    (; fsky_terr, fveg, tilefrac, alb0, fsky, scap, trcn, afs, adc) = fsm.landuse
+    (; CANOPY, ALBEDO) = fsm.physics
+    (; albs, Sice, Sliq, fsnow, Sveg, Tsrf) = fsm.state
+    (; alb, asrf_out, SWveg, SWsrf, SWsci, LWt, LWeff) = fsm.diag
+    (; LW, Sdif, Sdir, Sdird, Sf, Sf24h, Ta, Tv) = meteo
 
     # Dates cannot cross into kernels: resolve the calendar test here
-    # (forest adjustment of the prognostic albedo decay time, ALBEDO == 1)
     summer_decay = Dates.value(Month(t)) > 4 && Dates.value(Month(t)) < 10
 
     backend = get_backend(albs)
     kernel! = radiation_kernel!(backend)
     kernel!(
         albs, alb, asrf_out, SWveg, SWsrf, SWsci, LWt, LWeff,
-        fsky_terr, fveg, tilefrac, alb0, fsky, scap, trcn,
+        fsky_terr, fveg, tilefrac, alb0, fsky, scap, trcn, afs, adc,
         Sice, Sliq, fsnow, Sveg, Tsrf,
         LW, Sdif, Sdir, Sdird, Sf, Sf24h, Ta, Tv,
         dt, tthresh, CANOPY,
@@ -209,7 +181,7 @@ end
 @kernel function radiation_kernel!(
         albs, alb, asrf_out, SWveg, SWsrf, SWsci, LWt, LWeff,
         fsky_terr, fveg, tilefrac, alb0,
-        fsky, scap, trcn,
+        fsky, scap, trcn, afs, adc,
         Sice, Sliq, fsnow, Sveg, Tsrf,
         LW, Sdif, Sdir, Sdird, Sf,
         Sf24h, Ta, Tv,
@@ -225,7 +197,7 @@ end
 
         # Snow albedo
 
-        alb_states = (; Tsrf, Sice, Sliq, fveg, trcn, fsky)
+        alb_states = (; Tsrf, Sice, Sliq, fveg, trcn, fsky, afs, adc)
         alb_params = (; Tm, dt, summer_decay, Sdir, Sdif, Sdird, Sf, Sf24h, Tv)
         snow_albedo!(ALBEDO, albs, alb_states, alb_params, i, j)
 
