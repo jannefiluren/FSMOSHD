@@ -48,8 +48,8 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
         check_grid(scheme, Nx, Ny)
     end
 
-    # Set tile
-    fsm.TILE = settings["tile"]
+    # Tile type is a setup-local input, not stored on the model (Stage 7).
+    tile = settings["tile"]
 
     # Apply model configuration
     for (key, value) in config
@@ -109,8 +109,8 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
     fsm.prec_multi .= landuse["prec_multi"]["data"]   # TODO hack float64
 
     # Set tile fractions non open tiles
-    if (fsm.TILE != "open")
-        fsm.tilefrac .= Tf.(landuse[lowercase(fsm.TILE)]["data"])
+    if (tile != "open")
+        fsm.tilefrac .= Tf.(landuse[lowercase(tile)]["data"])
     end
 
     # Initialize snow cover fraction specific variables
@@ -119,7 +119,7 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
     fsm.Ld .= Tf.(landuse["Ld"]["data"])
 
     # Canopy properties
-    if (fsm.TILE == "forest")
+    if (tile == "forest")
 
         fsm.fveg .= Tf.(landuse["fveg"]["data"])
         fsm.hcan .= Tf.(landuse["hcan"]["data"])
@@ -143,7 +143,7 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
     # so the kernels never have to re-derive it per cell. For a canopy tile that requirement
     # is fveg > 0: a cell with no canopy does not belong to the forest tile, and its area is
     # covered by the open tile, which spans the whole domain.
-    if (fsm.TILE == "forest")
+    if (tile == "forest")
         canopy_free = (fsm.tilefrac .>= fsm.tthresh) .& (fsm.fveg .<= 0)
         dropped = count(canopy_free)
         if dropped > 0

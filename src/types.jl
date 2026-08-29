@@ -45,7 +45,6 @@
 
     # Tile options
 
-    TILE::String = "open"                                    # Tile type
     tthresh::Tf = 0.1                                        # Tile threshold
 
     # Numerical solution parameters
