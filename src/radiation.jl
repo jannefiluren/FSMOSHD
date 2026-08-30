@@ -151,27 +151,17 @@ operations cannot run inside kernels.
 """
 function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <: Integer}
 
-    (; Nx, Ny) = fsm.grid
-    (; dt, tthresh) = fsm.params
-    (; fsky_terr, fveg, tilefrac, alb0, fsky, scap, trcn, afs, adc) = fsm.landuse
     (; CANOPY, ALBEDO) = fsm.physics
-    (; albs, Sice, Sliq, fsnow, Sveg, Tsrf) = fsm.state
-    (; alb, asrf_out, SWveg, SWsrf, SWsci, LWt, LWeff) = fsm.diag
-    (; LW, Sdif, Sdir, Sdird, Sf, Sf24h, Ta, Tv) = meteo
 
     # Dates cannot cross into kernels: resolve the calendar test here
     summer_decay = Dates.value(Month(t)) > 4 && Dates.value(Month(t)) < 10
 
-    backend = get_backend(albs)
+    backend = get_backend(fsm.state.albs)
     kernel! = radiation_kernel!(backend)
     kernel!(
-        albs, alb, asrf_out, SWveg, SWsrf, SWsci, LWt, LWeff,
-        fsky_terr, fveg, tilefrac, alb0, fsky, scap, trcn, afs, adc,
-        Sice, Sliq, fsnow, Sveg, Tsrf,
-        LW, Sdif, Sdir, Sdird, Sf, Sf24h, Ta, Tv,
-        dt, tthresh, CANOPY,
-        ALBEDO, summer_decay;
-        ndrange = (Int(Nx), Int(Ny))
+        fsm.state, fsm.diag, fsm.landuse, fsm.params, meteo,
+        CANOPY, ALBEDO, summer_decay;
+        ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
 
@@ -179,19 +169,20 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, 
 end
 
 @kernel function radiation_kernel!(
-        albs, alb, asrf_out, SWveg, SWsrf, SWsci, LWt, LWeff,
-        fsky_terr, fveg, tilefrac, alb0,
-        fsky, scap, trcn, afs, adc,
-        Sice, Sliq, fsnow, Sveg, Tsrf,
-        LW, Sdif, Sdir, Sdird, Sf,
-        Sf24h, Ta, Tv,
-        dt::Tf, tthresh::Tf, CANOPY::AbstractCanopy{Tf},
+        state, diag, landuse, params::Parameters{Tf}, meteo,
+        CANOPY::AbstractCanopy{Tf},
         ALBEDO::AbstractAlbedo{Tf}, summer_decay::Bool,
     ) where {Tf}
 
     i, j = @index(Global, NTuple)
 
     @unpack_constants(Tf)
+
+    (; dt, tthresh) = params
+    (; fsky_terr, fveg, tilefrac, alb0, fsky, scap, trcn, afs, adc) = landuse
+    (; albs, Sice, Sliq, fsnow, Sveg, Tsrf) = state
+    (; alb, asrf_out, SWveg, SWsrf, SWsci, LWt, LWeff) = diag
+    (; LW, Sdif, Sdir, Sdird, Sf, Sf24h, Ta, Tv) = meteo
 
     if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
 

@@ -7,18 +7,14 @@ IceSubstrate{Tf}(Nx, Ny; kwargs...) where {Tf} = IceSubstrate{Tf}()
 function soil!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
     (; SUBSTR) = fsm.physics
-    (; Dzsoil, Nsoil, Nx, Ny) = fsm.grid
-    (; Tsoil) = fsm.state
-    (; tilefrac) = fsm.landuse
-    (; csoil, ksoil, Gsoil) = fsm.diag
-    params = fsm.params
+    (; Nsoil) = fsm.grid
 
-    backend = get_backend(Tsoil)
+    backend = get_backend(fsm.state.Tsoil)
     kernel! = soil_kernel!(backend)
     kernel!(
-        Tsoil, Dzsoil, tilefrac, csoil, ksoil, Gsoil,
-        params, SUBSTR, Val(Int(Nsoil));
-        ndrange = (Int(Nx), Int(Ny))
+        fsm.state, fsm.diag, fsm.landuse, fsm.grid, fsm.params,
+        SUBSTR, Val(Int(Nsoil));
+        ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
 
@@ -26,14 +22,18 @@ function soil!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 end
 
 @kernel inbounds = true function soil_kernel!(
-        Tsoil, Dzsoil, tilefrac, csoil, ksoil, Gsoil,
-        params::Parameters{Tf}, SUBSTR::AbstractSubstrate{Tf}, ::Val{Nsoil},
+        state, diag, landuse, grid, params::Parameters{Tf},
+        SUBSTR::AbstractSubstrate{Tf}, ::Val{Nsoil},
     ) where {Tf, Nsoil}
 
     i, j = @index(Global, NTuple)
 
     @unpack_constants(Tf)
     (; dt, tthresh) = params
+    (; Dzsoil) = grid
+    (; Tsoil) = state
+    (; csoil, ksoil, Gsoil) = diag
+    (; tilefrac) = landuse
 
     if (tilefrac[i, j] >= tthresh)
 

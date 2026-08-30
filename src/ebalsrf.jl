@@ -15,40 +15,15 @@ bit-identical results to the former plain loops.
 function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
     (; SUBSTR) = fsm.physics
-    (; tthresh) = fsm.params
-
-    (; dt) = fsm.params
-
-    (; Nx, Ny) = fsm.grid
-
-    (; trcn) = fsm.landuse
-
-    (; Sice, Tcan, Tsrf, Tveg) = fsm.state
-
-    (; fveg, tilefrac) = fsm.landuse
-
-    (; SWsrf) = fsm.diag
-
-    (; Ds1, Ts1, ks1) = fsm.diag
-
-    (; Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf) = fsm.diag
-
-    (; KH, KWg, KHa, KHv, KWv, SWveg) = fsm.diag
-
-    (; Qa, LWeff) = fsm.diag
-
-    @unpack Ps, Ta = meteo
 
     # Strings cannot cross into kernels: resolve the tile test here
 
-    backend = get_backend(Tsrf)
+    backend = get_backend(fsm.state.Tsrf)
     kernel! = ebalsrf_kernel!(backend)
     kernel!(
-        Tveg, Tcan, Tsrf, Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf,
-        Sice, trcn, fveg, tilefrac, SWsrf, SWveg, Ds1, Ts1, ks1,
-        KH, KWg, KHa, KHv, KWv, Qa, LWeff, Ps, Ta,
-        dt, tthresh, SUBSTR;
-        ndrange = (Int(Nx), Int(Ny))
+        fsm.state, fsm.diag, fsm.landuse, fsm.params, meteo,
+        SUBSTR;
+        ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
 
@@ -56,17 +31,20 @@ function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <:
 end
 
 @kernel function ebalsrf_kernel!(
-        Tveg, Tcan, Tsrf, Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf,
-        Sice, trcn, fveg, tilefrac,
-        SWsrf, SWveg, Ds1, Ts1, ks1,
-        KH, KWg, KHa, KHv, KWv,
-        Qa, LWeff, Ps, Ta,
-        dt::Tf, tthresh::Tf, SUBSTR::AbstractSubstrate{Tf},
+        state, diag, landuse, params::Parameters{Tf}, meteo,
+        SUBSTR::AbstractSubstrate{Tf},
     ) where {Tf}
 
     i, j = @index(Global, NTuple)
 
     @unpack_constants(Tf)
+
+    (; dt, tthresh) = params
+    (; trcn, fveg, tilefrac) = landuse
+    (; Sice, Tcan, Tsrf, Tveg) = state
+    (; Esrf, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf,
+       SWsrf, Ds1, Ts1, ks1, KH, KWg, Qa, LWeff) = diag
+    (; Ps, Ta) = meteo
 
     if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
 

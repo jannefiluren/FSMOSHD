@@ -12,18 +12,8 @@ test on `t` is resolved on the host.
 """
 function snow_layering!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, snowdepth0, Sice0, t) where {Tf <: Real, Ti <: Integer}
 
-    (; SNOLAY, SNFRAC, Tsnow_min) = fsm.params
-    (; tthresh, hfsn) = fsm.params
-    (; Nsmax, Nx, Ny, Dzsnow) = fsm.grid
-    (; Ds_min, Ds_surflay) = fsm.params
-    (; rho0) = fsm.params
-    (; Sice, Sliq, Ds, histowet, Nsnow, fsnow, Tsnow) = fsm.state
-    (; tilefrac) = fsm.landuse
-    @unpack Ta = meteo
+    (; Nsmax) = fsm.grid
     (; Ds0) = fsm.diag
-    (; swehist, swemin, swemax) = fsm.state
-    (; snowdepthhist, snowdepthmin, snowdepthmax) = fsm.state
-    (; slopemu, xi, Ld) = fsm.landuse
 
     # Initialize Ds0
     Ds0 .= Tf(0)
@@ -32,15 +22,12 @@ function snow_layering!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, snowdepth0, Sice0,
     # they correspond to 6:00am values
     update_hist = 4.5 < hour(t) < 5.5
 
-    backend = get_backend(Tsnow)
+    backend = get_backend(fsm.state.Tsnow)
     kernel! = snow_layering_kernel!(backend)
     kernel!(
-        Ds, Sice, Sliq, Tsnow, histowet, Nsnow, Ds0, fsnow,
-        swehist, swemin, swemax, snowdepthhist, snowdepthmin, snowdepthmax,
-        tilefrac, snowdepth0, Sice0, Ta, slopemu, xi, Ld, Dzsnow,
-        tthresh, Ds_min, Ds_surflay, rho0, hfsn,
-        SNOLAY, SNFRAC, Tsnow_min, update_hist, Val(Int(Nsmax));
-        ndrange = (Int(Nx), Int(Ny))
+        fsm.state, fsm.diag, fsm.landuse, fsm.grid, fsm.params, meteo,
+        snowdepth0, Sice0, update_hist, Val(Int(Nsmax));
+        ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
 
@@ -51,18 +38,22 @@ end
 # the note on soil_kernel! (a raw @inbounds block inside a @kernel body must
 # not be used - it corrupts the KernelAbstractions CPU transformation)
 @kernel inbounds = true function snow_layering_kernel!(
-        Ds, Sice, Sliq, Tsnow, histowet, Nsnow, Ds0, fsnow,
-        swehist, swemin, swemax, snowdepthhist, snowdepthmin, snowdepthmax,
-        tilefrac, snowdepth0, Sice0, Ta,
-        slopemu, xi, Ld, Dzsnow,
-        tthresh::Tf, Ds_min::Tf, Ds_surflay::Tf, rho0::Tf, hfsn::Tf,
-        SNOLAY::Ti, SNFRAC::Ti, Tsnow_min::Tf, update_hist::Bool,
+        state, diag, landuse, grid, params::Parameters{Tf}, meteo,
+        snowdepth0, Sice0, update_hist::Bool,
         ::Val{Nsmax},
-    ) where {Tf, Ti, Nsmax}
+    ) where {Tf, Nsmax}
 
     i, j = @index(Global, NTuple)
 
     @unpack_constants(Tf)
+
+    (; tthresh, Ds_min, Ds_surflay, rho0, hfsn, SNOLAY, SNFRAC, Tsnow_min) = params
+    (; Dzsnow) = grid
+    (; tilefrac, slopemu, xi, Ld) = landuse
+    (; Ds, Sice, Sliq, Tsnow, histowet, Nsnow, fsnow,
+       swehist, swemin, swemax, snowdepthhist, snowdepthmin, snowdepthmax) = state
+    (; Ds0) = diag
+    (; Ta) = meteo
 
     if tilefrac[i, j] >= tthresh
 

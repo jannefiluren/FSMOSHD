@@ -56,34 +56,16 @@ cell, so the fusion is exact.
 """
 function thermal!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
-    (; Dzsnow, Dzsoil, Nsmax, Nsoil, Nx, Ny) = fsm.grid
-
-    (; gsat, rhof) = fsm.params
-
-    (; b, hcap_soil, hcon_soil, sathh, Vcrit, Vsat) = fsm.landuse
-
-    (; Ds, Nsnow, fsnow, Sice, Sliq, theta, Tsnow, Tsoil, Tveg) = fsm.state
-
-    (; tilefrac) = fsm.landuse
-    (; tthresh) = fsm.params
-
     (; CONDCT, SUBSTR) = fsm.physics
-    (; DENSTY) = fsm.params
-
-    (; ksnow, csoil, ksoil, gs1, Ds1, Ts1, ks1, Tveg0) = fsm.diag
 
     # Strings cannot cross into kernels: resolve the tile test here
 
-    backend = get_backend(gs1)
+    backend = get_backend(fsm.diag.gs1)
     kernel! = thermal_kernel!(backend)
     kernel!(
-        ksnow, csoil, ksoil, gs1, Ds1, Ts1, ks1, Tveg0,
-        Dzsoil, b, hcap_soil, hcon_soil, sathh, Vcrit, Vsat,
-        Ds, Nsnow, fsnow, Sice, Sliq, theta, Tsnow, Tsoil, Tveg,
-        tilefrac,
-        tthresh, gsat, rhof,
-        Nsoil, CONDCT, DENSTY, SUBSTR;
-        ndrange = (Int(Nx), Int(Ny))
+        fsm.state, fsm.diag, fsm.landuse, fsm.grid, fsm.params,
+        CONDCT, SUBSTR;
+        ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
 
@@ -91,19 +73,19 @@ function thermal!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 end
 
 @kernel function thermal_kernel!(
-        ksnow, csoil, ksoil, gs1, Ds1, Ts1, ks1, Tveg0,
-        Dzsoil, b, hcap_soil, hcon_soil,
-        sathh, Vcrit, Vsat,
-        Ds, Nsnow, fsnow, Sice, Sliq,
-        theta, Tsnow, Tsoil, Tveg,
-        tilefrac,
-        tthresh::Tf, gsat::Tf, rhof::Tf,
-        Nsoil::Ti, CONDCT::AbstractConductivity{Tf}, DENSTY::Ti, SUBSTR::AbstractSubstrate{Tf},
-    ) where {Tf, Ti}
+        state, diag, landuse, grid, params::Parameters{Tf},
+        CONDCT::AbstractConductivity{Tf}, SUBSTR::AbstractSubstrate{Tf},
+    ) where {Tf}
 
     i, j = @index(Global, NTuple)
 
     @unpack_constants(Tf)
+
+    (; Dzsoil, Nsoil) = grid
+    (; tthresh, gsat, rhof, DENSTY) = params
+    (; b, hcap_soil, hcon_soil, sathh, Vcrit, Vsat, tilefrac) = landuse
+    (; Ds, Nsnow, fsnow, Sice, Sliq, theta, Tsnow, Tsoil, Tveg) = state
+    (; ksnow, csoil, ksoil, gs1, Ds1, Ts1, ks1, Tveg0) = diag
 
     if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
 

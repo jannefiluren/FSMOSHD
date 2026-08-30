@@ -18,31 +18,14 @@ called afterwards on the host, as before.
 """
 function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <: Integer}
 
-    (; HYDROL, DENSTY, SNFRAC, FSNRHO, Tsnow_min) = fsm.params
-
-    (; tthresh) = fsm.params
-
     (; dt) = fsm.params
+    (; Nsmax) = fsm.grid
 
-    (; Dzsoil, Nsmax, Nx, Ny) = fsm.grid
+    (; Gsoil, meltflux_out, Roff, Roff_bare, Roff_snow) = fsm.diag
+    (; G, snowdepth0, Sice0) = fsm.diag
+    (; fsnow) = fsm.state
 
-    (; a_eta, b_eta, c_eta, eta0, eta1, rho0, rhob, rhoc, rhof, rhos_min, rcld, rmlt, snda, trho, Wirr, rhos_max) = fsm.params
-
-    (; Ds, Nsnow, fsnow, rgrn, Sice, Sliq, Tsnow, Tsoil, Tsrf, histowet) = fsm.state
-
-    (; dem, tilefrac) = fsm.landuse
-
-    (; ksnow, ksoil) = fsm.diag
-
-    (; Esrf, G, Melt) = fsm.diag
-
-    (; Gsoil, Roff, meltflux_out, Sbsrf, Roff_bare, Roff_snow, unload) = fsm.diag
-
-    (; snowdepth0, Sice0) = fsm.diag
-
-    (; Sfeff, Uaeff) = fsm.diag
-
-    @unpack Rf, Ta = meteo
+    @unpack Rf = meteo
 
     Gsoil .= G
     Roff .= Tf(0)
@@ -55,17 +38,12 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
     Sice0 .= Tf(0)
 
     # Points with existing snowpack
-    backend = get_backend(Tsnow)
+    backend = get_backend(fsm.state.Tsnow)
     kernel! = snow_kernel!(backend)
     kernel!(
-        Sbsrf, Roff_bare, Roff_snow, Roff, meltflux_out, Gsoil,
-        Tsnow, Ds, Sice, Sliq, histowet, rgrn, Sice0, snowdepth0,
-        Nsnow, fsnow, tilefrac, unload, ksnow, ksoil, Dzsoil, Tsoil,
-        G, Melt, Esrf, Tsrf, dem, Uaeff, Sfeff, Ta,
-        dt, tthresh, Wirr, rho0, rhob, rhoc, rhof, rhos_min, rcld, rmlt,
-        snda, trho, eta0, eta1, a_eta, b_eta, c_eta, rhos_max,
-        HYDROL, DENSTY, SNFRAC, FSNRHO, Tsnow_min, Val(Int(Nsmax));
-        ndrange = (Int(Nx), Int(Ny))
+        fsm.state, fsm.diag, fsm.landuse, fsm.grid, fsm.params, meteo,
+        Val(Int(Nsmax));
+        ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
 
@@ -80,22 +58,23 @@ end
 # the note on soil_kernel! (a raw @inbounds block inside a @kernel body must
 # not be used - it corrupts the KernelAbstractions CPU transformation)
 @kernel inbounds = true function snow_kernel!(
-        Sbsrf, Roff_bare, Roff_snow, Roff, meltflux_out, Gsoil,
-        Tsnow, Ds, Sice, Sliq, histowet, rgrn, Sice0, snowdepth0,
-        Nsnow, fsnow, tilefrac, unload,
-        ksnow, ksoil, Dzsoil, Tsoil,
-        G, Melt, Esrf, Tsrf, dem,
-        Uaeff, Sfeff, Ta,
-        dt::Tf, tthresh::Tf, Wirr::Tf, rho0::Tf, rhob::Tf, rhoc::Tf, rhof::Tf,
-        rhos_min::Tf, rcld::Tf, rmlt::Tf, snda::Tf, trho::Tf, eta0::Tf,
-        eta1::Tf, a_eta::Tf, b_eta::Tf, c_eta::Tf, rhos_max::Tf,
-        HYDROL::Ti, DENSTY::Ti, SNFRAC::Ti, FSNRHO::Ti, Tsnow_min::Tf,
+        state, diag, landuse, grid, params::Parameters{Tf, Ti}, meteo,
         ::Val{Nsmax},
     ) where {Tf, Ti, Nsmax}
 
     i, j = @index(Global, NTuple)
 
     @unpack_constants(Tf)
+
+    (; dt, tthresh, Wirr, rho0, rhob, rhoc, rhof, rhos_min, rcld, rmlt,
+       snda, trho, eta0, eta1, a_eta, b_eta, c_eta, rhos_max,
+       HYDROL, DENSTY, SNFRAC, FSNRHO, Tsnow_min) = params
+    (; Dzsoil) = grid
+    (; dem, tilefrac) = landuse
+    (; Tsnow, Ds, Sice, Sliq, histowet, rgrn, Nsnow, fsnow, Tsoil, Tsrf) = state
+    (; Sbsrf, Roff_bare, Roff_snow, Roff, meltflux_out, Gsoil, Sice0, snowdepth0,
+       unload, ksnow, ksoil, G, Melt, Esrf, Uaeff, Sfeff) = diag
+    (; Ta) = meteo
 
     if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
 

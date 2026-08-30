@@ -14,34 +14,11 @@ solves its own 4x4 linear system (`ludcmp!`) using kernel-local
 """
 function ebalfor!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
-    (; tthresh) = fsm.params
-
-    (; Qa, LWeff) = fsm.diag
-
-    @unpack Ps, Ta = meteo
-
-    (; Nx, Ny) = fsm.grid
-    (; dt) = fsm.params
-
-    (; canh, fsky, trcn) = fsm.landuse
-
-    (; Qcan, Sice, Tcan, Tsrf, Tveg) = fsm.state
-
-    (; fveg, tilefrac) = fsm.landuse
-
-    (; Ds1, KHa, KHg, KHv, KWg, KWv, ks1, SWsrf, SWveg, Ts1, Tveg0) = fsm.diag
-
-    (; Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf) = fsm.diag
-
-    backend = get_backend(Tsrf)
+    backend = get_backend(fsm.state.Tsrf)
     kernel! = ebalfor_kernel!(backend)
     kernel!(
-        Qcan, Tcan, Tsrf, Tveg, Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf,
-        canh, fsky, trcn, Sice, fveg, tilefrac,
-        Ds1, KHa, KHg, KHv, KWg, KWv, ks1, SWsrf, SWveg, Ts1, Tveg0,
-        Qa, LWeff, Ps, Ta,
-        dt, tthresh;
-        ndrange = (Int(Nx), Int(Ny))
+        fsm.state, fsm.diag, fsm.landuse, fsm.params, meteo;
+        ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
 
@@ -54,17 +31,19 @@ end
 # body must not be used - it corrupts the KernelAbstractions CPU
 # transformation)
 @kernel inbounds = true function ebalfor_kernel!(
-        Qcan, Tcan, Tsrf, Tveg, Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf,
-        canh, fsky, trcn, Sice, fveg, tilefrac,
-        Ds1, KHa, KHg, KHv, KWg, KWv,
-        ks1, SWsrf, SWveg, Ts1, Tveg0,
-        Qa, LWeff, Ps, Ta,
-        dt::Tf, tthresh::Tf,
+        state, diag, landuse, params::Parameters{Tf}, meteo,
     ) where {Tf}
 
     i, j = @index(Global, NTuple)
 
     @unpack_constants(Tf)
+
+    (; dt, tthresh) = params
+    (; canh, fsky, trcn, tilefrac) = landuse
+    (; Qcan, Sice, Tcan, Tsrf, Tveg) = state
+    (; Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf,
+       Ds1, KHa, KHg, KHv, KWg, KWv, ks1, SWsrf, SWveg, Ts1, Tveg0, Qa, LWeff) = diag
+    (; Ps, Ta) = meteo
 
     # 1-layer canopy model
     if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest

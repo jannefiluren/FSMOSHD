@@ -64,33 +64,14 @@ launched over the whole grid (see `ebalsrf!` for the pattern).
 """
 function canopy!(::OneLayerCanopy, fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
-    (; tthresh) = fsm.params
-
-    (; Sfeff) = fsm.diag
-
-    (; Nx, Ny) = fsm.grid
-    (; dt) = fsm.params
-
-    (; tcnc, tcnm) = fsm.params
     (; CANOPY) = fsm.physics
 
-    (; scap) = fsm.landuse
-
-    (; Sveg, Tveg) = fsm.state
-
-    (; fveg, pmultf, tilefrac) = fsm.landuse
-
-    (; Eveg) = fsm.diag
-
-    (; intcpt, Sbveg, unload) = fsm.diag
-
-    backend = get_backend(Sveg)
+    backend = get_backend(fsm.state.Sveg)
     kernel! = canopy_kernel!(backend)
     kernel!(
-        unload, intcpt, Sbveg, Sveg, Sfeff,
-        scap, Tveg, fveg, pmultf, tilefrac, Eveg,
-        dt, tthresh, tcnc, tcnm, CANOPY;
-        ndrange = (Int(Nx), Int(Ny))
+        fsm.state, fsm.diag, fsm.landuse, fsm.params,
+        CANOPY;
+        ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
 
@@ -98,15 +79,18 @@ function canopy!(::OneLayerCanopy, fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {
 end
 
 @kernel function canopy_kernel!(
-        unload, intcpt, Sbveg, Sveg, Sfeff,
-        scap, Tveg, fveg, pmultf,
-        tilefrac, Eveg,
-        dt::Tf, tthresh::Tf, tcnc::Tf, tcnm::Tf, CANOPY::OneLayerCanopy{Tf},
+        state, diag, landuse, params::Parameters{Tf},
+        CANOPY::OneLayerCanopy{Tf},
     ) where {Tf}
 
     i, j = @index(Global, NTuple)
 
     @unpack_constants(Tf)
+
+    (; dt, tthresh, tcnc, tcnm) = params
+    (; scap, fveg, pmultf, tilefrac) = landuse
+    (; Sveg, Tveg) = state
+    (; unload, intcpt, Sbveg, Sfeff, Eveg) = diag
 
     unload[i, j] = Tf(0)
     intcpt[i, j] = Tf(0)
