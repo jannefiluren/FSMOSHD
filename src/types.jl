@@ -12,7 +12,6 @@ end
     zT::Tf = 10                                      # Temperature measurement height (m)
     zU::Tf = 10                                      # Wind speed measurement height (m)
     zRH::Tf = 10                                     # Relative humidity measurement height (m)
-    SNFRAC::Ti = 3                                   # Snow cover fraction (0, 1, 2, 3, 4)
     tthresh::Tf = 0.1                                # Tile threshold
     Nitr::Ti = 4                                     # Iterations for surface energy balance
     cvai::Tf = 4.4                                   # Canopy snow capacity per unit vegetation area index (kg/m^2)
@@ -209,7 +208,8 @@ function (::Type{FSM{Tf, Ti}})(;
         FSNRHO = ElevationFreshSnowDensity{Tf}(),
         COMPACT = CrocusCompaction{Tf}(),
         HYDROL = DensityBucketHydrology{Tf}(),
-        LAYERING = OriginalLayering{Tf}()) where {Tf, Ti}
+        LAYERING = OriginalLayering{Tf}(),
+        SNFRAC = PointSnowFraction{Tf}()) where {Tf, Ti}
 
     grid    = Grid{Ti, Vector{Tf}}(; Nx = Nx, Ny = Ny)
     GT      = typeof(grid)
@@ -219,7 +219,8 @@ function (::Type{FSM{Tf, Ti}})(;
     diag    = Diagnostics{Tf, GT, Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
     physics = (ALBEDO = ALBEDO, CANOPY = CANOPY, SUBSTR = SUBSTR, CONDCT = CONDCT,
         reference_height = reference_height, surface_layer = surface_layer, stability = stability,
-        FSNRHO = FSNRHO, COMPACT = COMPACT, HYDROL = HYDROL, LAYERING = LAYERING)
+        FSNRHO = FSNRHO, COMPACT = COMPACT, HYDROL = HYDROL, LAYERING = LAYERING,
+        SNFRAC = SNFRAC)
 
     all(s -> s isa AbstractParameterization{Tf}, values(physics)) ||
         throw(ArgumentError("physics scheme precision does not match model Tf = $Tf"))

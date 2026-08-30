@@ -18,6 +18,7 @@ abstract type AbstractFreshSnowDensity{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractCompaction{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractHydrology{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractLayering{Tf} <: AbstractParameterization{Tf} end
+abstract type AbstractSnowFraction{Tf} <: AbstractParameterization{Tf} end
 
 # KernelAbstractions is imported qualified because it exports its own CPU/GPU
 # names, which would clash with the architecture types defined here.
@@ -68,6 +69,7 @@ export AbstractFreshSnowDensity, FixedFreshSnowDensity, ClimateFreshSnowDensity,
 export AbstractCompaction, AgeCompaction, OverburdenCompaction, CrocusCompaction, compact_snow!
 export AbstractHydrology, FreeDrainingHydrology, BucketHydrology, DensityBucketHydrology, snow_hydrology!
 export AbstractLayering, OriginalLayering, DensityLayering, relayer_snow!
+export AbstractSnowFraction, SeasonalSnowFraction, HelbigSnowFraction, HelbigMaxSnowFraction, PointSnowFraction, TanhSnowFraction, snow_covered_fraction!
 export AbstractArchitecture, CPU, GPU, on_architecture
 export canopy!, radiation!, thermal!, sfexch!, ebalsrf!, ebalfor!, snow!, soil!, snowcoverfraction!
 export qsat, tridiag!, ludcmp!

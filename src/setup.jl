@@ -42,6 +42,7 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
     DENSTY = Int(pop!(config, "DENSTY", 3))
     HYDROL = Int(pop!(config, "HYDROL", 2))
     SNOLAY = Int(pop!(config, "SNOLAY", 0))
+    SNFRAC = Int(pop!(config, "SNFRAC", 3))
     schemes = (
         ALBEDO = build_scheme(Tf, get(config, "ALBEDO", PrognosticAlbedo), Nx, Ny, params),
         CANOPY = build_scheme(Tf, get(config, "CANOPY",
@@ -62,6 +63,13 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
         HYDROL = build_scheme(Tf, HYDROL == 0 ? FreeDrainingHydrology :
             HYDROL == 1 ? BucketHydrology : DensityBucketHydrology, Nx, Ny, params),
         LAYERING = build_scheme(Tf, SNOLAY == 0 ? OriginalLayering : DensityLayering, Nx, Ny, params),
+        SNFRAC = build_scheme(Tf, SNFRAC == 0 ? SeasonalSnowFraction :
+            SNFRAC == 1 ? HelbigSnowFraction :
+            SNFRAC == 2 ? HelbigMaxSnowFraction :
+            SNFRAC == 3 ? PointSnowFraction :
+            SNFRAC == 4 ? TanhSnowFraction :
+            error("SNFRAC=$SNFRAC is not supported (use 0-4)"),
+            Nx, Ny, params),
     )
     fsm = FSM{Tf, Ti}(; Nx = Nx, Ny = Ny, schemes...)
 

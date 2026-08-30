@@ -126,13 +126,13 @@ launched over the whole grid (see `ebalsrf!` for the pattern).
 """
 function sfexch!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
-    (; reference_height, surface_layer, stability) = fsm.physics
+    (; reference_height, surface_layer, stability, SNFRAC) = fsm.physics
 
     backend = get_backend(fsm.state.Tsrf)
     kernel! = sfexch_kernel!(backend)
     kernel!(
         fsm.state, fsm.diag, fsm.landuse, fsm.params, meteo,
-        reference_height, surface_layer, stability;
+        reference_height, surface_layer, stability, SNFRAC;
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -145,13 +145,14 @@ end
         reference_height::AbstractReferenceHeight{Tf},
         surface_layer::AbstractSurfaceLayer{Tf},
         stability::AbstractStabilityCorrection{Tf},
+        SNFRAC::AbstractSnowFraction{Tf},
     ) where {Tf}
 
     i, j = @index(Global, NTuple)
 
     @unpack_constants(Tf)
 
-    (; SNFRAC, tthresh, zT, zU, gsnf, zsub) = params
+    (; tthresh, zT, zU, gsnf, zsub) = params
     (; tilefrac, z0_snow, z0sf, VAI, fveg, fves, hcan) = landuse
     (; Ds, fsnow, Sice, Sveg, Tcan, Tsrf, Tveg, Qcan) = state
     (; KH, KHa, KHg, KHv, KWg, KWv, Usc, gs1, Qa, Uaeff) = diag
@@ -161,9 +162,9 @@ end
 
         zU1, zT1 = reference_heights(reference_height, zU, zT, hcan[i, j])
 
-        # Ground roughness length (SNFRAC stays a runtime axis until its own stage)
+        # Ground roughness length
         z0g = z0_snow[i, j]
-        if (SNFRAC == 3)
+        if SNFRAC isa PointSnowFraction
             sumtmp = column_sum(Ds, i, j)
             if (sumtmp <= Tf(0.05))
                 z0g = z0sf[i, j]

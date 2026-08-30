@@ -1,41 +1,60 @@
+# Snow cover fraction (SCF) parameterizations. Fieldless dispatch schemes
+# selecting the SCF model; every `AbstractSnowFraction` implements the point
+# function `snow_covered_fraction!`.
+
+struct SeasonalSnowFraction{Tf} <: AbstractSnowFraction{Tf} end   # OSHD seasonal model
+struct HelbigSnowFraction{Tf} <: AbstractSnowFraction{Tf} end     # HelbigHS
+struct HelbigMaxSnowFraction{Tf} <: AbstractSnowFraction{Tf} end  # HelbigHS0 (running max)
+struct PointSnowFraction{Tf} <: AbstractSnowFraction{Tf} end      # point model (0/1)
+struct TanhSnowFraction{Tf} <: AbstractSnowFraction{Tf} end       # tanh model / original FSM
+
+SeasonalSnowFraction{Tf}(Nx, Ny; kwargs...) where {Tf} = SeasonalSnowFraction{Tf}()
+HelbigSnowFraction{Tf}(Nx, Ny; kwargs...) where {Tf} = HelbigSnowFraction{Tf}()
+HelbigMaxSnowFraction{Tf}(Nx, Ny; kwargs...) where {Tf} = HelbigMaxSnowFraction{Tf}()
+PointSnowFraction{Tf}(Nx, Ny; kwargs...) where {Tf} = PointSnowFraction{Tf}()
+TanhSnowFraction{Tf}(Nx, Ny; kwargs...) where {Tf} = TanhSnowFraction{Tf}()
+
 """
-    snowcoverfraction_point!(fsnow, swehist, swemin, swemax, snowdepthhist,
-                             snowdepthmin, snowdepthmax, slopemu, xi, Ld,
-                             snowdepth, SWEtmp, i, j, SNFRAC, hfsn, update_hist)
+    snowcoverfraction_point!(scheme, state, landuse, snowdepth, SWEtmp, hfsn, i, j, update_hist)
 
-Snow cover fraction calculation for one grid cell, using multiple
-parameterizations selected by `SNFRAC`.
+Snow cover fraction for one grid cell: dispatch to the `scheme`'s SCF model
+(`snow_covered_fraction!`), then apply the shared final clamp. A kernel point
+function (see `.claude/rules/kernel-point-functions.md`); called from the
+`snow_layering!` kernel and the [`snowcoverfraction!`](@ref) host wrapper.
 
-Device-safe per-cell function called from the `snow_layering!` kernel (and
-from the [`snowcoverfraction!`](@ref) host wrapper). The 14-day SWE and snow
-depth history buffers are function-local `MVector`s; `update_hist` selects
-whether the history state is refreshed this time step (the caller resolves
-the "6:00 am" test, since `Dates` cannot run inside kernels).
-
-# Arguments
-- `fsnow`, `swehist`, `swemin`, `swemax`, `snowdepthhist`, `snowdepthmin`,
-  `snowdepthmax`: State arrays from `FSM` (modified in-place)
-- `slopemu`, `xi`, `Ld`: Terrain property arrays from `FSM`
-- `snowdepth::Real`: Current snow depth (m)
-- `SWEtmp::Real`: Current snow water equivalent (kg/m²)
-- `i::Integer`, `j::Integer`: Grid indices
-- `SNFRAC`: Snow cover fraction configuration
-- `hfsn::Real`: Snowcover fraction depth scale (m)
-- `update_hist::Bool`: Refresh the 14-day history state (true at 6:00 am)
+`snowdepth` (m) and `SWEtmp` (kg/m^2) are the current depth and SWE; `hfsn` (m)
+the depth scale (tanh model); `update_hist` refreshes the 14-day history state
+(true at 6:00 am - the caller resolves the test, since `Dates` cannot run in a
+kernel).
 """
 @inline function snowcoverfraction_point!(
-        fsnow, swehist, swemin, swemax, snowdepthhist, snowdepthmin, snowdepthmax,
-        slopemu, xi, Ld,
-        snowdepth::Tf, SWEtmp::Tf, i::Integer, j::Integer,
-        SNFRAC::Integer, hfsn::Tf, update_hist::Bool
+        scheme::AbstractSnowFraction, state, landuse,
+        snowdepth::Tf, SWEtmp::Tf, hfsn::Tf, i::Integer, j::Integer, update_hist::Bool
     ) where {Tf <: Real}
 
-    # @inbounds so that the bounds-check error paths do not capture the
-    # local MVector history buffers (which would force them onto the heap,
-    # allocating once per grid cell); tests run with --check-bounds=yes,
-    # which overrides this
-    @inbounds if SNFRAC == 0
+    snow_covered_fraction!(scheme, state, landuse, snowdepth, SWEtmp, hfsn, i, j, update_hist)
 
+    (; fsnow) = state
+    # Final adjustments
+    if snowdepth < eps(Tf)
+        fsnow[i, j] = Tf(0.0)
+    else
+        fsnow[i, j] = min(fsnow[i, j], Tf(1.0))
+    end
+
+    return nothing
+end
+
+# OSHD seasonal model. @inbounds so the bounds-check error paths do not capture
+# the local MVector history buffers (which would force them onto the heap,
+# allocating once per grid cell); tests run with --check-bounds=yes, overriding.
+@inline function snow_covered_fraction!(
+        ::SeasonalSnowFraction{Tf}, state, landuse,
+        snowdepth::Tf, SWEtmp::Tf, hfsn::Tf, i, j, update_hist::Bool
+    ) where {Tf}
+    (; fsnow, swehist, swemin, swemax, snowdepthhist, snowdepthmin, snowdepthmax) = state
+    (; slopemu, xi, Ld) = landuse
+    @inbounds begin
         # calculate topo terms needed for standard deviation of snow depth (done)
         sd_snowdepth1 = exp(Tf(-1) / (Ld[i, j] / xi[i, j])^Tf(2))
         sd_snowdepth3 = slopemu[i, j]^Tf(0.309)
@@ -209,82 +228,93 @@ the "6:00 am" test, since `Dates` cannot run inside kernels).
         end
 
         fsnow[i, j] = max(fsnow[i, j], Tf(0.01))
+    end
+    return nothing
+end
 
-    elseif SNFRAC == 1
-        # HelbigHS
-        sd_snowdepth2 = snowdepth^Tf(0.549)
-        sd_snowdepth1 = exp(Tf(-1) / (Ld[i, j] / xi[i, j])^Tf(2))
-        sd_snowdepth3 = slopemu[i, j]^Tf(0.309)
-        sd_snowdepth0 = sd_snowdepth1 * sd_snowdepth2 * sd_snowdepth3
+# HelbigHS
+@inline function snow_covered_fraction!(
+        ::HelbigSnowFraction{Tf}, state, landuse,
+        snowdepth::Tf, SWEtmp::Tf, hfsn::Tf, i, j, update_hist::Bool
+    ) where {Tf}
+    (; fsnow) = state
+    (; slopemu, xi, Ld) = landuse
+    # HelbigHS
+    sd_snowdepth2 = snowdepth^Tf(0.549)
+    sd_snowdepth1 = exp(Tf(-1) / (Ld[i, j] / xi[i, j])^Tf(2))
+    sd_snowdepth3 = slopemu[i, j]^Tf(0.309)
+    sd_snowdepth0 = sd_snowdepth1 * sd_snowdepth2 * sd_snowdepth3
 
-        fsnow[i, j] = tanh(Tf(1.3) * snowdepth / sd_snowdepth0)
+    fsnow[i, j] = tanh(Tf(1.3) * snowdepth / sd_snowdepth0)
+    return nothing
+end
 
-    elseif SNFRAC == 2
-        # HelbigHS0
-        if snowdepth == Tf(0)
-            snowdepthmax[i, j] = Tf(0.0)
-        end
-
-        if snowdepth > snowdepthmax[i, j]
-            snowdepthmax[i, j] = snowdepth
-        end
-
-        sd_snowdepth2 = snowdepthmax[i, j]^Tf(0.549)
-        sd_snowdepth1 = exp(Tf(-1) / (Ld[i, j] / xi[i, j])^Tf(2))
-        sd_snowdepth3 = slopemu[i, j]^Tf(0.309)
-        sd_snowdepth0 = sd_snowdepth1 * sd_snowdepth2 * sd_snowdepth3
-
-        fsnow[i, j] = tanh(Tf(1.3) * snowdepth / sd_snowdepth0)
-
-    elseif SNFRAC == 3
-        # Point model
-        fsnow[i, j] = snowdepth > eps(Tf) ? Tf(1.0) : Tf(0.0)
-
-    else
-        # tanh model / original FSM
-        fsnow[i, j] = tanh(snowdepth / hfsn)
+# HelbigHS0 (running max)
+@inline function snow_covered_fraction!(
+        ::HelbigMaxSnowFraction{Tf}, state, landuse,
+        snowdepth::Tf, SWEtmp::Tf, hfsn::Tf, i, j, update_hist::Bool
+    ) where {Tf}
+    (; fsnow, snowdepthmax) = state
+    (; slopemu, xi, Ld) = landuse
+    # HelbigHS0
+    if snowdepth == Tf(0)
+        snowdepthmax[i, j] = Tf(0.0)
     end
 
-    # Final adjustments
-    if snowdepth < eps(Tf)
-        fsnow[i, j] = Tf(0.0)
-    else
-        fsnow[i, j] = min(fsnow[i, j], Tf(1.0))
+    if snowdepth > snowdepthmax[i, j]
+        snowdepthmax[i, j] = snowdepth
     end
 
+    sd_snowdepth2 = snowdepthmax[i, j]^Tf(0.549)
+    sd_snowdepth1 = exp(Tf(-1) / (Ld[i, j] / xi[i, j])^Tf(2))
+    sd_snowdepth3 = slopemu[i, j]^Tf(0.309)
+    sd_snowdepth0 = sd_snowdepth1 * sd_snowdepth2 * sd_snowdepth3
+
+    fsnow[i, j] = tanh(Tf(1.3) * snowdepth / sd_snowdepth0)
+    return nothing
+end
+
+# Point model
+@inline function snow_covered_fraction!(
+        ::PointSnowFraction{Tf}, state, landuse,
+        snowdepth::Tf, SWEtmp::Tf, hfsn::Tf, i, j, update_hist::Bool
+    ) where {Tf}
+    (; fsnow) = state
+    # Point model
+    fsnow[i, j] = snowdepth > eps(Tf) ? Tf(1.0) : Tf(0.0)
+    return nothing
+end
+
+# tanh model / original FSM
+@inline function snow_covered_fraction!(
+        ::TanhSnowFraction{Tf}, state, landuse,
+        snowdepth::Tf, SWEtmp::Tf, hfsn::Tf, i, j, update_hist::Bool
+    ) where {Tf}
+    (; fsnow) = state
+    # tanh model / original FSM
+    fsnow[i, j] = tanh(snowdepth / hfsn)
     return nothing
 end
 
 """
     snowcoverfraction!(fsm, snowdepth, SWEtmp, t, i, j, SWEbuffer, snowdepthbuffer, diffSWEbuffer)
 
-Snow cover fraction calculation for one grid cell (host convenience wrapper
-around [`snowcoverfraction_point!`](@ref), kept for API compatibility).
+Snow cover fraction for one grid cell (host convenience wrapper around
+[`snowcoverfraction_point!`](@ref), kept for API compatibility).
 
 The buffer arguments are accepted but ignored: the history buffers are now
 function-local (they were always pure workspace).
-
-# Arguments
-- `fsm::FSM`: Model state structure (modified in-place)
-- `snowdepth::Real`: Current snow depth (m)
-- `SWEtmp::Real`: Current snow water equivalent (kg/m²)
-- `t::DateTime`: Current simulation time
-- `i::Int, j::Int`: Grid indices
 """
 function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::DateTime, i::Int, j::Int, SWEbuffer::AbstractArray{Tf}, snowdepthbuffer::AbstractArray{Tf}, diffSWEbuffer::AbstractArray{Tf}) where {Tf <: Real, Ti <: Integer}
 
-    (; SNFRAC, hfsn) = fsm.params
-    (; fsnow, swehist, swemin, swemax) = fsm.state
-    (; snowdepthhist, snowdepthmin, snowdepthmax) = fsm.state
-    (; slopemu, xi, Ld) = fsm.landuse
+    hfsn = fsm.params.hfsn
 
     # update history of SWE and hs only if they correspond to 6:00am values
     update_hist = 4.5 < hour(t) < 5.5
 
     snowcoverfraction_point!(
-        fsnow, swehist, swemin, swemax, snowdepthhist, snowdepthmin, snowdepthmax,
-        slopemu, xi, Ld,
-        snowdepth, SWEtmp, i, j, SNFRAC, hfsn, update_hist
+        fsm.physics.SNFRAC, fsm.state, fsm.landuse,
+        snowdepth, SWEtmp, hfsn, i, j, update_hist
     )
 
     return nothing

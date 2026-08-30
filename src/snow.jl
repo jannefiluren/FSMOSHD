@@ -42,7 +42,8 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
     kernel! = snow_kernel!(backend)
     kernel!(
         fsm.state, fsm.diag, fsm.landuse, fsm.grid, fsm.params, meteo,
-        fsm.physics.FSNRHO, fsm.physics.COMPACT, fsm.physics.HYDROL, Val(Int(Nsmax));
+        fsm.physics.FSNRHO, fsm.physics.COMPACT, fsm.physics.HYDROL, fsm.physics.SNFRAC,
+        Val(Int(Nsmax));
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -60,14 +61,14 @@ end
 @kernel inbounds = true function snow_kernel!(
         state, diag, landuse, grid, params::Parameters{Tf, Ti}, meteo,
         FSNRHO::AbstractFreshSnowDensity{Tf}, COMPACT::AbstractCompaction{Tf},
-        HYDROL::AbstractHydrology{Tf}, ::Val{Nsmax},
+        HYDROL::AbstractHydrology{Tf}, SNFRAC::AbstractSnowFraction{Tf}, ::Val{Nsmax},
     ) where {Tf, Ti, Nsmax}
 
     i, j = @index(Global, NTuple)
 
     @unpack_constants(Tf)
 
-    (; dt, tthresh, rho0, rhob, rhoc, rhof, rhos_min, SNFRAC, Tsnow_min) = params
+    (; dt, tthresh, rho0, rhob, rhoc, rhof, rhos_min, Tsnow_min) = params
     (; Dzsoil) = grid
     (; dem, tilefrac) = landuse
     (; Tsnow, Ds, Sice, Sliq, rgrn, Nsnow, fsnow, Tsoil, Tsrf) = state
@@ -101,7 +102,7 @@ end
 
             # Except for point case, apply a minimum threshold of 0.1 to fsnow
             # to avoid 'long tails' in SWE due to slowing down depletion rates
-            if (SNFRAC == 3)
+            if SNFRAC isa PointSnowFraction
                 fsnow_thres = fsnow[i, j]
             else
                 fsnow_thres = min(fsnow[i, j] + Tf(0.25), Tf(1.0))

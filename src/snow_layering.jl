@@ -26,7 +26,7 @@ function snow_layering!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, snowdepth0, Sice0,
     kernel! = snow_layering_kernel!(backend)
     kernel!(
         fsm.state, fsm.diag, fsm.landuse, fsm.grid, fsm.params, meteo,
-        snowdepth0, Sice0, update_hist, fsm.physics.LAYERING, Val(Int(Nsmax));
+        snowdepth0, Sice0, update_hist, fsm.physics.LAYERING, fsm.physics.SNFRAC, Val(Int(Nsmax));
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -40,17 +40,16 @@ end
 @kernel inbounds = true function snow_layering_kernel!(
         state, diag, landuse, grid, params::Parameters{Tf}, meteo,
         snowdepth0, Sice0, update_hist::Bool,
-        LAYERING::AbstractLayering{Tf}, ::Val{Nsmax},
+        LAYERING::AbstractLayering{Tf}, SNFRAC::AbstractSnowFraction{Tf}, ::Val{Nsmax},
     ) where {Tf, Nsmax}
 
     i, j = @index(Global, NTuple)
 
     @unpack_constants(Tf)
 
-    (; tthresh, hfsn, SNFRAC, Tsnow_min) = params
-    (; tilefrac, slopemu, xi, Ld) = landuse
-    (; Ds, Sice, Sliq, Tsnow, histowet, Nsnow, fsnow,
-       swehist, swemin, swemax, snowdepthhist, snowdepthmin, snowdepthmax) = state
+    (; tthresh, hfsn, Tsnow_min) = params
+    (; tilefrac) = landuse
+    (; Ds, Sice, Sliq, Tsnow, histowet, Nsnow, fsnow) = state
     (; Ds0) = diag
     (; Ta) = meteo
 
@@ -89,9 +88,7 @@ end
         end
 
         snowcoverfraction_point!(
-            fsnow, swehist, swemin, swemax, snowdepthhist, snowdepthmin, snowdepthmax,
-            slopemu, xi, Ld,
-            snowdepth, SWEtmp, i, j, SNFRAC, hfsn, update_hist
+            SNFRAC, state, landuse, snowdepth, SWEtmp, hfsn, i, j, update_hist
         )
 
         # Rescale Ds with new snow cover fraction
