@@ -28,28 +28,34 @@ DecayAlbedo{Tf}(Nx, Ny; kwargs...) where {Tf} = DecayAlbedo{Tf}(; kwargs...)
 PrognosticAlbedo{Tf}(Nx, Ny; kwargs...) where {Tf} = PrognosticAlbedo{Tf}(; kwargs...)
 
 """
-    snow_albedo(scheme, albs, s)
+    snow_albedo!(scheme, i, j, state, landuse, meteo, params, summer_decay)
 
-Return the updated snow albedo for one cell, given the current albedo `albs` and
-a NamedTuple `s` of that cell's scalar drivers. A pure function; the kernel does
-the `[i, j]` extraction and writes the result back. Every `AbstractAlbedo`
-implements it.
+Update the snow albedo `state.albs[i, j]` for cell `(i, j)`. Every `AbstractAlbedo`
+implements it. See `.claude/rules/kernel-point-functions.md`.
 """
-function snow_albedo end
+function snow_albedo! end
 
-@inline function snow_albedo(c::DiagnosticAlbedo, albs, s)
+@inline function snow_albedo!(c::DiagnosticAlbedo{Tf}, i, j, state, landuse, meteo, params, summer_decay) where {Tf}
+    @unpack_constants(Tf)
+    (; albs, Tsrf) = state
     afs_loc = c.amax
-    a = c.amin + (afs_loc - c.amin) * (s.Tsrf - s.Tm) / c.Talb
+    a = c.amin + (afs_loc - c.amin) * (Tsrf[i, j] - Tm) / c.Talb
     a = max(a, min(afs_loc, c.amin))
     a = min(a, max(afs_loc, c.amin))
-    return a
+    albs[i, j] = a
+    return nothing
 end
 
-@inline function snow_albedo(c::DecayAlbedo{Tf}, albs, s) where {Tf}
-    (; Tsrf, fveg, trcn, fsky, afs, Tm, dt, summer_decay, Sdir, Sdif, Sf, Tv) = s
+@inline function snow_albedo!(c::DecayAlbedo{Tf}, i, j, state, landuse, meteo, params, summer_decay) where {Tf}
+    @unpack_constants(Tf)
+    (; albs, Tsrf) = state
+    (; fveg, trcn, fsky, afs) = landuse
+    (; Sdir, Sdif, Sf, Tv) = meteo
+    (; dt) = params
+    afs_loc = afs[i, j]
 
     tau = c.tcld
-    if (Tsrf >= Tm)
+    if (Tsrf[i, j] >= Tm)
         tau = c.tmlt
     end
     # Forest adjustments -> not yet properly tested for OSHD but option currently unused
@@ -57,40 +63,49 @@ end
         tau = Tf(70.0) * Tf(3600.0)
     end
 
-    if fveg > Tf(0) && Sdir > eps(Tf)
-        tau = tau / ((Tf(1) - trcn * fsky) * (Tf(1) + c.adfl * Tv) + c.adfs * Tv)
-    elseif fveg > Tf(0) && Sdif > eps(Tf)
-        tau = tau / ((Tf(1) - trcn * fsky) + c.adfs * trcn * fsky)
-    elseif (fveg > Tf(0) && (Sdir + Sdif <= eps(Tf)))
-        tau = tau / (Tf(2.0) - trcn * fsky)
+    if fveg[i, j] > Tf(0) && Sdir[i, j] > eps(Tf)
+        tau = tau / ((Tf(1) - trcn[i, j] * fsky[i, j]) * (Tf(1) + c.adfl * Tv[i, j]) + c.adfs * Tv[i, j])
+    elseif fveg[i, j] > Tf(0) && Sdif[i, j] > eps(Tf)
+        tau = tau / ((Tf(1) - trcn[i, j] * fsky[i, j]) + c.adfs * trcn[i, j] * fsky[i, j])
+    elseif (fveg[i, j] > Tf(0) && (Sdir[i, j] + Sdif[i, j] <= eps(Tf)))
+        tau = tau / (Tf(2.0) - trcn[i, j] * fsky[i, j])
     end
 
-    rt = Tf(1) / tau + Sf / c.Sfmin
-    alim = (c.amin / tau + Sf * afs / c.Sfmin) / rt
-    a = alim + (albs - alim) * exp(-rt * dt)
-    if (a < min(afs, c.amin))
-        a = min(afs, c.amin)
+    rt = Tf(1) / tau + Sf[i, j] / c.Sfmin
+    alim = (c.amin / tau + Sf[i, j] * afs_loc / c.Sfmin) / rt
+    a = alim + (albs[i, j] - alim) * exp(-rt * dt)
+    if (a < min(afs_loc, c.amin))
+        a = min(afs_loc, c.amin)
     end
-    if (a > max(afs, c.amin))
-        a = max(afs, c.amin)
+    if (a > max(afs_loc, c.amin))
+        a = max(afs_loc, c.amin)
     end
-    return a
+    albs[i, j] = a
+    return nothing
 end
 
-@inline function snow_albedo(c::PrognosticAlbedo{Tf}, albs, s) where {Tf}
-    (; Tsrf, afs, adc, SWEtmp, Tm, dt, Sdir, Sdird, Sf, Sf24h) = s
-
-    adc_loc = adc
+@inline function snow_albedo!(c::PrognosticAlbedo{Tf}, i, j, state, landuse, meteo, params, summer_decay) where {Tf}
+    @unpack_constants(Tf)
+    (; albs, Tsrf, Sice, Sliq) = state
+    (; afs, adc) = landuse
+    (; Sdir, Sdird, Sf, Sf24h) = meteo
+    (; dt) = params
+    adc_loc = adc[i, j]
     adm_loc = c.adm
-    afs_loc = afs
+    afs_loc = afs[i, j]
+
+    SWEtmp = zero(Tf)
+    for si in 1:size(Sice, 1)
+        SWEtmp += Sice[si, i, j] + Sliq[si, i, j]
+    end
 
     # BC 08.23: aspect-dependent albedo tuning. Activated for oper season 2024 or optionally.
     # BC Oct 23: Jan's suggestion: modify only when the decay rate should be increased
     # (ad* DECREASE), not decreased
     if c.ALRADT
-        if ((Sdir > eps(Tf)) && (Sdird < Sdir))
-            adm_loc = adm_loc * (Sdird) / (Sdir)
-            adc_loc = adc_loc * (Sdird) / (Sdir)
+        if ((Sdir[i, j] > eps(Tf)) && (Sdird[i, j] < Sdir[i, j]))
+            adm_loc = adm_loc * (Sdird[i, j]) / (Sdir[i, j])
+            adc_loc = adc_loc * (Sdird[i, j]) / (Sdir[i, j])
             if (adm_loc < eps(Tf))
                 adm_loc = eps(Tf)
             end
@@ -100,8 +115,8 @@ end
         end
     end
 
-    a = albs
-    if (Tsrf >= Tm)
+    a = albs[i, j]
+    if (Tsrf[i, j] >= Tm)
         a = (a - c.amin) * exp(-(dt / Tf(3600)) / adm_loc) + c.amin
     else
         a = a - (dt / Tf(3600)) / adc_loc
@@ -110,10 +125,10 @@ end
         afs_loc *= Tf(0.8)
     end
     # Reset to fresh snow albedo (wasn't originally available; only else term)
-    if ((Sf * dt) > Tf(0.0) && Sf24h > c.Sfmin)
+    if ((Sf[i, j] * dt) > Tf(0.0) && Sf24h[i, j] > c.Sfmin)
         a = afs_loc
     else
-        a = a + (afs_loc - a) * Sf * dt / c.Sfmin
+        a = a + (afs_loc - a) * Sf[i, j] * dt / c.Sfmin
     end
     ## End Adjustments
     if (a > afs_loc)
@@ -122,7 +137,8 @@ end
     if (a < c.amin)
         a = c.amin
     end
-    return a
+    albs[i, j] = a
+    return nothing
 end
 
 """
@@ -181,14 +197,7 @@ end
 
         # Snow albedo
 
-        SWEtmp = zero(Tf)
-        for si in 1:size(Sice, 1)
-            SWEtmp += Sice[si, i, j] + Sliq[si, i, j]
-        end
-        alb_s = (; Tsrf = Tsrf[i, j], fveg = fveg[i, j], trcn = trcn[i, j], fsky = fsky[i, j],
-            afs = afs[i, j], adc = adc[i, j], Sdir = Sdir[i, j], Sdif = Sdif[i, j], Sdird = Sdird[i, j],
-            Sf = Sf[i, j], Sf24h = Sf24h[i, j], Tv = Tv[i, j], SWEtmp, Tm, dt, summer_decay)
-        albs[i, j] = snow_albedo(ALBEDO, albs[i, j], alb_s)
+        snow_albedo!(ALBEDO, i, j, state, landuse, meteo, params, summer_decay)
 
         # Surface and canopy net shortwave radiation
 
