@@ -40,6 +40,7 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
     ZOFFST = Int(pop!(config, "ZOFFST", 0))
     FSNRHO = Int(pop!(config, "FSNRHO", 2))
     DENSTY = Int(pop!(config, "DENSTY", 3))
+    HYDROL = Int(pop!(config, "HYDROL", 2))
     schemes = (
         ALBEDO = build_scheme(Tf, get(config, "ALBEDO", PrognosticAlbedo), Nx, Ny, params),
         CANOPY = build_scheme(Tf, get(config, "CANOPY",
@@ -57,6 +58,8 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
             DENSTY == 3 ? CrocusCompaction :
             error("DENSTY=$DENSTY is not supported (constant density was removed; use 1, 2, or 3)"),
             Nx, Ny, params),
+        HYDROL = build_scheme(Tf, HYDROL == 0 ? FreeDrainingHydrology :
+            HYDROL == 1 ? BucketHydrology : DensityBucketHydrology, Nx, Ny, params),
     )
     fsm = FSM{Tf, Ti}(; Nx = Nx, Ny = Ny, schemes...)
 

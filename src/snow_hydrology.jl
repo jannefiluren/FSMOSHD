@@ -1,0 +1,115 @@
+# Snow hydraulics parameterizations. Fieldless dispatch schemes; the only tuned
+# parameter (Wirr) is shared with the rest of the snow routine, so it stays on
+# Parameters and is passed in.
+#
+# The `csnow` heat capacity that branches 1/2 compute after adjusting Sliq/Sice
+# is a per-layer temporary that never leaves its loop iteration, so it is a plain
+# scalar local here rather than the kernel's shared `MVector` scratch.
+
+struct FreeDrainingHydrology{Tf} <: AbstractHydrology{Tf} end
+struct BucketHydrology{Tf} <: AbstractHydrology{Tf} end
+struct DensityBucketHydrology{Tf} <: AbstractHydrology{Tf} end
+
+FreeDrainingHydrology{Tf}(Nx, Ny; kwargs...) where {Tf} = FreeDrainingHydrology{Tf}()
+BucketHydrology{Tf}(Nx, Ny; kwargs...) where {Tf} = BucketHydrology{Tf}()
+DensityBucketHydrology{Tf}(Nx, Ny; kwargs...) where {Tf} = DensityBucketHydrology{Tf}()
+
+"""
+    snow_hydrology!(scheme, i, j, state, diag, params)
+
+Route liquid water through the snow column at cell `(i, j)`: update `Sliq`,
+`Sice`, `Tsnow`, `histowet` and the runoff/meltflux diagnostics in place, for
+every layer. A kernel point function (see
+`.claude/rules/kernel-point-functions.md`); every `AbstractHydrology`
+implements it.
+"""
+function snow_hydrology! end
+
+# Free-draining snow
+@inline function snow_hydrology!(::FreeDrainingHydrology{Tf}, i, j, state, diag, params) where {Tf}
+    (; Sliq, Nsnow) = state
+    (; Roff_snow, meltflux_out) = diag
+    meltflux_out[i, j] = Tf(0)
+    for k in 1:Nsnow[i, j]
+        Roff_snow[i, j] = Roff_snow[i, j] + Sliq[k, i, j]
+        meltflux_out[i, j] = meltflux_out[i, j] + Sliq[k, i, j]
+        Sliq[k, i, j] = Tf(0)
+    end
+    return nothing
+end
+
+# Bucket storage
+@inline function snow_hydrology!(::BucketHydrology{Tf}, i, j, state, diag, params) where {Tf}
+    @unpack_constants(Tf)
+    (; Ds, Sice, Sliq, Tsnow, histowet, fsnow, Nsnow) = state
+    (; Roff_snow, meltflux_out) = diag
+    (; Wirr) = params
+    for k in 1:Nsnow[i, j]
+        phi = Tf(0.0)
+        if (Ds[k, i, j] > eps(Tf))
+            phi = Tf(1) - Sice[k, i, j] / (rho_ice * Ds[k, i, j] * fsnow[i, j])
+        end
+        SliqMax = fsnow[i, j] * rho_wat * Ds[k, i, j] * phi * Wirr
+        Sliq[k, i, j] = Sliq[k, i, j] + Roff_snow[i, j]
+        Roff_snow[i, j] = Tf(0)
+        if (Sliq[k, i, j] > SliqMax)       # Liquid capacity exceeded
+            Roff_snow[i, j] = Sliq[k, i, j] - SliqMax   # so drainage to next layer
+            Sliq[k, i, j] = SliqMax
+            histowet[k, i, j] = Tf(1.0)
+        end
+        # csnow needs to be updated after changing Sliq and Sice
+        csnow = (Sice[k, i, j] * hcap_ice + Sliq[k, i, j] * hcap_wat) / fsnow[i, j]
+        coldcont = csnow * (Tm - Tsnow[k, i, j])
+        if (coldcont > Tf(0))       # Liquid can freeze
+            dSice = min(Sliq[k, i, j], fsnow[i, j] * coldcont / Lf)
+            Sliq[k, i, j] = Sliq[k, i, j] - dSice
+            Sice[k, i, j] = Sice[k, i, j] + dSice
+            meltflux_out[i, j] = meltflux_out[i, j] - dSice
+            Tsnow[k, i, j] = Tsnow[k, i, j] + Lf * dSice / csnow / fsnow[i, j]
+        end
+    end
+
+    if (meltflux_out[i, j] < Tf(0))
+        meltflux_out[i, j] = Tf(0)
+    end
+    return nothing
+end
+
+# Density-dependent bucket storage
+@inline function snow_hydrology!(::DensityBucketHydrology{Tf}, i, j, state, diag, params) where {Tf}
+    @unpack_constants(Tf)
+    (; Ds, Sice, Sliq, Tsnow, histowet, fsnow, Nsnow) = state
+    (; Roff_snow, meltflux_out) = diag
+    for k in 1:Nsnow[i, j]
+        SliqCap = Tf(0.0)
+        if (Ds[k, i, j] > eps(Tf))
+            rhos = Sice[k, i, j] / Ds[k, i, j] / fsnow[i, j]
+            SliqCap = Tf(0.03) + Tf(0.07) * (Tf(1) - rhos / Tf(200))
+            SliqCap = max(SliqCap, Tf(0.03))
+        end
+        SliqMax = SliqCap * Sice[k, i, j]
+        Sliq[k, i, j] = Sliq[k, i, j] + Roff_snow[i, j]
+        Roff_snow[i, j] = Tf(0)
+        if (Sliq[k, i, j] > SliqMax)       # Liquid capacity exceeded
+            Roff_snow[i, j] = Sliq[k, i, j] - SliqMax   # so drainage to next layer
+            Sliq[k, i, j] = SliqMax
+            histowet[k, i, j] = Tf(1.0)
+        end
+        # csnow needs to be updated after changing Sliq and Sice
+        csnow = (Sice[k, i, j] * hcap_ice + Sliq[k, i, j] * hcap_wat) / fsnow[i, j]
+        coldcont = csnow * (Tm - Tsnow[k, i, j])
+        if (coldcont > eps(Tf))       # Liquid can freeze
+            dSice = min(Sliq[k, i, j], fsnow[i, j] * coldcont / Lf)
+            Sliq[k, i, j] = Sliq[k, i, j] - dSice
+            Sice[k, i, j] = Sice[k, i, j] + dSice
+            # to account for refreezing of melt
+            meltflux_out[i, j] = meltflux_out[i, j] - dSice
+            Tsnow[k, i, j] = Tsnow[k, i, j] + Lf * dSice / csnow / fsnow[i, j]
+        end
+    end
+
+    if (meltflux_out[i, j] < Tf(0))
+        meltflux_out[i, j] = Tf(0)
+    end
+    return nothing
+end

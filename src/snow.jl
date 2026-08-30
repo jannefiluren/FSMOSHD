@@ -42,7 +42,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
     kernel! = snow_kernel!(backend)
     kernel!(
         fsm.state, fsm.diag, fsm.landuse, fsm.grid, fsm.params, meteo,
-        fsm.physics.FSNRHO, fsm.physics.COMPACT, Val(Int(Nsmax));
+        fsm.physics.FSNRHO, fsm.physics.COMPACT, fsm.physics.HYDROL, Val(Int(Nsmax));
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -60,19 +60,17 @@ end
 @kernel inbounds = true function snow_kernel!(
         state, diag, landuse, grid, params::Parameters{Tf, Ti}, meteo,
         FSNRHO::AbstractFreshSnowDensity{Tf}, COMPACT::AbstractCompaction{Tf},
-        ::Val{Nsmax},
+        HYDROL::AbstractHydrology{Tf}, ::Val{Nsmax},
     ) where {Tf, Ti, Nsmax}
 
     i, j = @index(Global, NTuple)
 
     @unpack_constants(Tf)
 
-    (; dt, tthresh, Wirr, rho0, rhob, rhoc, rhof, rhos_min, rcld, rmlt,
-       snda, trho, eta0, eta1, a_eta, b_eta, c_eta, rhos_max,
-       HYDROL, SNFRAC, Tsnow_min) = params
+    (; dt, tthresh, rho0, rhob, rhoc, rhof, rhos_min, SNFRAC, Tsnow_min) = params
     (; Dzsoil) = grid
     (; dem, tilefrac) = landuse
-    (; Tsnow, Ds, Sice, Sliq, histowet, rgrn, Nsnow, fsnow, Tsoil, Tsrf) = state
+    (; Tsnow, Ds, Sice, Sliq, rgrn, Nsnow, fsnow, Tsoil, Tsrf) = state
     (; Sbsrf, Roff_bare, Roff_snow, Roff, meltflux_out, Gsoil, Sice0, snowdepth0,
        unload, ksnow, ksoil, G, Melt, Esrf, Uaeff, Sfeff) = diag
     (; Ta) = meteo
@@ -190,80 +188,7 @@ end
             end
 
             # Snow hydraulics
-            if (HYDROL == 0)
-                # Free-draining snow
-                meltflux_out[i, j] = Tf(0)
-                for k in 1:Nsnow[i, j]
-                    Roff_snow[i, j] = Roff_snow[i, j] + Sliq[k, i, j]
-                    meltflux_out[i, j] = meltflux_out[i, j] + Sliq[k, i, j]
-                    Sliq[k, i, j] = Tf(0)
-                end
-            elseif (HYDROL == 1)
-                # Bucket storage
-                for k in 1:Nsnow[i, j]
-                    phi = Tf(0.0)
-                    if (Ds[k, i, j] > eps(Tf))
-                        phi = Tf(1) - Sice[k, i, j] / (rho_ice * Ds[k, i, j] * fsnow[i, j])
-                    end
-                    SliqMax = fsnow[i, j] * rho_wat * Ds[k, i, j] * phi * Wirr
-                    Sliq[k, i, j] = Sliq[k, i, j] + Roff_snow[i, j]
-                    Roff_snow[i, j] = Tf(0)
-                    if (Sliq[k, i, j] > SliqMax)       # Liquid capacity exceeded
-                        Roff_snow[i, j] = Sliq[k, i, j] - SliqMax   # so drainage to next layer
-                        Sliq[k, i, j] = SliqMax
-                        histowet[k, i, j] = Tf(1.0)
-                    end
-                    # csnow needs to be updated after changing Sliq and Sice
-                    csnow[k] = (Sice[k, i, j] * hcap_ice + Sliq[k, i, j] * hcap_wat) / fsnow[i, j]
-                    coldcont = csnow[k] * (Tm - Tsnow[k, i, j])
-                    if (coldcont > Tf(0))       # Liquid can freeze
-                        dSice = min(Sliq[k, i, j], fsnow[i, j] * coldcont / Lf)
-                        Sliq[k, i, j] = Sliq[k, i, j] - dSice
-                        Sice[k, i, j] = Sice[k, i, j] + dSice
-                        meltflux_out[i, j] = meltflux_out[i, j] - dSice
-                        Tsnow[k, i, j] = Tsnow[k, i, j] + Lf * dSice / csnow[k] / fsnow[i, j]
-                    end
-                end
-
-                if (meltflux_out[i, j] < Tf(0))
-                    meltflux_out[i, j] = Tf(0)
-                end
-
-            else  # HYDROL == 2
-                # Density-dependent bucket storage
-                for k in 1:Nsnow[i, j]
-                    SliqCap = Tf(0.0)
-                    if (Ds[k, i, j] > eps(Tf))
-                        rhos = Sice[k, i, j] / Ds[k, i, j] / fsnow[i, j]
-                        SliqCap = Tf(0.03) + Tf(0.07) * (Tf(1) - rhos / Tf(200))
-                        SliqCap = max(SliqCap, Tf(0.03))
-                    end
-                    SliqMax = SliqCap * Sice[k, i, j]
-                    Sliq[k, i, j] = Sliq[k, i, j] + Roff_snow[i, j]
-                    Roff_snow[i, j] = Tf(0)
-                    if (Sliq[k, i, j] > SliqMax)       # Liquid capacity exceeded
-                        Roff_snow[i, j] = Sliq[k, i, j] - SliqMax   # so drainage to next layer
-                        Sliq[k, i, j] = SliqMax
-                        histowet[k, i, j] = Tf(1.0)
-                    end
-                    # csnow needs to be updated after changing Sliq and Sice
-                    csnow[k] = (Sice[k, i, j] * hcap_ice + Sliq[k, i, j] * hcap_wat) / fsnow[i, j]
-                    coldcont = csnow[k] * (Tm - Tsnow[k, i, j])
-                    if (coldcont > eps(Tf))       # Liquid can freeze
-                        dSice = min(Sliq[k, i, j], fsnow[i, j] * coldcont / Lf)
-                        Sliq[k, i, j] = Sliq[k, i, j] - dSice
-                        Sice[k, i, j] = Sice[k, i, j] + dSice
-                        # to account for refreezing of melt
-                        meltflux_out[i, j] = meltflux_out[i, j] - dSice
-                        Tsnow[k, i, j] = Tsnow[k, i, j] + Lf * dSice / csnow[k] / fsnow[i, j]
-                    end
-                end
-
-                if (meltflux_out[i, j] < Tf(0))
-                    meltflux_out[i, j] = Tf(0)
-                end
-
-            end
+            snow_hydrology!(HYDROL, i, j, state, diag, params)
 
             # Snow compaction
             compact_snow!(COMPACT, i, j, state, params)
