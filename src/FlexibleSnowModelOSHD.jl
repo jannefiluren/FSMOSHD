@@ -2,6 +2,7 @@ module FlexibleSnowModelOSHD
 
 using Parameters
 using Dates
+using Adapt: Adapt, @adapt_structure
 
 # Every physics parameterization derives from this, which is what lets
 # on_architecture (architectures.jl) move any of them in one generic method.

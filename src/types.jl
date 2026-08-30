@@ -262,3 +262,12 @@ end
 function (::Type{MET{Tf, Ti}})(; kwargs...) where {Tf, Ti}
     return MET{Tf, Ti, Matrix{Tf}, Matrix{Float64}, Array{Float64, 3}}(; kwargs...)
 end
+
+# Let the array-holding structs cross into a kernel: Adapt rewrites each array
+# field to the device array type at launch (a no-op on the CPU). Parameters and
+# the physics schemes are isbits and need no adaptor.
+@adapt_structure Grid
+@adapt_structure Landuse
+@adapt_structure State
+@adapt_structure Diagnostics
+@adapt_structure MET

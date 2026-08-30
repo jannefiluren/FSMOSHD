@@ -126,24 +126,14 @@ launched over the whole grid (see `ebalsrf!` for the pattern).
 """
 function sfexch!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
-    (; SNFRAC, tthresh, zT, zU, gsnf, zsub) = fsm.params
-    (; Nx, Ny) = fsm.grid
-    (; z0_snow, z0sf, VAI, fveg, fves, hcan, tilefrac) = fsm.landuse
-    (; Qcan, fsnow, Sice, Sveg, Tcan, Tsrf, Tveg, Ds) = fsm.state
-    (; KH, KHa, KHg, KHv, KWg, KWv, Usc, gs1, Qa, Uaeff) = fsm.diag
     (; reference_height, surface_layer, stability) = fsm.physics
 
-    @unpack Ta, Ps = meteo
-
-    backend = get_backend(Tsrf)
+    backend = get_backend(fsm.state.Tsrf)
     kernel! = sfexch_kernel!(backend)
     kernel!(
-        KH, KHa, KHg, KHv, KWg, KWv, Usc,
-        z0_snow, z0sf, VAI, Qcan, fsnow, Sice, Sveg, Tcan, Tsrf, Tveg, Ds,
-        fveg, fves, hcan, tilefrac, gs1, Qa, Uaeff, Ta, Ps,
-        tthresh, zT, zU, gsnf, zsub,
-        reference_height, surface_layer, stability, SNFRAC;
-        ndrange = (Int(Nx), Int(Ny))
+        fsm.state, fsm.diag, fsm.landuse, fsm.params, meteo,
+        reference_height, surface_layer, stability;
+        ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
 
@@ -151,21 +141,21 @@ function sfexch!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: 
 end
 
 @kernel function sfexch_kernel!(
-        KH, KHa, KHg, KHv, KWg, KWv, Usc,
-        z0_snow, z0sf, VAI, Qcan, fsnow,
-        Sice, Sveg, Tcan, Tsrf, Tveg, Ds,
-        fveg, fves, hcan, tilefrac, gs1,
-        Qa, Uaeff, Ta, Ps,
-        tthresh::Tf, zT::Tf, zU::Tf, gsnf::Tf, zsub::Tf,
+        state, diag, landuse, params::Parameters{Tf}, meteo,
         reference_height::AbstractReferenceHeight{Tf},
         surface_layer::AbstractSurfaceLayer{Tf},
         stability::AbstractStabilityCorrection{Tf},
-        SNFRAC::Ti,
-    ) where {Tf, Ti}
+    ) where {Tf}
 
     i, j = @index(Global, NTuple)
 
     @unpack_constants(Tf)
+
+    (; SNFRAC, tthresh, zT, zU, gsnf, zsub) = params
+    (; tilefrac, z0_snow, z0sf, VAI, fveg, fves, hcan) = landuse
+    (; Ds, fsnow, Sice, Sveg, Tcan, Tsrf, Tveg, Qcan) = state
+    (; KH, KHa, KHg, KHv, KWg, KWv, Usc, gs1, Qa, Uaeff) = diag
+    (; Ta, Ps) = meteo
 
     if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
 
