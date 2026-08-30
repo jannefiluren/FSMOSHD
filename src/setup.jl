@@ -39,6 +39,7 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
     EXCHNG = Int(pop!(config, "EXCHNG", 1))
     ZOFFST = Int(pop!(config, "ZOFFST", 0))
     FSNRHO = Int(pop!(config, "FSNRHO", 2))
+    DENSTY = Int(pop!(config, "DENSTY", 3))
     schemes = (
         ALBEDO = build_scheme(Tf, get(config, "ALBEDO", PrognosticAlbedo), Nx, Ny, params),
         CANOPY = build_scheme(Tf, get(config, "CANOPY",
@@ -51,6 +52,11 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
         stability = build_scheme(Tf, EXCHNG == 1 ? LouisStabilityCorrection : NoStabilityCorrection, Nx, Ny, params),
         FSNRHO = build_scheme(Tf, FSNRHO == 0 ? FixedFreshSnowDensity :
             FSNRHO == 1 ? ClimateFreshSnowDensity : ElevationFreshSnowDensity, Nx, Ny, params),
+        COMPACT = build_scheme(Tf, DENSTY == 1 ? AgeCompaction :
+            DENSTY == 2 ? OverburdenCompaction :
+            DENSTY == 3 ? CrocusCompaction :
+            error("DENSTY=$DENSTY is not supported (constant density was removed; use 1, 2, or 3)"),
+            Nx, Ny, params),
     )
     fsm = FSM{Tf, Ti}(; Nx = Nx, Ny = Ny, schemes...)
 

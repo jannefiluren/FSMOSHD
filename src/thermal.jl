@@ -30,11 +30,10 @@ end
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, fsnow, Nsnow) = state
     (; ksnow) = diag
-    (; rhof, DENSTY) = params
+    (; rhof) = params
     for k in 1:Nsnow[i, j]
         rhos = rhof
-        # TODO the DENSTY test goes away with DENSTY == 0 (roadmap Stage 8)
-        if ((DENSTY != 0) && (Ds[k, i, j] > eps(Tf)) && fsnow[i, j] > eps(Tf))
+        if ((Ds[k, i, j] > eps(Tf)) && fsnow[i, j] > eps(Tf))
             rhos = (Sice[k, i, j] + Sliq[k, i, j]) / Ds[k, i, j] / fsnow[i, j]
         end
         ksnow[k, i, j] = hcon_ice * (rhos / rho_ice)^c.bthr
@@ -84,7 +83,7 @@ end
     @unpack_constants(Tf)
 
     (; Dzsoil, Nsoil) = grid
-    (; tthresh, gsat, rhof, DENSTY) = params
+    (; tthresh, gsat, rhof) = params
     (; b, hcap_soil, hcon_soil, sathh, Vcrit, Vsat, tilefrac) = landuse
     (; Ds, Nsnow, fsnow, Sice, Sliq, theta, Tsnow, Tsoil, Tveg) = state
     (; ksnow, csoil, ksoil, gs1, Ds1, Ts1, ks1, Tveg0) = diag

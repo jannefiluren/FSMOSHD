@@ -15,6 +15,7 @@ abstract type AbstractReferenceHeight{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractSurfaceLayer{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractStabilityCorrection{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractFreshSnowDensity{Tf} <: AbstractParameterization{Tf} end
+abstract type AbstractCompaction{Tf} <: AbstractParameterization{Tf} end
 
 # KernelAbstractions is imported qualified because it exports its own CPU/GPU
 # names, which would clash with the architecture types defined here.
@@ -36,6 +37,7 @@ include("qsat.jl")
 include("tridiag.jl")
 include("ludcmp.jl")
 include("fresh_snow_density.jl")
+include("snow_compaction.jl")
 include("snow_layering.jl")
 include("drive.jl")
 include("canopy.jl")
@@ -59,6 +61,7 @@ export AbstractReferenceHeight, AboveGround, AboveCanopy
 export AbstractSurfaceLayer, OpenSurfaceLayer, ForestSurfaceLayer
 export AbstractStabilityCorrection, NoStabilityCorrection, LouisStabilityCorrection
 export AbstractFreshSnowDensity, FixedFreshSnowDensity, ClimateFreshSnowDensity, ElevationFreshSnowDensity, fresh_snow_density
+export AbstractCompaction, AgeCompaction, OverburdenCompaction, CrocusCompaction, compact_snow!
 export AbstractArchitecture, CPU, GPU, on_architecture
 export canopy!, radiation!, thermal!, sfexch!, ebalsrf!, ebalfor!, snow!, soil!, snowcoverfraction!
 export qsat, tridiag!, ludcmp!

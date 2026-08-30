@@ -42,7 +42,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
     kernel! = snow_kernel!(backend)
     kernel!(
         fsm.state, fsm.diag, fsm.landuse, fsm.grid, fsm.params, meteo,
-        fsm.physics.FSNRHO, Val(Int(Nsmax));
+        fsm.physics.FSNRHO, fsm.physics.COMPACT, Val(Int(Nsmax));
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -59,7 +59,8 @@ end
 # not be used - it corrupts the KernelAbstractions CPU transformation)
 @kernel inbounds = true function snow_kernel!(
         state, diag, landuse, grid, params::Parameters{Tf, Ti}, meteo,
-        FSNRHO::AbstractFreshSnowDensity{Tf}, ::Val{Nsmax},
+        FSNRHO::AbstractFreshSnowDensity{Tf}, COMPACT::AbstractCompaction{Tf},
+        ::Val{Nsmax},
     ) where {Tf, Ti, Nsmax}
 
     i, j = @index(Global, NTuple)
@@ -68,7 +69,7 @@ end
 
     (; dt, tthresh, Wirr, rho0, rhob, rhoc, rhof, rhos_min, rcld, rmlt,
        snda, trho, eta0, eta1, a_eta, b_eta, c_eta, rhos_max,
-       HYDROL, DENSTY, SNFRAC, Tsnow_min) = params
+       HYDROL, SNFRAC, Tsnow_min) = params
     (; Dzsoil) = grid
     (; dem, tilefrac) = landuse
     (; Tsnow, Ds, Sice, Sliq, histowet, rgrn, Nsnow, fsnow, Tsoil, Tsrf) = state
@@ -265,58 +266,7 @@ end
             end
 
             # Snow compaction
-            if (DENSTY == 0)
-                # Fixed snow density
-                for k in 1:Nsnow[i, j]
-                    Ds[k, i, j] = (Sice[k, i, j] + Sliq[k, i, j]) / rho0 / fsnow[i, j]
-                end
-            elseif (DENSTY == 1)
-                # Snow compaction with age
-                for k in 1:Nsnow[i, j]
-                    if (Ds[k, i, j] > eps(Tf))
-                        rhos = (Sice[k, i, j] + Sliq[k, i, j]) / Ds[k, i, j] / fsnow[i, j]
-                        if (Tsnow[k, i, j] >= Tm)
-                            if (rhos < rmlt)
-                                rhos = rmlt + (rhos - rmlt) * exp(-dt / trho)
-                            end
-                        else
-                            if (rhos < rcld)
-                                rhos = rcld + (rhos - rcld) * exp(-dt / trho)
-                            end
-                        end
-                        Ds[k, i, j] = (Sice[k, i, j] + Sliq[k, i, j]) / rhos / fsnow[i, j]
-                    end
-                end
-            elseif (DENSTY == 2)
-                # Snow compaction by overburden
-                mass = Tf(0.0)
-                for k in 1:Nsnow[i, j]
-                    mass = mass + Tf(0.5) * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]
-                    if (Ds[k, i, j] > eps(Tf))
-                        rhos = (Sice[k, i, j] + Sliq[k, i, j]) / Ds[k, i, j] / fsnow[i, j]
-                        rhos = rhos + (rhos * grav * mass * dt / (eta0 * exp(-(Tsnow[k, i, j] - Tm) / Tf(12.4) + rhos / Tf(55.6))) + dt * rhos * snda * exp((Tsnow[k, i, j] - Tm) / Tf(23.8) - max(rhos - Tf(150), Tf(0.0)) / Tf(21.7)))
-                        rhos = min(rhos, rhos_max)
-                        Ds[k, i, j] = (Sice[k, i, j] + Sliq[k, i, j]) / rhos / fsnow[i, j]
-                    end
-                    mass = mass + Tf(0.5) * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]
-                end
-            else # DENSTY == 3
-                # Snow compaction by overburden, dependent on liquid water content (Crocus B92)
-                mass = Tf(0.0)
-                for k in 1:Nsnow[i, j]
-                    mass = mass + Tf(0.5) * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]
-                    if (Ds[k, i, j] > eps(Tf))
-                        rhos = (Sice[k, i, j] + Sliq[k, i, j]) / Ds[k, i, j] / fsnow[i, j]
-                        f1 = Tf(1) / (Tf(1) + Tf(600) * Sliq[k, i, j] / (rho_wat * Ds[k, i, j] * fsnow[i, j]))
-                        f2 = Tf(1.0)
-                        eta = f1 * f2 * eta1 * (rhos / c_eta) * exp(a_eta * (Tm - Tsnow[k, i, j]) + b_eta * rhos)
-                        rhos = rhos + rhos * grav * mass * dt / eta
-                        rhos = min(rhos, rhos_max)
-                        Ds[k, i, j] = (Sice[k, i, j] + Sliq[k, i, j]) / rhos / fsnow[i, j]
-                    end
-                    mass = mass + Tf(0.5) * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]
-                end
-            end
+            compact_snow!(COMPACT, i, j, state, params)
 
             # Snow grain growth --> *GM for now, this code feature is not functional because the state variable rgrn is not tracked (no bin output)
             for k in 1:Nsnow[i, j]
