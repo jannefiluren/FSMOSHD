@@ -28,30 +28,28 @@ DecayAlbedo{Tf}(Nx, Ny; kwargs...) where {Tf} = DecayAlbedo{Tf}(; kwargs...)
 PrognosticAlbedo{Tf}(Nx, Ny; kwargs...) where {Tf} = PrognosticAlbedo{Tf}(; kwargs...)
 
 """
-    snow_albedo!(scheme, albs, states, params, i, j)
+    snow_albedo(scheme, albs, s)
 
-Update `albs[i, j]` for one cell. Every `AbstractAlbedo` implements this; it is
-called from inside `radiation_kernel!`.
+Return the updated snow albedo for one cell, given the current albedo `albs` and
+a NamedTuple `s` of that cell's scalar drivers. A pure function; the kernel does
+the `[i, j]` extraction and writes the result back. Every `AbstractAlbedo`
+implements it.
 """
-function snow_albedo! end
+function snow_albedo end
 
-@inline function snow_albedo!(c::DiagnosticAlbedo, albs, states, params, i, j)
-    (; Tsrf) = states
-    (; Tm) = params
+@inline function snow_albedo(c::DiagnosticAlbedo, albs, s)
     afs_loc = c.amax
-    albs[i, j] = c.amin + (afs_loc - c.amin) * (Tsrf[i, j] - Tm) / c.Talb
-    albs[i, j] = max(albs[i, j], min(afs_loc, c.amin))
-    albs[i, j] = min(albs[i, j], max(afs_loc, c.amin))
-    return nothing
+    a = c.amin + (afs_loc - c.amin) * (s.Tsrf - s.Tm) / c.Talb
+    a = max(a, min(afs_loc, c.amin))
+    a = min(a, max(afs_loc, c.amin))
+    return a
 end
 
-@inline function snow_albedo!(c::DecayAlbedo{Tf}, albs, states, params, i, j) where {Tf}
-    (; Tsrf, fveg, trcn, fsky, afs) = states
-    (; Tm, dt, summer_decay, Sdir, Sdif, Sf, Tv) = params
-    afs_loc = afs[i, j]
+@inline function snow_albedo(c::DecayAlbedo{Tf}, albs, s) where {Tf}
+    (; Tsrf, fveg, trcn, fsky, afs, Tm, dt, summer_decay, Sdir, Sdif, Sf, Tv) = s
 
     tau = c.tcld
-    if (Tsrf[i, j] >= Tm)
+    if (Tsrf >= Tm)
         tau = c.tmlt
     end
     # Forest adjustments -> not yet properly tested for OSHD but option currently unused
@@ -59,46 +57,40 @@ end
         tau = Tf(70.0) * Tf(3600.0)
     end
 
-    if fveg[i, j] > Tf(0) && Sdir[i, j] > eps(Tf)
-        tau = tau / ((Tf(1) - trcn[i, j] * fsky[i, j]) * (Tf(1) + c.adfl * Tv[i, j]) + c.adfs * Tv[i, j])
-    elseif fveg[i, j] > Tf(0) && Sdif[i, j] > eps(Tf)
-        tau = tau / ((Tf(1) - trcn[i, j] * fsky[i, j]) + c.adfs * trcn[i, j] * fsky[i, j])
-    elseif (fveg[i, j] > Tf(0) && (Sdir[i, j] + Sdif[i, j] <= eps(Tf)))
-        tau = tau / (Tf(2.0) - trcn[i, j] * fsky[i, j])
+    if fveg > Tf(0) && Sdir > eps(Tf)
+        tau = tau / ((Tf(1) - trcn * fsky) * (Tf(1) + c.adfl * Tv) + c.adfs * Tv)
+    elseif fveg > Tf(0) && Sdif > eps(Tf)
+        tau = tau / ((Tf(1) - trcn * fsky) + c.adfs * trcn * fsky)
+    elseif (fveg > Tf(0) && (Sdir + Sdif <= eps(Tf)))
+        tau = tau / (Tf(2.0) - trcn * fsky)
     end
 
-    rt = Tf(1) / tau + Sf[i, j] / c.Sfmin
-    alim = (c.amin / tau + Sf[i, j] * afs_loc / c.Sfmin) / rt
-    albs[i, j] = alim + (albs[i, j] - alim) * exp(-rt * dt)
-    if (albs[i, j] < min(afs_loc, c.amin))
-        albs[i, j] = min(afs_loc, c.amin)
+    rt = Tf(1) / tau + Sf / c.Sfmin
+    alim = (c.amin / tau + Sf * afs / c.Sfmin) / rt
+    a = alim + (albs - alim) * exp(-rt * dt)
+    if (a < min(afs, c.amin))
+        a = min(afs, c.amin)
     end
-    if (albs[i, j] > max(afs_loc, c.amin))
-        albs[i, j] = max(afs_loc, c.amin)
+    if (a > max(afs, c.amin))
+        a = max(afs, c.amin)
     end
-    return nothing
+    return a
 end
 
-@inline function snow_albedo!(c::PrognosticAlbedo{Tf}, albs, states, params, i, j) where {Tf}
-    (; Tsrf, Sice, Sliq, afs, adc) = states
-    (; Tm, dt, Sdir, Sdird, Sf, Sf24h) = params
+@inline function snow_albedo(c::PrognosticAlbedo{Tf}, albs, s) where {Tf}
+    (; Tsrf, afs, adc, SWEtmp, Tm, dt, Sdir, Sdird, Sf, Sf24h) = s
 
-    adc_loc = adc[i, j]
+    adc_loc = adc
     adm_loc = c.adm
-    afs_loc = afs[i, j]
-
-    SWEtmp = Tf(0.0)
-    for si in 1:size(Sice, 1)
-        SWEtmp += Sice[si, i, j] + Sliq[si, i, j]
-    end
+    afs_loc = afs
 
     # BC 08.23: aspect-dependent albedo tuning. Activated for oper season 2024 or optionally.
     # BC Oct 23: Jan's suggestion: modify only when the decay rate should be increased
     # (ad* DECREASE), not decreased
     if c.ALRADT
-        if ((Sdir[i, j] > eps(Tf)) && (Sdird[i, j] < Sdir[i, j]))
-            adm_loc = adm_loc * (Sdird[i, j]) / (Sdir[i, j])
-            adc_loc = adc_loc * (Sdird[i, j]) / (Sdir[i, j])
+        if ((Sdir > eps(Tf)) && (Sdird < Sdir))
+            adm_loc = adm_loc * (Sdird) / (Sdir)
+            adc_loc = adc_loc * (Sdird) / (Sdir)
             if (adm_loc < eps(Tf))
                 adm_loc = eps(Tf)
             end
@@ -108,28 +100,29 @@ end
         end
     end
 
-    if (Tsrf[i, j] >= Tm)
-        albs[i, j] = (albs[i, j] - c.amin) * exp(-(dt / Tf(3600)) / adm_loc) + c.amin
+    a = albs
+    if (Tsrf >= Tm)
+        a = (a - c.amin) * exp(-(dt / Tf(3600)) / adm_loc) + c.amin
     else
-        albs[i, j] = albs[i, j] - (dt / Tf(3600)) / adc_loc
+        a = a - (dt / Tf(3600)) / adc_loc
     end
     if (SWEtmp < Tf(75.0)) # more stuff showing on and up through snow
         afs_loc *= Tf(0.8)
     end
     # Reset to fresh snow albedo (wasn't originally available; only else term)
-    if ((Sf[i, j] * dt) > Tf(0.0) && Sf24h[i, j] > c.Sfmin)
-        albs[i, j] = afs_loc
+    if ((Sf * dt) > Tf(0.0) && Sf24h > c.Sfmin)
+        a = afs_loc
     else
-        albs[i, j] = albs[i, j] + (afs_loc - albs[i, j]) * Sf[i, j] * dt / c.Sfmin
+        a = a + (afs_loc - a) * Sf * dt / c.Sfmin
     end
     ## End Adjustments
-    if (albs[i, j] > afs_loc)
-        albs[i, j] = afs_loc
+    if (a > afs_loc)
+        a = afs_loc
     end
-    if (albs[i, j] < c.amin)
-        albs[i, j] = c.amin
+    if (a < c.amin)
+        a = c.amin
     end
-    return nothing
+    return a
 end
 
 """
@@ -188,9 +181,14 @@ end
 
         # Snow albedo
 
-        alb_states = (; Tsrf, Sice, Sliq, fveg, trcn, fsky, afs, adc)
-        alb_params = (; Tm, dt, summer_decay, Sdir, Sdif, Sdird, Sf, Sf24h, Tv)
-        snow_albedo!(ALBEDO, albs, alb_states, alb_params, i, j)
+        SWEtmp = zero(Tf)
+        for si in 1:size(Sice, 1)
+            SWEtmp += Sice[si, i, j] + Sliq[si, i, j]
+        end
+        alb_s = (; Tsrf = Tsrf[i, j], fveg = fveg[i, j], trcn = trcn[i, j], fsky = fsky[i, j],
+            afs = afs[i, j], adc = adc[i, j], Sdir = Sdir[i, j], Sdif = Sdif[i, j], Sdird = Sdird[i, j],
+            Sf = Sf[i, j], Sf24h = Sf24h[i, j], Tv = Tv[i, j], SWEtmp, Tm, dt, summer_decay)
+        albs[i, j] = snow_albedo(ALBEDO, albs[i, j], alb_s)
 
         # Surface and canopy net shortwave radiation
 

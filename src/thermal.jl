@@ -10,34 +10,25 @@ FixedConductivity{Tf}(Nx, Ny; kwargs...) where {Tf} = FixedConductivity{Tf}(; kw
 DensityConductivity{Tf}(Nx, Ny; kwargs...) where {Tf} = DensityConductivity{Tf}(; kwargs...)
 
 """
-    snow_conductivity!(scheme, ksnow, Ds, Sice, Sliq, fsnow, Nsnow, params, i, j)
+    snow_conductivity(scheme, Ds, Sice, Sliq, fsnow, params)
 
-Fill `ksnow[1:Nsnow[i,j], i, j]` for one column. Every `AbstractConductivity` implements this.
-Only the active layers are written; `thermal!` guards the one read that can reach below the pack.
-
-Both schemes hold scalars only, so they are `isbits` and cross into a kernel by value.
+Thermal conductivity of one snow layer, from its thickness `Ds`, ice/liquid
+content `Sice`/`Sliq` and snow-cover fraction `fsnow` (all scalars for that
+layer/cell). A pure function; the kernel loops it over the active layers. Every
+`AbstractConductivity` implements it, holds scalars only, and is `isbits`.
 """
-function snow_conductivity! end
+function snow_conductivity end
 
-@inline function snow_conductivity!(c::FixedConductivity, ksnow, Ds, Sice, Sliq, fsnow, Nsnow, params, i, j)
-    for k in 1:Nsnow[i, j]
-        ksnow[k, i, j] = c.kfix
-    end
-    return nothing
-end
+@inline snow_conductivity(c::FixedConductivity, Ds, Sice, Sliq, fsnow, params) = c.kfix
 
-@inline function snow_conductivity!(c::DensityConductivity, ksnow, Ds, Sice, Sliq, fsnow, Nsnow, params, i, j)
+@inline function snow_conductivity(c::DensityConductivity{Tf}, Ds, Sice, Sliq, fsnow, params) where {Tf}
     (; rhof, hcon_ice, rho_ice, DENSTY) = params
-    Tf = eltype(Ds)
-    for k in 1:Nsnow[i, j]
-        rhos = rhof
-        # TODO the DENSTY test goes away with DENSTY == 0 (roadmap Stage 8)
-        if ((DENSTY != 0) && (Ds[k, i, j] > eps(Tf)) && fsnow[i, j] > eps(Tf))
-            rhos = (Sice[k, i, j] + Sliq[k, i, j]) / Ds[k, i, j] / fsnow[i, j]
-        end
-        ksnow[k, i, j] = hcon_ice * (rhos / rho_ice)^c.bthr
+    rhos = rhof
+    # TODO the DENSTY test goes away with DENSTY == 0 (roadmap Stage 8)
+    if ((DENSTY != 0) && (Ds > eps(Tf)) && fsnow > eps(Tf))
+        rhos = (Sice + Sliq) / Ds / fsnow
     end
-    return nothing
+    return hcon_ice * (rhos / rho_ice)^c.bthr
 end
 
 """
@@ -92,7 +83,9 @@ end
         # Thermal conductivity of snow
 
         cond_params = (; rhof, hcon_ice, rho_ice, DENSTY)
-        snow_conductivity!(CONDCT, ksnow, Ds, Sice, Sliq, fsnow, Nsnow, cond_params, i, j)
+        for k in 1:Nsnow[i, j]
+            ksnow[k, i, j] = snow_conductivity(CONDCT, Ds[k, i, j], Sice[k, i, j], Sliq[k, i, j], fsnow[i, j], cond_params)
+        end
 
         # Heat capacity and thermal conductivity of soil
         dPsidT = -rho_ice * Lf / (rho_wat * grav * Tm)
