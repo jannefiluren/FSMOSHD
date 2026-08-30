@@ -15,7 +15,6 @@ end
     DENSTY::Ti = 3                                   # Snow density (0, 1, 2, 3)
     HYDROL::Ti = 2                                   # Snow hydraulics (0, 1, 2)
     SNFRAC::Ti = 3                                   # Snow cover fraction (0, 1, 2, 3, 4)
-    FSNRHO::Ti = 2                                   # Fresh snow density (0, 1, 2)
     SNOLAY::Ti = 0                                   # Density-dependent layering (0, 1)
     tthresh::Tf = 0.1                                # Tile threshold
     Nitr::Ti = 4                                     # Iterations for surface energy balance
@@ -209,7 +208,8 @@ function (::Type{FSM{Tf, Ti}})(;
         CONDCT = DensityConductivity{Tf}(),
         reference_height = AboveGround{Tf}(),
         surface_layer = OpenSurfaceLayer{Tf}(),
-        stability = LouisStabilityCorrection{Tf}()) where {Tf, Ti}
+        stability = LouisStabilityCorrection{Tf}(),
+        FSNRHO = ElevationFreshSnowDensity{Tf}()) where {Tf, Ti}
 
     grid    = Grid{Ti, Vector{Tf}}(; Nx = Nx, Ny = Ny)
     GT      = typeof(grid)
@@ -218,7 +218,8 @@ function (::Type{FSM{Tf, Ti}})(;
     state   = State{Tf, Ti, GT, Matrix{Tf}, Matrix{Ti}, Array{Tf, 3}}(; grid = grid)
     diag    = Diagnostics{Tf, GT, Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
     physics = (ALBEDO = ALBEDO, CANOPY = CANOPY, SUBSTR = SUBSTR, CONDCT = CONDCT,
-        reference_height = reference_height, surface_layer = surface_layer, stability = stability)
+        reference_height = reference_height, surface_layer = surface_layer, stability = stability,
+        FSNRHO = FSNRHO)
 
     all(s -> s isa AbstractParameterization{Tf}, values(physics)) ||
         throw(ArgumentError("physics scheme precision does not match model Tf = $Tf"))

@@ -42,7 +42,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
     kernel! = snow_kernel!(backend)
     kernel!(
         fsm.state, fsm.diag, fsm.landuse, fsm.grid, fsm.params, meteo,
-        Val(Int(Nsmax));
+        fsm.physics.FSNRHO, Val(Int(Nsmax));
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -59,7 +59,7 @@ end
 # not be used - it corrupts the KernelAbstractions CPU transformation)
 @kernel inbounds = true function snow_kernel!(
         state, diag, landuse, grid, params::Parameters{Tf, Ti}, meteo,
-        ::Val{Nsmax},
+        FSNRHO::AbstractFreshSnowDensity{Tf}, ::Val{Nsmax},
     ) where {Tf, Ti, Nsmax}
 
     i, j = @index(Global, NTuple)
@@ -68,7 +68,7 @@ end
 
     (; dt, tthresh, Wirr, rho0, rhob, rhoc, rhof, rhos_min, rcld, rmlt,
        snda, trho, eta0, eta1, a_eta, b_eta, c_eta, rhos_max,
-       HYDROL, DENSTY, SNFRAC, FSNRHO, Tsnow_min) = params
+       HYDROL, DENSTY, SNFRAC, Tsnow_min) = params
     (; Dzsoil) = grid
     (; dem, tilefrac) = landuse
     (; Tsnow, Ds, Sice, Sliq, histowet, rgrn, Nsnow, fsnow, Tsoil, Tsrf) = state

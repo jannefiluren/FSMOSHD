@@ -38,6 +38,7 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
     # them here so they are not re-applied as Parameters below.
     EXCHNG = Int(pop!(config, "EXCHNG", 1))
     ZOFFST = Int(pop!(config, "ZOFFST", 0))
+    FSNRHO = Int(pop!(config, "FSNRHO", 2))
     schemes = (
         ALBEDO = build_scheme(Tf, get(config, "ALBEDO", PrognosticAlbedo), Nx, Ny, params),
         CANOPY = build_scheme(Tf, get(config, "CANOPY",
@@ -48,6 +49,8 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
         reference_height = build_scheme(Tf, ZOFFST == 0 ? AboveGround : AboveCanopy, Nx, Ny, params),
         surface_layer = build_scheme(Tf, EXCHNG == 2 ? ForestSurfaceLayer : OpenSurfaceLayer, Nx, Ny, params),
         stability = build_scheme(Tf, EXCHNG == 1 ? LouisStabilityCorrection : NoStabilityCorrection, Nx, Ny, params),
+        FSNRHO = build_scheme(Tf, FSNRHO == 0 ? FixedFreshSnowDensity :
+            FSNRHO == 1 ? ClimateFreshSnowDensity : ElevationFreshSnowDensity, Nx, Ny, params),
     )
     fsm = FSM{Tf, Ti}(; Nx = Nx, Ny = Ny, schemes...)
 
@@ -65,8 +68,8 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
     lu = fsm.landuse
     st = fsm.state
 
-    # Settings specific for FSNRHO=0 (fixed fresh snow density)
-    if fsm.params.FSNRHO == 0
+    # Settings specific for fixed fresh snow density
+    if fsm.physics.FSNRHO isa FixedFreshSnowDensity
         fsm.params = reconstruct(fsm.params; rhof = fsm.params.rho0)
     end
 
