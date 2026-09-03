@@ -38,7 +38,7 @@ function step!(fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, t) where {Tf, Ti}
     # 4. Iterative energy balance solution
     for _ in 1:fsm.params.Nitr
         sfexch!(fsm, met)
-        surface_balance!(fsm.physics.CANOPY, fsm, met)
+        surface_energy_balance!(fsm.physics.CANOPY, fsm, met)
     end
 
     # 5. Canopy interception / unloading (a no-op without canopy)

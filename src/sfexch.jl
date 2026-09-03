@@ -55,7 +55,7 @@ end
 ForestSurfaceLayer{Tf}(Nx, Ny; kwargs...) where {Tf} = ForestSurfaceLayer{Tf}(; kwargs...)
 
 # Surface exchange coefficients for open/glacier terrain
-@inline function surface_exchange!(sl::OpenSurfaceLayer{Tf}, state, diag, landuse, params, meteo, i, j, zU1, zT1, z0g) where {Tf}
+@inline function exchange_coefficients!(sl::OpenSurfaceLayer{Tf}, state, diag, landuse, params, meteo, i, j, zU1, zT1, z0g) where {Tf}
     @unpack_constants(Tf)
     (; Sice, Tsrf) = state
     (; KH, KWg, gs1, Qa, Uaeff) = diag
@@ -81,7 +81,7 @@ ForestSurfaceLayer{Tf}(Nx, Ny; kwargs...) where {Tf} = ForestSurfaceLayer{Tf}(; 
 end
 
 # Surface exchange coefficients for forest terrain
-@inline function surface_exchange!(sl::ForestSurfaceLayer{Tf}, state, diag, landuse, params, meteo, i, j, zU1, zT1, z0g) where {Tf}
+@inline function exchange_coefficients!(sl::ForestSurfaceLayer{Tf}, state, diag, landuse, params, meteo, i, j, zU1, zT1, z0g) where {Tf}
     @unpack_constants(Tf)
     (; zU, zsub, gsnf) = params
     (; fveg, fves, VAI, hcan) = landuse
@@ -173,7 +173,7 @@ end
             end
         end
 
-        surface_exchange!(surface_layer, state, diag, landuse, params, meteo, i, j, zU1, zT1, z0g)
+        exchange_coefficients!(surface_layer, state, diag, landuse, params, meteo, i, j, zU1, zT1, z0g)
 
     end
 end

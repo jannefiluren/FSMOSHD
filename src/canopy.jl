@@ -35,13 +35,13 @@ canopy_avgs(c::OneLayerCanopy) = c.avgs
 canopy_avgs(::NoCanopy{Tf}) where {Tf} = zero(Tf)
 
 """
-    surface_balance!(canopy, fsm, met)
+    surface_energy_balance!(canopy, fsm, met)
 
 Solve the surface energy balance. `NoCanopy` uses the surface-only solver; `OneLayerCanopy`
 uses the joint surface+canopy solver. Replaces the `TILE == "forest"` test in `step!`.
 """
-surface_balance!(::NoCanopy, fsm, met) = ebalsrf!(fsm, met)
-surface_balance!(::OneLayerCanopy, fsm, met) = ebalfor!(fsm, met)
+surface_energy_balance!(::NoCanopy, fsm, met) = ebalsrf!(fsm, met)
+surface_energy_balance!(::OneLayerCanopy, fsm, met) = ebalfor!(fsm, met)
 
 """
     canopy!(canopy, fsm, met)
