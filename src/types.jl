@@ -203,8 +203,7 @@ function (::Type{FSM{Tf, Ti}})(;
         SUBSTR = SoilSubstrate{Tf}(),
         CONDCT = DensityConductivity{Tf}(),
         reference_height = AboveGround{Tf}(),
-        surface_layer = OpenSurfaceLayer{Tf}(),
-        stability = LouisStabilityCorrection{Tf}(),
+        surface_layer = OpenSurfaceLayer{Tf}(; stability = LouisStabilityCorrection{Tf}()),
         FSNRHO = ElevationFreshSnowDensity{Tf}(),
         COMPACT = CrocusCompaction{Tf}(),
         HYDROL = DensityBucketHydrology{Tf}(),
@@ -218,7 +217,7 @@ function (::Type{FSM{Tf, Ti}})(;
     state   = State{Tf, Ti, GT, Matrix{Tf}, Matrix{Ti}, Array{Tf, 3}}(; grid = grid)
     diag    = Diagnostics{Tf, GT, Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
     physics = (ALBEDO = ALBEDO, CANOPY = CANOPY, SUBSTR = SUBSTR, CONDCT = CONDCT,
-        reference_height = reference_height, surface_layer = surface_layer, stability = stability,
+        reference_height = reference_height, surface_layer = surface_layer,
         FSNRHO = FSNRHO, COMPACT = COMPACT, HYDROL = HYDROL, LAYERING = LAYERING,
         SNFRAC = SNFRAC)
 

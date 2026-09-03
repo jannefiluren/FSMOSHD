@@ -43,6 +43,19 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
     HYDROL = Int(pop!(config, "HYDROL", 2))
     SNOLAY = Int(pop!(config, "SNOLAY", 0))
     SNFRAC = Int(pop!(config, "SNFRAC", 3))
+
+    # Surface-exchange scheme: the tile picks open vs forest; reject unsupported (tile, EXCHNG) pairs
+    surface_layer = if settings["tile"] == "forest"
+        EXCHNG == 2 || error("forest tile requires EXCHNG == 2 (got EXCHNG = $EXCHNG)")
+        build_scheme(Tf, ForestSurfaceLayer, Nx, Ny, params)
+    else
+        EXCHNG in (0, 1) || error("open/glacier tile requires EXCHNG 0 or 1 (got EXCHNG = $EXCHNG)")
+        stability = EXCHNG == 1 ?
+            build_scheme(Tf, LouisStabilityCorrection, Nx, Ny, params) :
+            build_scheme(Tf, NoStabilityCorrection, Nx, Ny, params)
+        OpenSurfaceLayer{Tf}(; stability = stability)
+    end
+
     schemes = (
         ALBEDO = build_scheme(Tf, get(config, "ALBEDO", PrognosticAlbedo), Nx, Ny, params),
         CANOPY = build_scheme(Tf, get(config, "CANOPY",
@@ -51,8 +64,7 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
             settings["tile"] == "glacier" ? IceSubstrate : SoilSubstrate), Nx, Ny, params),
         CONDCT = build_scheme(Tf, get(config, "CONDCT", DensityConductivity), Nx, Ny, params),
         reference_height = build_scheme(Tf, ZOFFST == 0 ? AboveGround : AboveCanopy, Nx, Ny, params),
-        surface_layer = build_scheme(Tf, EXCHNG == 2 ? ForestSurfaceLayer : OpenSurfaceLayer, Nx, Ny, params),
-        stability = build_scheme(Tf, EXCHNG == 1 ? LouisStabilityCorrection : NoStabilityCorrection, Nx, Ny, params),
+        surface_layer = surface_layer,
         FSNRHO = build_scheme(Tf, FSNRHO == 0 ? FixedFreshSnowDensity :
             FSNRHO == 1 ? ClimateFreshSnowDensity : ElevationFreshSnowDensity, Nx, Ny, params),
         COMPACT = build_scheme(Tf, DENSTY == 1 ? AgeCompaction :
