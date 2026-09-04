@@ -60,7 +60,7 @@ function setup_forest_example(SNFRAC)
             "ZOFFST" => 1,
             "SNFRAC" => SNFRAC,
             # No preferential deposition in canopy gaps
-            "CANOPY" => OneLayerCanopy{Float32}(psr = 0, psf = 1),
+            "CANMOD" => OneLayerCanopy{Float32}(psr = 0, psf = 1),
         ),
     )
 

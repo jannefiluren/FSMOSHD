@@ -70,15 +70,15 @@ end
 end
 
 """
-    apply_config!(fsm, config, schemes)
+    apply_config!(fsm, config)
 
-Apply each configuration flag (a `Parameters` scalar) onto `fsm.params`. Scheme
-keys are skipped - they were already built into the physics bundle.
+Apply each configuration flag (a `Parameters` scalar) onto `fsm.params`. `setup` consumes
+the scheme-selecting flags before calling this, so anything left that `Parameters` does not
+name is a typo and throws.
 """
-function apply_config!(fsm, config, schemes)
+function apply_config!(fsm, config)
     for (key, value) in config
         sym = Symbol(key)
-        haskey(schemes, sym) && continue
         hasfield(typeof(fsm.params), sym) || throw(ArgumentError("unknown config flag \"$key\""))
         set_param!(fsm, sym, value)
     end

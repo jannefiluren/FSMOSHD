@@ -16,84 +16,155 @@ configuration-specific settings for different surface types and model behaviors.
 - `Nx::Int, Ny::Int`: Model domain dimensions
 - `settings::Dict`: Configuration dictionary containing:
   - `"tile"`: Surface tile type ("open", "forest", "glacier")
-  - `"config"` (optional): Model configuration flags (SNFRAC, EXCHNG, ZOFFST, etc.)
+  - `"config"` (optional): Model configuration flags (CANMOD, SNFRAC, EXCHNG, ZOFFST, etc.)
   - `"params"` (optional): Parameter overrides (hfsn etc.)
 
 # Returns
 - `FSM`: Initialized model state structure ready for simulation
 """
+function setup end
+
 function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
     return setup(CPU(), Tf, Ti, landuse, Nx, Ny, settings)
+end
+
+"""
+    build_scheme_from_flag(process, requested, Tf, Nx, Ny, params)
+
+Build the parameterization a configuration entry asks for. `requested` is either an integer
+flag - translated to a scheme type through the table below, which is the FSM2oshd naming - or
+a scheme type/instance, which `build_scheme` takes unchanged.
+
+The integer-flag layer exists to keep `config` aligned with OSHDinternal while the two are
+tested against each other; it is meant to go away once `config` names scheme types directly.
+"""
+function build_scheme_from_flag(process, requested, Tf, Nx, Ny, params)
+
+    requested isa Number || return build_scheme(Tf, requested, Nx, Ny, params)
+
+    lookup = Dict(
+        "ALBEDO" => Dict(
+            0 => DiagnosticAlbedo,
+            1 => DecayAlbedo,
+            2 => PrognosticAlbedo,
+            ),
+        "CANMOD" => Dict(
+            0 => NoCanopy,
+            1 => OneLayerCanopy,
+            ),
+        "CONDCT" => Dict(
+            0 => FixedConductivity,
+            1 => DensityConductivity,
+            ),
+        "DENSTY" => Dict(
+            1 => AgeCompaction,
+            2 => OverburdenCompaction,
+            3 => CrocusCompaction,
+            ),
+        "EXCHNG" => Dict(
+            0 => NoStabilityCorrection,
+            1 => LouisStabilityCorrection,
+            ),
+        "HYDROL" => Dict(
+            0 => FreeDrainingHydrology,
+            1 => BucketHydrology,
+            2 => DensityBucketHydrology,
+            ),
+        "SNFRAC" => Dict(
+            0 => SeasonalSnowFraction,
+            1 => HelbigSnowFraction,
+            2 => HelbigMaxSnowFraction,
+            3 => PointSnowFraction,
+            4 => TanhSnowFraction,
+            ),
+        "ZOFFST" => Dict(
+            0 => AboveGround,
+            1 => AboveCanopy,
+            ),
+        "FSNRHO" => Dict(
+            0 => FixedFreshSnowDensity,
+            1 => ClimateFreshSnowDensity,
+            2 => ElevationFreshSnowDensity,
+            ),
+        "SNOLAY" => Dict(
+            0 => OriginalLayering,
+            1 => DensityLayering,
+            ),
+        )
+
+    flags = lookup[process]
+    flag = Int(requested)
+    haskey(flags, flag) ||
+        error("$process=$flag is not supported (use $(join(sort!(collect(keys(flags))), ", ")))")
+
+    return build_scheme(Tf, flags[flag], Nx, Ny, params)
+
 end
 
 function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
 
     @unpack_constants(Tf)
 
-    # Create fsm object. Parameterizations are type parameters, so they must be
-    # chosen at construction: setfield! cannot change a field's type afterwards.
     config = copy(get(settings, "config", Dict()))
     params = copy(get(settings, "params", Dict()))
-    # EXCHNG/ZOFFST are integer flags that select surface-exchange schemes; consume
-    # them here so they are not re-applied as Parameters below.
-    EXCHNG = Int(pop!(config, "EXCHNG", 1))
-    ZOFFST = Int(pop!(config, "ZOFFST", 0))
-    FSNRHO = Int(pop!(config, "FSNRHO", 2))
-    DENSTY = Int(pop!(config, "DENSTY", 3))
-    HYDROL = Int(pop!(config, "HYDROL", 2))
-    SNOLAY = Int(pop!(config, "SNOLAY", 0))
-    SNFRAC = Int(pop!(config, "SNFRAC", 3))
 
-    # Surface-exchange scheme: the tile picks open vs forest; reject unsupported (tile, EXCHNG) pairs
-    surface_layer = if settings["tile"] == "forest"
+    tile = settings["tile"]
+    tile in ("open", "forest", "glacier") || error("tile requires open, forest or glacier (got tile = $tile)")
+
+    # Default configuration
+    ALBEDO = pop!(config, "ALBEDO", 2)
+    CANMOD = pop!(config, "CANMOD", 0)
+    CONDCT = pop!(config, "CONDCT", 1)
+    DENSTY = pop!(config, "DENSTY", 3)
+    EXCHNG = pop!(config, "EXCHNG", 1)
+    HYDROL = pop!(config, "HYDROL", 2)
+    SNFRAC = pop!(config, "SNFRAC", 3)
+    ZOFFST = pop!(config, "ZOFFST", 0)
+    FSNRHO = pop!(config, "FSNRHO", 2)
+    SNOLAY = pop!(config, "SNOLAY", 0)
+
+    canopy = build_scheme_from_flag("CANMOD", CANMOD, Tf, Nx, Ny, params)
+
+    # Validate combinations of configurations
+    if tile == "forest"
+        canopy isa OneLayerCanopy || error("forest tile requires CANMOD == 1 (got CANMOD = $CANMOD)")
         EXCHNG == 2 || error("forest tile requires EXCHNG == 2 (got EXCHNG = $EXCHNG)")
-        build_scheme(Tf, ForestSurfaceLayer, Nx, Ny, params)
     else
         EXCHNG in (0, 1) || error("open/glacier tile requires EXCHNG 0 or 1 (got EXCHNG = $EXCHNG)")
-        stability = EXCHNG == 1 ?
-            build_scheme(Tf, LouisStabilityCorrection, Nx, Ny, params) :
-            build_scheme(Tf, NoStabilityCorrection, Nx, Ny, params)
-        OpenSurfaceLayer{Tf}(; stability = stability)
+    end
+
+    # Define surface and substrate layer given tile class
+    surface_layer, substrate_layer = if tile == "forest"
+        (build_scheme(Tf, ForestSurfaceLayer, Nx, Ny, params),
+         build_scheme(Tf, SoilSubstrate, Nx, Ny, params))
+    else
+        stability = build_scheme_from_flag("EXCHNG", EXCHNG, Tf, Nx, Ny, params)
+        (OpenSurfaceLayer{Tf}(; stability = stability),
+         build_scheme(Tf, tile == "open" ? SoilSubstrate : IceSubstrate, Nx, Ny, params))
     end
 
     schemes = (
-        ALBEDO = build_scheme(Tf, get(config, "ALBEDO", PrognosticAlbedo), Nx, Ny, params),
-        CANOPY = build_scheme(Tf, get(config, "CANOPY",
-            settings["tile"] == "forest" ? OneLayerCanopy : NoCanopy), Nx, Ny, params),
-        SUBSTR = build_scheme(Tf, get(config, "SUBSTR",
-            settings["tile"] == "glacier" ? IceSubstrate : SoilSubstrate), Nx, Ny, params),
-        CONDCT = build_scheme(Tf, get(config, "CONDCT", DensityConductivity), Nx, Ny, params),
-        reference_height = build_scheme(Tf, ZOFFST == 0 ? AboveGround : AboveCanopy, Nx, Ny, params),
-        surface_layer = surface_layer,
-        FSNRHO = build_scheme(Tf, FSNRHO == 0 ? FixedFreshSnowDensity :
-            FSNRHO == 1 ? ClimateFreshSnowDensity : ElevationFreshSnowDensity, Nx, Ny, params),
-        COMPACT = build_scheme(Tf, DENSTY == 1 ? AgeCompaction :
-            DENSTY == 2 ? OverburdenCompaction :
-            DENSTY == 3 ? CrocusCompaction :
-            error("DENSTY=$DENSTY is not supported (constant density was removed; use 1, 2, or 3)"),
-            Nx, Ny, params),
-        HYDROL = build_scheme(Tf, HYDROL == 0 ? FreeDrainingHydrology :
-            HYDROL == 1 ? BucketHydrology : DensityBucketHydrology, Nx, Ny, params),
-        LAYERING = build_scheme(Tf, SNOLAY == 0 ? OriginalLayering : DensityLayering, Nx, Ny, params),
-        SNFRAC = build_scheme(Tf, SNFRAC == 0 ? SeasonalSnowFraction :
-            SNFRAC == 1 ? HelbigSnowFraction :
-            SNFRAC == 2 ? HelbigMaxSnowFraction :
-            SNFRAC == 3 ? PointSnowFraction :
-            SNFRAC == 4 ? TanhSnowFraction :
-            error("SNFRAC=$SNFRAC is not supported (use 0-4)"),
-            Nx, Ny, params),
+        surface_layer    = surface_layer,
+        SUBSTR           = substrate_layer,
+        ALBEDO           = build_scheme_from_flag("ALBEDO", ALBEDO, Tf, Nx, Ny, params),
+        CANOPY           = canopy,
+        CONDCT           = build_scheme_from_flag("CONDCT", CONDCT, Tf, Nx, Ny, params),
+        COMPACT          = build_scheme_from_flag("DENSTY", DENSTY, Tf, Nx, Ny, params),
+        HYDROL           = build_scheme_from_flag("HYDROL", HYDROL, Tf, Nx, Ny, params),
+        SNFRAC           = build_scheme_from_flag("SNFRAC", SNFRAC, Tf, Nx, Ny, params),
+        reference_height = build_scheme_from_flag("ZOFFST", ZOFFST, Tf, Nx, Ny, params),
+        FSNRHO           = build_scheme_from_flag("FSNRHO", FSNRHO, Tf, Nx, Ny, params),
+        LAYERING         = build_scheme_from_flag("SNOLAY", SNOLAY, Tf, Nx, Ny, params),
     )
+
     fsm = FSM{Tf, Ti}(; Nx = Nx, Ny = Ny, schemes...)
 
     for scheme in schemes
         check_grid(scheme, Nx, Ny)
     end
 
-    # Tile type is a setup-local input, not stored on the model (Stage 7).
-    tile = settings["tile"]
-
     # Apply config flags and parameter overrides to the right sub-struct.
-    apply_config!(fsm, config, schemes)
+    apply_config!(fsm, config)
     apply_params!(fsm, params)
 
     lu = fsm.landuse
