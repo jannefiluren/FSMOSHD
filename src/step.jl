@@ -42,7 +42,7 @@ function step!(fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, t) where {Tf, Ti}
     end
 
     # 5. Canopy interception / unloading
-    canopy!(fsm.physics.CANOPY, fsm, met)
+    canopy!(fsm)
 
     # 6. Snow processes
     snow!(fsm, met, t)

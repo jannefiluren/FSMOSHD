@@ -1,14 +1,4 @@
-# ---------------------------------------------------------------------------
-# Canopy parameterizations
-#
-# Whether a tile has canopy is a property of the tile, not of a cell: after the
-# Stage 4 mask narrowing, every active cell of a canopy tile has fveg > 0 and
-# every active cell of a NoCanopy tile has fveg == 0. That is what makes this a
-# dispatch axis rather than a per-cell branch.
-#
-# Both schemes hold scalars only, so they are isbits and cross into a kernel by
-# value.
-# ---------------------------------------------------------------------------
+# Canopy mass-balance parameterizations
 
 struct NoCanopy{Tf} <: AbstractCanopy{Tf} end
 
@@ -28,25 +18,23 @@ canopy_avg0(c::OneLayerCanopy) = c.avg0
 canopy_avgs(c::OneLayerCanopy) = c.avgs
 
 """
-    canopy!(canopy, fsm, met)
+    canopy_snow!(canopy, i, j, state, diag, landuse, params)
 
-Canopy interception, sublimation and unloading. A no-op without canopy.
+Snow on the canopy at cell `(i, j)`: interception from the throughfall `diag.Sfeff`,
+sublimation and unloading, updating `state.Sveg` and `diag.intcpt`/`Sbveg`/`unload`.
+Implemented for every `AbstractCanopy`; a no-op without canopy.
 """
-canopy!(::NoCanopy, fsm, met) = nothing
+function canopy_snow! end
 
 """
-    canopy!(fsm, meteo)
+    canopy!(fsm)
 
-Snow interception, sublimation, and unloading from vegetation canopy.
-
-The per-cell physics lives in `canopy_kernel!`, a KernelAbstractions kernel
-launched over the whole grid (see `radiation!` for the pattern).
+Snow interception, sublimation, and unloading from the vegetation canopy.
 
 # Arguments
-- `fsm::FSM`: Model state structure (modified in-place)
-- `meteo::MET`: Current meteorological conditions (read-only)
+- `fsm::FSM`: Model state structure
 """
-function canopy!(::OneLayerCanopy, fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
+function canopy!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
     (; CANOPY) = fsm.physics
 
@@ -64,15 +52,29 @@ end
 
 @kernel function canopy_kernel!(
         state, diag, landuse, params::Parameters{Tf},
-        CANOPY::OneLayerCanopy{Tf},
+        CANOPY::AbstractCanopy{Tf},
     ) where {Tf}
 
     i, j = @index(Global, NTuple)
 
+    (; tthresh) = params
+    (; tilefrac) = landuse
+
+    if (tilefrac[i, j] >= tthresh)
+
+        canopy_snow!(CANOPY, i, j, state, diag, landuse, params)
+
+    end
+end
+
+@inline canopy_snow!(::NoCanopy, i, j, state, diag, landuse, params) = nothing
+
+@inline function canopy_snow!(CANOPY::OneLayerCanopy{Tf}, i, j, state, diag, landuse, params) where {Tf}
+
     @unpack_constants(Tf)
 
-    (; dt, tthresh, tcnc, tcnm) = params
-    (; scap, fveg, pmultf, tilefrac) = landuse
+    (; dt, tcnc, tcnm) = params
+    (; scap, fveg, pmultf) = landuse
     (; Sveg, Tveg) = state
     (; unload, intcpt, Sbveg, Sfeff, Eveg) = diag
 
@@ -80,38 +82,37 @@ end
     intcpt[i, j] = Tf(0)
     Sbveg[i, j] = Tf(0)
 
-    if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
+    # Remove precipitation scaling applied to forcing data
+    Sfeff[i, j] = pmultf[i, j] * Sfeff[i, j]
 
-        # rescale precipitation to correct back precip multiplier applied to open area
-        Sfeff[i, j] = pmultf[i, j] * Sfeff[i, j]
+    # Interception
+    intcpt[i, j] = (scap[i, j] - Sveg[i, j]) * (Tf(1) - exp(-fveg[i, j] * Sfeff[i, j] * dt / scap[i, j]))
+    Sveg[i, j] = Sveg[i, j] + intcpt[i, j]
+    Sfeff[i, j] = Sfeff[i, j] - intcpt[i, j] / dt
 
-        # interception
-        intcpt[i, j] = (scap[i, j] - Sveg[i, j]) * (Tf(1) - exp(-fveg[i, j] * Sfeff[i, j] * dt / scap[i, j]))
-        Sveg[i, j] = Sveg[i, j] + intcpt[i, j]
-        Sfeff[i, j] = Sfeff[i, j] - intcpt[i, j] / dt
-        Sfeff[i, j] = (CANOPY.psf - CANOPY.psr * fveg[i, j]) * Sfeff[i, j] # including preferential deposition in canopy gaps; might have to be revisited to ensure mass conservation, potentially integrate with pmultf
+    # Preferential deposition of snowfall in canopy gaps (not mass conserving)
+    Sfeff[i, j] = (CANOPY.psf - CANOPY.psr * fveg[i, j]) * Sfeff[i, j]
 
-        # sublimation
-        Evegs = Tf(0)
-        if (Sveg[i, j] > eps(Tf) || Tveg[i, j] < Tm)
-            Evegs = Eveg[i, j]
-        end
-        Sveg[i, j] = Sveg[i, j] - Evegs * dt
-        Sbveg[i, j] = Evegs * dt
-        if (Sveg[i, j] < Tf(0))
-            Sbveg[i, j] = Sbveg[i, j] + Sveg[i, j]
-        end
-        Sveg[i, j] = max(Sveg[i, j], Tf(0))
-
-        # unloading
-        tunl = tcnc
-        if (Tveg[i, j] >= Tm)
-            tunl = tcnm
-        end
-        tunl = max(tunl, dt)
-        unload[i, j] = Sveg[i, j] * dt / tunl
-        Sveg[i, j] = Sveg[i, j] - unload[i, j]
-
-
+    # Sublimation
+    Evegs = Tf(0)
+    if (Sveg[i, j] > eps(Tf) || Tveg[i, j] < Tm)
+        Evegs = Eveg[i, j]
     end
+    Sveg[i, j] = Sveg[i, j] - Evegs * dt
+    Sbveg[i, j] = Evegs * dt
+    if (Sveg[i, j] < Tf(0))
+        Sbveg[i, j] = Sbveg[i, j] + Sveg[i, j]
+    end
+    Sveg[i, j] = max(Sveg[i, j], Tf(0))
+
+    # Unloading
+    tunl = tcnc
+    if (Tveg[i, j] >= Tm)
+        tunl = tcnm
+    end
+    tunl = max(tunl, dt)
+    unload[i, j] = Sveg[i, j] * dt / tunl
+    Sveg[i, j] = Sveg[i, j] - unload[i, j]
+
+    return nothing
 end
