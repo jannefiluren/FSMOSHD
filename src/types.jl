@@ -69,7 +69,7 @@ end
     Tprof::Tf = 285                                  # Initial soil layer temperatures (K)
 end
 
-@with_kw struct Landuse{Tf, GT, MF <: AbstractMatrix{Tf}, MF64 <: AbstractMatrix{Float64}}
+@with_kw struct Landuse{GT, MF <: AbstractMatrix{<:AbstractFloat}, MF64 <: AbstractMatrix{Float64}}
     grid::GT
     z0_snow::MF = 0.002 * ones(grid.Nx, grid.Ny)    # Roughness length of snow (m)
     alb0::MF = 0.2 * ones(grid.Nx, grid.Ny)         # Snow-free ground albedo (-)
@@ -104,22 +104,22 @@ end
     Vcrit::MF = zeros(grid.Nx, grid.Ny)             # Volumetric soil moisture at critical point (-)
 end
 
-@with_kw struct State{Tf, Ti, GT, MF <: AbstractMatrix{Tf}, MI <: AbstractMatrix{Ti}, AF <: AbstractArray{Tf, 3}}
+@with_kw struct State{GT, MF <: AbstractMatrix{<:AbstractFloat}, MI <: AbstractMatrix{<:Integer}, AF <: AbstractArray{<:AbstractFloat, 3}}
     grid::GT
-    albs::MF = Tf(0.85) * ones(grid.Nx, grid.Ny)                 # Snow albedo (-)
+    albs::MF = 0.85 * ones(grid.Nx, grid.Ny)                 # Snow albedo (-)
     Ds::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)                 # Snow layer thicknesses (m)
-    Nsnow::MI = zeros(Ti, grid.Nx, grid.Ny)                      # Number of snow layers
+    Nsnow::MI = zeros(Int, grid.Nx, grid.Ny)                      # Number of snow layers
     Qcan::MF = zeros(grid.Nx, grid.Ny)                           # Canopy air space humidity (kg/kg)
     Sice::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)               # Ice content of snow layers (kg/m^2)
     Sliq::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)               # Liquid content of snow layers (kg/m^2)
     Sveg::MF = zeros(grid.Nx, grid.Ny)                           # Snow mass on vegetation (kg/m^2)
-    Tcan::MF = Tf(285) * ones(grid.Nx, grid.Ny)                  # Canopy air space temperature (K)
+    Tcan::MF = 285 * ones(grid.Nx, grid.Ny)                  # Canopy air space temperature (K)
     theta::AF = zeros(grid.Nsoil, grid.Nx, grid.Ny)              # Volumetric moisture content of soil layers (-)
-    Tsnow::AF = Tf(273.15) * ones(grid.Nsmax, grid.Nx, grid.Ny)  # Snow layer temperatures (K)
-    Tsoil::AF = Tf(285) * ones(grid.Nsoil, grid.Nx, grid.Ny)     # Soil layer temperatures (K)
-    Tsrf::MF = Tf(285) * ones(grid.Nx, grid.Ny)                  # Surface skin temperature (K)
+    Tsnow::AF = 273.15 * ones(grid.Nsmax, grid.Nx, grid.Ny)  # Snow layer temperatures (K)
+    Tsoil::AF = 285 * ones(grid.Nsoil, grid.Nx, grid.Ny)     # Soil layer temperatures (K)
+    Tsrf::MF = 285 * ones(grid.Nx, grid.Ny)                  # Surface skin temperature (K)
     fsnow::MF = zeros(grid.Nx, grid.Ny)                          # Snow cover fraction (-)
-    Tveg::MF = Tf(285) * ones(grid.Nx, grid.Ny)                  # Vegetation temperature (K)
+    Tveg::MF = 285 * ones(grid.Nx, grid.Ny)                  # Vegetation temperature (K)
     snowdepthmin::MF = zeros(grid.Nx, grid.Ny)                   # Min snow depth at time of swemin (m)
     snowdepthmax::MF = zeros(grid.Nx, grid.Ny)                   # Max snow depth at time of swemax (m)
     snowdepthhist::AF = zeros(14, grid.Nx, grid.Ny)              # Snow depth over last 14 days (m)
@@ -129,7 +129,7 @@ end
     histowet::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)           # Historical past wetting of a layer (-)
 end
 
-@with_kw struct Diagnostics{Tf, GT, MF <: AbstractMatrix{Tf}, AF <: AbstractArray{Tf, 3}}
+@with_kw struct Diagnostics{GT, MF <: AbstractMatrix{<:AbstractFloat}, AF <: AbstractArray{<:AbstractFloat, 3}}
     grid::GT
     # drive
     es::MF = zeros(grid.Nx, grid.Ny)                 # Saturation vapour pressure (Pa)
@@ -194,23 +194,6 @@ end
 # type positionally with the converted fields. Tf is the declared type of no field -
 # it appears only in the bounds on MF/MI/AF - so Julia generates no such constructor.
 # Spell them out, taking each parameter from a representative field.
-function Landuse(grid::Grid, fields...)
-    nt = NamedTuple{fieldnames(Landuse)}((grid, fields...))
-    return Landuse{eltype(nt.z0_snow), typeof(nt.grid), typeof(nt.z0_snow),
-        typeof(nt.prec_multi)}(nt...)
-end
-
-function State(grid::Grid, fields...)
-    nt = NamedTuple{fieldnames(State)}((grid, fields...))
-    return State{eltype(nt.albs), eltype(nt.Nsnow), typeof(nt.grid), typeof(nt.albs),
-        typeof(nt.Nsnow), typeof(nt.Ds)}(nt...)
-end
-
-function Diagnostics(grid::Grid, fields...)
-    nt = NamedTuple{fieldnames(Diagnostics)}((grid, fields...))
-    return Diagnostics{eltype(nt.es), typeof(nt.grid), typeof(nt.es), typeof(nt.ksnow)}(nt...)
-end
-
 mutable struct FSM{Tf, Ti, G, P, L, S, D, PH}
     grid::G
     params::P
@@ -251,9 +234,9 @@ function (::Type{FSM{Tf, Ti}})(;
     check_layer_thicknesses(grid)
     GT      = typeof(grid)
     params  = Parameters{Tf, Ti}()
-    landuse = Landuse{Tf, GT, Matrix{Tf}, Matrix{Float64}}(; grid = grid)
-    state   = State{Tf, Ti, GT, Matrix{Tf}, Matrix{Ti}, Array{Tf, 3}}(; grid = grid)
-    diag    = Diagnostics{Tf, GT, Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
+    landuse = Landuse{GT, Matrix{Tf}, Matrix{Float64}}(; grid = grid)
+    state   = State{GT, Matrix{Tf}, Matrix{Ti}, Array{Tf, 3}}(; grid = grid)
+    diag    = Diagnostics{GT, Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
     physics = (ALBEDO = ALBEDO, CANOPY = CANOPY, SUBSTR = SUBSTR, CONDCT = CONDCT,
         reference_height = reference_height, surface_layer = surface_layer,
         FSNRHO = FSNRHO, COMPACT = COMPACT, HYDROL = HYDROL, LAYERING = LAYERING,

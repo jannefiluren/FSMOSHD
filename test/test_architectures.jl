@@ -46,18 +46,18 @@ end
     # Tf is the declared type of no field on these three, so the reconstruction has
     # to recover it from a representative array
     landuse = Adapt.adapt(to, fsm.landuse)
-    @test landuse isa FlexibleSnowModelOSHD.Landuse{Float32}
+    @test landuse isa FlexibleSnowModelOSHD.Landuse
     @test landuse.alb0 isa DeviceArray{Float32, 2}
     @test landuse.prec_multi isa DeviceArray{Float64, 2}
 
     state = Adapt.adapt(to, fsm.state)
-    @test state isa FlexibleSnowModelOSHD.State{Float32, Int32}
+    @test state isa FlexibleSnowModelOSHD.State
     @test state.albs isa DeviceArray{Float32, 2}
     @test state.Nsnow isa DeviceArray{Int32, 2}
     @test state.Ds isa DeviceArray{Float32, 3}
 
     diag = Adapt.adapt(to, fsm.diag)
-    @test diag isa FlexibleSnowModelOSHD.Diagnostics{Float32}
+    @test diag isa FlexibleSnowModelOSHD.Diagnostics
     @test diag.es isa DeviceArray{Float32, 2}
     @test diag.ksnow isa DeviceArray{Float32, 3}
 
