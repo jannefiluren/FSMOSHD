@@ -79,6 +79,85 @@ end
     return nothing
 end
 
+"""
+    soil_temperature!(i, j, state, diag, grid, params, ::Val{Nsoil})
+
+Advance the soil column temperature `state.Tsoil[1:Nsoil, i, j]` at cell `(i, j)` by one
+step, solving the tridiagonal heat conduction system driven by `diag.Gsoil`.
+"""
+@inline function soil_temperature!(i, j, state, diag, grid, params, ::Val{Nsoil}) where {Nsoil}
+
+    (; dt) = params
+    (; Dzsoil) = grid
+    (; Tsoil) = state
+    (; csoil, ksoil, Gsoil) = diag
+    Tf = eltype(Tsoil)
+
+    # Kernel-local scratch
+    a = zero(MVector{Nsoil, Tf})
+    b = zero(MVector{Nsoil, Tf})
+    c = zero(MVector{Nsoil, Tf})
+    dTs = zero(MVector{Nsoil, Tf})
+    Gs = zero(MVector{Nsoil, Tf})
+    rhs = zero(MVector{Nsoil, Tf})
+    gamma = zero(MVector{Nsoil, Tf})
+
+    for k in 1:(Nsoil - 1)
+        Gs[k] = Tf(2) / (Dzsoil[k] / ksoil[k, i, j] + Dzsoil[k + 1] / ksoil[k + 1, i, j])
+    end
+    a[1] = Tf(0)
+    b[1] = csoil[1, i, j] + Gs[1] * dt
+    c[1] = -Gs[1] * dt
+    rhs[1] = (Gsoil[i, j] - Gs[1] * (Tsoil[1, i, j] - Tsoil[2, i, j])) * dt
+    for k in 2:(Nsoil - 1)
+        a[k] = c[k - 1]
+        b[k] = csoil[k, i, j] + (Gs[k - 1] + Gs[k]) * dt
+        c[k] = -Gs[k] * dt
+        rhs[k] = Gs[k - 1] * (Tsoil[k - 1, i, j] - Tsoil[k, i, j]) * dt + Gs[k] * (Tsoil[k + 1, i, j] - Tsoil[k, i, j]) * dt
+    end
+    k = Nsoil
+    Gs[k] = ksoil[k, i, j] / Dzsoil[k]
+    a[k] = c[k - 1]
+    b[k] = csoil[k, i, j] + (Gs[k - 1] + Gs[k]) * dt
+    c[k] = Tf(0)
+    rhs[k] = Gs[k - 1] * (Tsoil[k - 1, i, j] - Tsoil[k, i, j]) * dt
+    tridiag!(dTs, Nsoil, gamma, Nsoil, a, b, c, rhs)
+    for k in 1:Nsoil
+        Tsoil[k, i, j] = Tsoil[k, i, j] + dTs[k]
+    end
+    return nothing
+end
+
+"""
+    cap_soil_temperature!(substrate, i, j, state, grid)
+
+Cap the substrate temperature at cell `(i, j)`, implemented for every
+`AbstractSubstrate`. Glacier ice cannot exceed the melting point, so `IceSubstrate`
+clamps it there and discards the excess energy; `SoilSubstrate` is a no-op.
+"""
+function cap_soil_temperature! end
+
+@inline cap_soil_temperature!(::SoilSubstrate, i, j, state, grid) = nothing
+
+@inline function cap_soil_temperature!(::IceSubstrate{Tf}, i, j, state, grid) where {Tf}
+    @unpack_constants(Tf)
+    (; Nsoil) = grid
+    (; Tsoil) = state
+
+    for k in 1:Nsoil
+        Tsoil[k, i, j] = min(Tsoil[k, i, j], Tm)
+    end
+    return nothing
+end
+
+"""
+    soil!(fsm)
+
+Soil thermal processes: the temperature of the soil or glacier ice column.
+
+# Arguments
+- `fsm::FSM`: Model state structure
+"""
 function soil!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
     (; SUBSTR) = fsm.physics
@@ -103,54 +182,13 @@ end
 
     i, j = @index(Global, NTuple)
 
-    @unpack_constants(Tf)
-    (; dt, tthresh) = params
-    (; Dzsoil) = grid
-    (; Tsoil) = state
-    (; csoil, ksoil, Gsoil) = diag
+    (; tthresh) = params
     (; tilefrac) = landuse
 
     if (tilefrac[i, j] >= tthresh)
 
-        a = zero(MVector{Nsoil, Tf})
-        b = zero(MVector{Nsoil, Tf})
-        c = zero(MVector{Nsoil, Tf})
-        dTs = zero(MVector{Nsoil, Tf})
-        Gs = zero(MVector{Nsoil, Tf})
-        rhs = zero(MVector{Nsoil, Tf})
-        gamma = zero(MVector{Nsoil, Tf})
-
-        # Soil temperature update
-        for k in 1:(Nsoil - 1)
-            Gs[k] = Tf(2) / (Dzsoil[k] / ksoil[k, i, j] + Dzsoil[k + 1] / ksoil[k + 1, i, j])
-        end
-        a[1] = Tf(0)
-        b[1] = csoil[1, i, j] + Gs[1] * dt
-        c[1] = -Gs[1] * dt
-        rhs[1] = (Gsoil[i, j] - Gs[1] * (Tsoil[1, i, j] - Tsoil[2, i, j])) * dt
-        for k in 2:(Nsoil - 1)
-            a[k] = c[k - 1]
-            b[k] = csoil[k, i, j] + (Gs[k - 1] + Gs[k]) * dt
-            c[k] = -Gs[k] * dt
-            rhs[k] = Gs[k - 1] * (Tsoil[k - 1, i, j] - Tsoil[k, i, j]) * dt + Gs[k] * (Tsoil[k + 1, i, j] - Tsoil[k, i, j]) * dt
-        end
-        k = Nsoil
-        Gs[k] = ksoil[k, i, j] / Dzsoil[k]
-        a[k] = c[k - 1]
-        b[k] = csoil[k, i, j] + (Gs[k - 1] + Gs[k]) * dt
-        c[k] = Tf(0)
-        rhs[k] = Gs[k - 1] * (Tsoil[k - 1, i, j] - Tsoil[k, i, j]) * dt
-        tridiag!(dTs, Nsoil, gamma, Nsoil, a, b, c, rhs)
-        for k in 1:Nsoil
-            Tsoil[k, i, j] = Tsoil[k, i, j] + dTs[k]
-        end
-
-        # In case of ice substracte cap temperatures to melting point (not energy conserving)
-        if SUBSTR isa IceSubstrate
-            for k in 1:Nsoil
-                Tsoil[k, i, j] = min(Tsoil[k, i, j], Tm)
-            end
-        end
+        soil_temperature!(i, j, state, diag, grid, params, Val(Nsoil))
+        cap_soil_temperature!(SUBSTR, i, j, state, grid)
 
     end
 end
