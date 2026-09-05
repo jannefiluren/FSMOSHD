@@ -4,7 +4,7 @@
 Snow physics processes including heat conduction, melting, sublimation, hydraulics, and compaction.
 
 The per-cell physics lives in `snow_kernel!`, a KernelAbstractions kernel
-launched over the whole grid (see `ebalsrf!` for the pattern). Each cell
+launched over the whole grid (see `radiation!` for the pattern). Each cell
 solves its own tridiagonal heat-conduction system using kernel-local
 `MVector` scratch, so the routine is thread-safe per cell. The number of
 snow layers is passed as `Val(Nsmax)` because the scratch size must be known

@@ -4,7 +4,7 @@
 Accumulation of new snow, snow cover fraction update and relayering.
 
 The per-cell physics lives in `snow_layering_kernel!`, a KernelAbstractions
-kernel launched over the whole grid (see `ebalsrf!` for the pattern). All
+kernel launched over the whole grid (see `radiation!` for the pattern). All
 layer scratch is kernel-local `MVector`s sized via `Val(Nsmax)`, so the
 routine is thread-safe per cell. The snow cover fraction update is the
 device function [`snowcoverfraction_point!`](@ref); the "6:00 am" history

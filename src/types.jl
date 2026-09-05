@@ -153,7 +153,7 @@ end
     Ts1::MF = zeros(grid.Nx, grid.Ny)                # Surface layer temperature (K)
     ks1::MF = zeros(grid.Nx, grid.Ny)                # Surface thermal conductivity (W/m/K)
     Tveg0::MF = zeros(grid.Nx, grid.Ny)              # Vegetation temperature at start of timestep (K)
-    # sfexch
+    # surface_exchange_coefficients
     KH::MF = zeros(grid.Nx, grid.Ny)                 # Eddy diffusivity for heat to the atmosphere (m/s)
     KHa::MF = zeros(grid.Nx, grid.Ny)                # Eddy diffusivity from the canopy air space (m/s)
     KHg::MF = zeros(grid.Nx, grid.Ny)                # Eddy diffusivity for heat from the ground (m/s)
@@ -161,7 +161,7 @@ end
     KWg::MF = zeros(grid.Nx, grid.Ny)                # Eddy diffusivity for water from the ground (m/s)
     KWv::MF = zeros(grid.Nx, grid.Ny)                # Eddy diffusivity for water from vegetation (m/s)
     Usc::MF = zeros(grid.Nx, grid.Ny)                # Wind speed in canopy layer (m/s)
-    # ebalsrf
+    # surface_energy_balance
     Esrf::MF = zeros(grid.Nx, grid.Ny)               # Moisture flux from the surface (kg/m^2/s)
     Eveg::MF = zeros(grid.Nx, grid.Ny)               # Moisture flux from vegetation (kg/m^2/s)
     G::MF = zeros(grid.Nx, grid.Ny)                  # Heat flux into the surface (W/m^2)

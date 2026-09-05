@@ -206,7 +206,7 @@ end
     thermal_radiation!(canopy, i, j, diag, landuse, meteo)
 
 Effective incoming longwave `diag.LWeff` for cell `(i, j)`. Without canopy the terrain
-emission is computed here, while in forested cells the process is accounted for in `ebalfor!`.
+emission is computed here, while in forested cells `energy_balance!` accounts for it.
 """
 function thermal_radiation! end
 

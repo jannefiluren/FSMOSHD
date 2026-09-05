@@ -19,7 +19,7 @@ TanhSnowFraction{Tf}(Nx, Ny; kwargs...) where {Tf} = TanhSnowFraction{Tf}()
 
 Roughness length of the ground at cell `(i, j)`: the snow value where the cell counts as
 snow covered, the snow-free value otherwise. Implemented for every `AbstractSnowFraction`;
-called from the `sfexch!` kernel.
+called from the `surface_exchange_coefficients!` kernel.
 """
 function ground_roughness end
 

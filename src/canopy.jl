@@ -28,15 +28,6 @@ canopy_avg0(c::OneLayerCanopy) = c.avg0
 canopy_avgs(c::OneLayerCanopy) = c.avgs
 
 """
-    surface_energy_balance!(canopy, fsm, met)
-
-Solve the surface energy balance. `NoCanopy` uses the surface-only solver; `OneLayerCanopy`
-uses the joint surface+canopy solver. Replaces the `TILE == "forest"` test in `step!`.
-"""
-surface_energy_balance!(::NoCanopy, fsm, met) = ebalsrf!(fsm, met)
-surface_energy_balance!(::OneLayerCanopy, fsm, met) = ebalfor!(fsm, met)
-
-"""
     canopy!(canopy, fsm, met)
 
 Canopy interception, sublimation and unloading. A no-op without canopy.
@@ -49,7 +40,7 @@ canopy!(::NoCanopy, fsm, met) = nothing
 Snow interception, sublimation, and unloading from vegetation canopy.
 
 The per-cell physics lives in `canopy_kernel!`, a KernelAbstractions kernel
-launched over the whole grid (see `ebalsrf!` for the pattern).
+launched over the whole grid (see `radiation!` for the pattern).
 
 # Arguments
 - `fsm::FSM`: Model state structure (modified in-place)

@@ -54,7 +54,7 @@ are exempt — classify a new function by its shape, not by name:
   intermediates*) and return values or bundles; they do no `[i, j]` indexing and
   touch no model array. Chaining them, where each stage returns its own bundle for
   the next, is an encouraged pattern (it keeps each stage's intermediates separate
-  and independently testable). *Example:* the sfexch chain —
+  and independently testable). *Example:* the surface exchange chain —
   `reference_heights` → `surface_layer_state` → `stability_factor` /
   `canopy_richardson` → `eddy_diffusivities`, where `surface_layer_state` returns
   an `S` bundle and `eddy_diffusivities` a `K` bundle. Scheme accessors

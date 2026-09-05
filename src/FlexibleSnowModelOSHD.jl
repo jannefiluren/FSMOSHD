@@ -48,9 +48,8 @@ include("drive.jl")
 include("canopy.jl")
 include("radiation.jl")
 include("thermal.jl")
-include("sfexch.jl")
-include("ebalsrf.jl")
-include("ebalfor.jl")
+include("surface_exchange_coefficients.jl")
+include("surface_energy_balance.jl")
 include("snow.jl")
 include("soil.jl")
 include("step.jl")
@@ -60,7 +59,7 @@ export FSM, MET
 export AbstractParameterization, grid_array, check_grid, build_scheme
 export AbstractConductivity, FixedConductivity, DensityConductivity, snow_conductivity!
 export AbstractAlbedo, DiagnosticAlbedo, DecayAlbedo, PrognosticAlbedo, snow_albedo!
-export AbstractCanopy, NoCanopy, OneLayerCanopy, surface_energy_balance!
+export AbstractCanopy, NoCanopy, OneLayerCanopy, surface_energy_balance!, energy_balance!
 export solar_radiation!, thermal_radiation!
 export AbstractSubstrate, SoilSubstrate, IceSubstrate, soil_properties!
 export AbstractReferenceHeight, AboveGround, AboveCanopy
@@ -72,7 +71,7 @@ export AbstractHydrology, FreeDrainingHydrology, BucketHydrology, DensityBucketH
 export AbstractLayering, OriginalLayering, DensityLayering, relayer_snow!
 export AbstractSnowFraction, SeasonalSnowFraction, HelbigSnowFraction, HelbigMaxSnowFraction, PointSnowFraction, TanhSnowFraction, snow_covered_fraction!
 export AbstractArchitecture, CPU, GPU, on_architecture
-export canopy!, radiation!, thermal!, sfexch!, ebalsrf!, ebalfor!, snow!, soil!, snowcoverfraction!
+export canopy!, radiation!, thermal!, surface_exchange_coefficients!, snow!, soil!, snowcoverfraction!
 export qsat, tridiag!, ludcmp!
 export drive!, step!, setup
 export @unpack_constants
