@@ -13,6 +13,10 @@ end
     include("test_soil_energy_balance.jl")
 end
 
+@testset "Architectures" begin
+    include("test_architectures.jl")
+end
+
 @testset "Regression Tests" begin
     include("test_regression.jl")
 end

@@ -71,7 +71,7 @@ end
 # and the physics NamedTuple are rebuilt with each array field moved.
 on_architecture(::AbstractArchitecture, p::Parameters) = p
 
-function on_architecture(arch::AbstractArchitecture, x::Union{Grid, Landuse, State, Diagnostics})
+function on_architecture(arch::AbstractArchitecture, x::Union{Grid, Landuse, State, Diagnostics, MET})
     T = typeof(x).name.wrapper
     return T(map(f -> on_architecture(arch, getfield(x, f)), fieldnames(typeof(x)))...)
 end
@@ -81,13 +81,4 @@ on_architecture(arch::AbstractArchitecture, nt::NamedTuple) = map(x -> on_archit
 function on_architecture(arch::AbstractArchitecture, fsm::FSM)
     values = map(name -> on_architecture(arch, getfield(fsm, name)), fieldnames(typeof(fsm)))
     return FSM(values...)
-end
-
-function on_architecture(arch::AbstractArchitecture, met::MET{Tf, Ti}) where {Tf, Ti}
-    values = map(name -> on_architecture(arch, getfield(met, name)), fieldnames(typeof(met)))
-    nt = NamedTuple{fieldnames(typeof(met))}(values)
-    # Unlike FSM, MET has no scalar Tf-typed field, so Tf cannot be inferred
-    # by a positional constructor - pass the type parameters explicitly,
-    # deriving the array types from representative converted fields
-    return MET{Tf, Ti, typeof(nt.Sdir), typeof(nt.Sf24h_f64), typeof(nt.Sf_history_f64)}(; nt...)
 end

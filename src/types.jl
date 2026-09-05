@@ -191,6 +191,27 @@ end
     Ds0::MF = zeros(grid.Nx, grid.Ny)                # Snow layer thickness at start of timestep (m)
 end
 
+# Adapt (@adapt_structure) and on_architecture rebuild these structs by calling the
+# type positionally with the converted fields. Tf is the declared type of no field -
+# it appears only in the bounds on MF/MI/AF - so Julia generates no such constructor.
+# Spell them out, taking each parameter from a representative field.
+function Landuse(grid::Grid, fields...)
+    nt = NamedTuple{fieldnames(Landuse)}((grid, fields...))
+    return Landuse{eltype(nt.z0_snow), typeof(nt.grid), typeof(nt.z0_snow),
+        typeof(nt.prec_multi)}(nt...)
+end
+
+function State(grid::Grid, fields...)
+    nt = NamedTuple{fieldnames(State)}((grid, fields...))
+    return State{eltype(nt.albs), eltype(nt.Nsnow), typeof(nt.grid), typeof(nt.albs),
+        typeof(nt.Nsnow), typeof(nt.Ds)}(nt...)
+end
+
+function Diagnostics(grid::Grid, fields...)
+    nt = NamedTuple{fieldnames(Diagnostics)}((grid, fields...))
+    return Diagnostics{eltype(nt.es), typeof(nt.grid), typeof(nt.es), typeof(nt.ksnow)}(nt...)
+end
+
 mutable struct FSM{Tf, Ti, G, P, L, S, D, PH}
     grid::G
     params::P
@@ -280,6 +301,12 @@ end
 
 function (::Type{MET{Tf, Ti}})(; kwargs...) where {Tf, Ti}
     return MET{Tf, Ti, Matrix{Tf}, Matrix{Float64}, Array{Float64, 3}}(; kwargs...)
+end
+
+function MET(Nx::Integer, fields...)
+    nt = NamedTuple{fieldnames(MET)}((Nx, fields...))
+    return MET{eltype(nt.Sdir), typeof(nt.Nx), typeof(nt.Sdir), typeof(nt.Sf24h_f64),
+        typeof(nt.Sf_history_f64)}(nt...)
 end
 
 # Let the array-holding structs cross into a kernel: Adapt rewrites each array
