@@ -62,6 +62,18 @@ function build_scheme(Tf, requested, Nx, Ny, params)
 
 end
 
+"""
+    reconstruct(x; kwargs...)
+
+Copy the immutable struct `x` with the named fields replaced. `Parameters` is rebuilt
+rather than mutated so that it stays isbits and can cross into a kernel by value.
+"""
+function reconstruct(x::T; kwargs...) where {T}
+    names = fieldnames(T)
+    fields = NamedTuple{names}(map(f -> getfield(x, f), names))
+    return T(; merge(fields, NamedTuple(kwargs))...)
+end
+
 # Route a scalar into the immutable Parameters via a functional update.
 @inline function set_param!(fsm, sym::Symbol, value)
     v = convert(fieldtype(typeof(fsm.params), sym), value)

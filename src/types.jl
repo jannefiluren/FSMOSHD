@@ -1,4 +1,4 @@
-@with_kw struct Grid{Ti, VF <: AbstractVector}
+@kwdef struct Grid{Ti, VF <: AbstractVector}
     Dzsnow::VF = [0.1, 0.2, 0.4]                     # Maximum snow layer thicknesses (m)
     Dzsoil::VF = [0.1, 0.2, 0.4, 0.8]                # Maximum soil layer thicknesses (m)
     Nsmax::Ti = length(Dzsnow)                       # Number of snow layers
@@ -25,7 +25,7 @@ function check_layer_thicknesses(grid::Grid)
     return nothing
 end
 
-@with_kw struct Parameters{Tf, Ti}
+@kwdef struct Parameters{Tf, Ti}
     dt::Tf = 3600                                    # Time step (s)
     zT::Tf = 10                                      # Temperature measurement height (m)
     zU::Tf = 10                                      # Wind speed measurement height (m)
@@ -69,7 +69,7 @@ end
     Tprof::Tf = 285                                  # Initial soil layer temperatures (K)
 end
 
-@with_kw struct Landuse{GT, MF <: AbstractMatrix{<:AbstractFloat}, MF64 <: AbstractMatrix{Float64}}
+@kwdef struct Landuse{GT, MF <: AbstractMatrix{<:AbstractFloat}, MF64 <: AbstractMatrix{Float64}}
     grid::GT
     z0_snow::MF = 0.002 * ones(grid.Nx, grid.Ny)    # Roughness length of snow (m)
     alb0::MF = 0.2 * ones(grid.Nx, grid.Ny)         # Snow-free ground albedo (-)
@@ -104,7 +104,7 @@ end
     Vcrit::MF = zeros(grid.Nx, grid.Ny)             # Volumetric soil moisture at critical point (-)
 end
 
-@with_kw struct State{GT, MF <: AbstractMatrix{<:AbstractFloat}, MI <: AbstractMatrix{<:Integer}, AF <: AbstractArray{<:AbstractFloat, 3}}
+@kwdef struct State{GT, MF <: AbstractMatrix{<:AbstractFloat}, MI <: AbstractMatrix{<:Integer}, AF <: AbstractArray{<:AbstractFloat, 3}}
     grid::GT
     albs::MF = 0.85 * ones(grid.Nx, grid.Ny)                 # Snow albedo (-)
     Ds::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)                 # Snow layer thicknesses (m)
@@ -129,7 +129,7 @@ end
     histowet::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)           # Historical past wetting of a layer (-)
 end
 
-@with_kw struct Diagnostics{GT, MF <: AbstractMatrix{<:AbstractFloat}, AF <: AbstractArray{<:AbstractFloat, 3}}
+@kwdef struct Diagnostics{GT, MF <: AbstractMatrix{<:AbstractFloat}, AF <: AbstractArray{<:AbstractFloat, 3}}
     grid::GT
     # drive
     es::MF = zeros(grid.Nx, grid.Ny)                 # Saturation vapour pressure (Pa)
@@ -248,7 +248,7 @@ function (::Type{FSM{Tf, Ti}})(;
     return FSM(grid, params, landuse, state, diag, physics)
 end
 
-@with_kw mutable struct MET{
+@kwdef mutable struct MET{
         Tf, Ti,
         MF <: AbstractMatrix{Tf}, MF64 <: AbstractMatrix{Float64},
         AF64_3 <: AbstractArray{Float64, 3},
@@ -283,12 +283,6 @@ end
 
 function (::Type{MET{Tf, Ti}})(; kwargs...) where {Tf, Ti}
     return MET{Tf, Ti, Matrix{Tf}, Matrix{Float64}, Array{Float64, 3}}(; kwargs...)
-end
-
-function MET(Nx::Integer, fields...)
-    nt = NamedTuple{fieldnames(MET)}((Nx, fields...))
-    return MET{eltype(nt.Sdir), typeof(nt.Nx), typeof(nt.Sdir), typeof(nt.Sf24h_f64),
-        typeof(nt.Sf_history_f64)}(nt...)
 end
 
 # Let the array-holding structs cross into a kernel: Adapt rewrites each array

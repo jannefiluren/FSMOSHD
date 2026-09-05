@@ -17,7 +17,7 @@ function drive!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: I
 
     (; es, Qa, Uaeff, Sfeff) = fsm.diag
 
-    @unpack Ua, Sf, Ta, RH, Ps = meteo
+    (; Ua, Sf, Ta, RH, Ps) = meteo
 
     Uaeff .= max.(Ua, Tf(0.1))
 

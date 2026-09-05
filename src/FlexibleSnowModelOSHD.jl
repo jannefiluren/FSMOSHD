@@ -1,6 +1,5 @@
 module FlexibleSnowModelOSHD
 
-using Parameters
 using Dates
 using Adapt: Adapt, @adapt_structure
 
