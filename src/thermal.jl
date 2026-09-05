@@ -42,6 +42,40 @@ end
 end
 
 """
+    surface_layer_properties!(i, j, state, diag, grid)
+
+Thickness, temperature and thermal conductivity of the layer the surface energy balance
+sees (`diag.Ds1`, `diag.Ts1`, `diag.ks1`) for cell `(i, j)`. The layer is always at least
+as thick as the top soil layer and mixes in soil properties for thin snowpacks, so it
+requires `Dzsnow[1] >= Dzsoil[1]` (checked in types.jl) - a thinner first snow layer
+leaves `Ts1` blended with `Tsoil` even under a deep snowpack.
+"""
+@inline function surface_layer_properties!(i, j, state, diag, grid)
+    (; Dzsoil) = grid
+    (; Ds, Tsnow, Tsoil) = state
+    (; ksnow, ksoil, Ds1, Ts1, ks1) = diag
+    Tf = eltype(Ds1)
+
+    Ds1[i, j] = max(Dzsoil[1], Ds[1, i, j])
+    Ts1[i, j] = Tsoil[1, i, j] + (Tsnow[1, i, j] - Tsoil[1, i, j]) * Ds[1, i, j] / Dzsoil[1]
+
+    # Series resistance of the composite layer with (a) a guard against zero division for
+    # cells that never held snow and (b) a soil resistance that turns negative once snow
+    # fills over half the layer, where ks1 is overridden below
+    snow_R = Ds[1, i, j] > zero(Tf) ? Tf(2) * Ds[1, i, j] / ksnow[1, i, j] : zero(Tf)
+    soil_R = (Dzsoil[1] - Tf(2) * Ds[1, i, j]) / ksoil[1, i, j]
+
+    ks1[i, j] = Dzsoil[1] / (snow_R + soil_R)
+    if (Ds[1, i, j] > Tf(0.5) * Dzsoil[1])
+        ks1[i, j] = ksnow[1, i, j]
+    end
+    if (Ds[1, i, j] > Dzsoil[1])
+        Ts1[i, j] = Tsnow[1, i, j]
+    end
+    return nothing
+end
+
+"""
     thermal!(fsm)
 
 Thermal property calculations for snow and soil layers.
@@ -72,92 +106,17 @@ end
 
     i, j = @index(Global, NTuple)
 
-    @unpack_constants(Tf)
-
-    (; Dzsoil, Nsoil) = grid
-    (; tthresh, gsat) = params
-    (; b, hcap_soil, hcon_soil, sathh, Vcrit, Vsat, tilefrac) = landuse
-    (; Ds, theta, Tsnow, Tsoil, Tveg) = state
-    (; ksnow, csoil, ksoil, gs1, Ds1, Ts1, ks1, Tveg0) = diag
+    (; tthresh) = params
+    (; tilefrac) = landuse
+    (; Tveg) = state
+    (; Tveg0) = diag
 
     if (tilefrac[i, j] >= tthresh)
 
-        # Thermal conductivity of snow
         snow_conductivity!(CONDCT, i, j, state, diag, params)
+        soil_properties!(SUBSTR, i, j, state, diag, landuse, grid, params)
+        surface_layer_properties!(i, j, state, diag, grid)
 
-        # Heat capacity and thermal conductivity of soil
-        dPsidT = -rho_ice * Lf / (rho_wat * grav * Tm)
-
-        for k in 1:Nsoil
-
-            if SUBSTR isa IceSubstrate # Ice properties
-
-                # Note that hcap_ice is specific heat capacity and has to be converted to volumetric heat capacity
-                csoil[k, i, j] = hcap_ice * rho_ice * Dzsoil[k]
-                # Use pure ice thermal conductivity
-                ksoil[k, i, j] = hcon_ice
-                # Consider that ice surface behaves like saturated soil for surface moisture conductance
-                gs1[i, j] = gsat
-
-            else # Normal soil properties
-                csoil[k, i, j] = hcap_soil[i, j] * Dzsoil[k]
-                ksoil[k, i, j] = hcon_soil[i, j]
-                if (theta[k, i, j] > eps(Tf))
-                    dthudT = Tf(0.0)
-                    sthu = theta[k, i, j]
-                    sthf = Tf(0.0)
-                    Tc = Tsoil[k, i, j] - Tm
-                    Tmax = Tm + (sathh[i, j] / dPsidT) * (Vsat[i, j] / theta[k, i, j])^b[i, j]
-                    if (Tsoil[k, i, j] < Tmax)
-                        dthudT = (-dPsidT * Vsat[i, j] / (b[i, j] * sathh[i, j])) * (dPsidT * Tc / sathh[i, j])^(Tf(-1) / b[i, j] - Tf(1))
-                        sthu = Vsat[i, j] * (dPsidT * Tc / sathh[i, j])^(Tf(-1) / b[i, j])
-                        sthu = min(sthu, theta[k, i, j])
-                        sthf = (theta[k, i, j] - sthu) * rho_wat / rho_ice
-                    end
-                    Mf = rho_ice * Dzsoil[k] * sthf
-                    Mu = rho_wat * Dzsoil[k] * sthu
-                    csoil[k, i, j] = hcap_soil[i, j] * Dzsoil[k] + hcap_ice * Mf + hcap_wat * Mu + rho_wat * Dzsoil[k] * ((hcap_wat - hcap_ice) * Tc + Lf) * dthudT
-                    Smf = rho_ice * sthf / (rho_wat * Vsat[i, j])
-                    Smu = sthu / Vsat[i, j]
-                    thice = Tf(0.0)
-                    if (Smf > eps(Tf))
-                        thice = Vsat[i, j] * Smf / (Smu + Smf)
-                    end
-                    thwat = Tf(0.0)
-                    if (Smu > eps(Tf))
-                        thwat = Vsat[i, j] * Smu / (Smu + Smf)
-                    end
-                    hcon_sat = hcon_soil[i, j] * (hcon_wat^thwat) * (hcon_ice^thice) / (hcon_air^Vsat[i, j])
-                    ksoil[k, i, j] = (hcon_sat - hcon_soil[i, j]) * (Smf + Smu) + hcon_soil[i, j]
-                    if (k == 1)
-                        gs1[i, j] = gsat * max((Smu * Vsat[i, j] / Vcrit[i, j])^Tf(2), Tf(1.0))
-                    end
-
-                end
-
-            end
-
-        end
-
-        # Surface layer (always at least as thick as the top soil layer) that
-        # requires Dzsnow[1] >= Dzsoil[1] since otherwise Ts1 is blended with
-        # Tsoil even under a deep snowpack
-        Ds1[i, j] = max(Dzsoil[1], Ds[1, i, j])
-        Ts1[i, j] = Tsoil[1, i, j] + (Tsnow[1, i, j] - Tsoil[1, i, j]) * Ds[1, i, j] / Dzsoil[1]
-
-        # Series resistance of the composite surface layer with (a) guard to avoid zero
-        # division for cells that never held snow and (b) a soil resistance that turns negative
-        # once snow fills over half the layer and therefore ks1 is overridden by below
-        snow_R = Ds[1, i, j] > zero(Tf) ? Tf(2) * Ds[1, i, j] / ksnow[1, i, j] : zero(Tf)
-        soil_R = (Dzsoil[1] - Tf(2) * Ds[1, i, j]) / ksoil[1, i, j]
-
-        ks1[i, j] = Dzsoil[1] / (snow_R + soil_R)
-        if (Ds[1, i, j] > Tf(0.5) * Dzsoil[1])
-            ks1[i, j] = ksnow[1, i, j]
-        end
-        if (Ds[1, i, j] > Dzsoil[1])
-            Ts1[i, j] = Tsnow[1, i, j]
-        end
         Tveg0[i, j] = Tveg[i, j]
 
     end

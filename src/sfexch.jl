@@ -1,4 +1,3 @@
-
 # Reference height
 struct AboveGround{Tf} <: AbstractReferenceHeight{Tf} end
 struct AboveCanopy{Tf} <: AbstractReferenceHeight{Tf} end
@@ -17,9 +16,16 @@ NoStabilityCorrection{Tf}(Nx, Ny; kwargs...) where {Tf} = NoStabilityCorrection{
 end
 LouisStabilityCorrection{Tf}(Nx, Ny; kwargs...) where {Tf} = LouisStabilityCorrection{Tf}(; kwargs...)
 
+"""
+    stability_factor(scheme, CD, z0, Ta, Tsrf, Ua, zU1, zT1)
+
+Atmospheric stability correction applied to the open-terrain eddy diffusivity, following
+Louis et al. (1982). Implemented for every `AbstractStabilityCorrection`.
+"""
+function stability_factor end
+
 @inline stability_factor(::NoStabilityCorrection{Tf}, CD, z0, Ta, Tsrf, Ua, zU1, zT1) where {Tf} = Tf(1)
 
-# Stability correction factor following Louis et al. (1982)
 @inline function stability_factor(sc::LouisStabilityCorrection{Tf}, CD, z0, Ta, Tsrf, Ua, zU1, zT1) where {Tf}
     @unpack_constants(Tf)
     RiB = grav * (Ta - Tsrf) * zU1^Tf(2) / (zT1 * Ta * Ua^Tf(2))
@@ -54,8 +60,19 @@ OpenSurfaceLayer{Tf}(Nx, Ny; stability = NoStabilityCorrection{Tf}()) where {Tf}
 end
 ForestSurfaceLayer{Tf}(Nx, Ny; kwargs...) where {Tf} = ForestSurfaceLayer{Tf}(; kwargs...)
 
-# Surface exchange coefficients for open/glacier terrain
-@inline function exchange_coefficients!(sl::OpenSurfaceLayer{Tf}, state, diag, landuse, params, meteo, i, j, zU1, zT1, z0g) where {Tf}
+"""
+    exchange_coefficients!(surface_layer, i, j, state, diag, landuse, params, meteo, zU1, zT1, z0g)
+
+Eddy diffusivities for turbulent heat and moisture transfer at cell `(i, j)`, implemented
+for every `AbstractSurfaceLayer`: `diag.KH` and `diag.KWg` over open terrain, and
+`diag.KHa`, `diag.KHg`, `diag.KHv`, `diag.KWg`, `diag.KWv` under a canopy. The wind and
+temperature reference heights `zU1`, `zT1` and the ground roughness length `z0g` are
+resolved by the caller.
+"""
+function exchange_coefficients! end
+
+# Open/glacier terrain
+@inline function exchange_coefficients!(sl::OpenSurfaceLayer{Tf}, i, j, state, diag, landuse, params, meteo, zU1, zT1, z0g) where {Tf}
     @unpack_constants(Tf)
     (; Sice, Tsrf) = state
     (; KH, KWg, gs1, Qa, Uaeff) = diag
@@ -80,8 +97,8 @@ ForestSurfaceLayer{Tf}(Nx, Ny; kwargs...) where {Tf} = ForestSurfaceLayer{Tf}(; 
     return nothing
 end
 
-# Surface exchange coefficients for forest terrain
-@inline function exchange_coefficients!(sl::ForestSurfaceLayer{Tf}, state, diag, landuse, params, meteo, i, j, zU1, zT1, z0g) where {Tf}
+# Forest terrain
+@inline function exchange_coefficients!(sl::ForestSurfaceLayer{Tf}, i, j, state, diag, landuse, params, meteo, zU1, zT1, z0g) where {Tf}
     @unpack_constants(Tf)
     (; zU, zsub, gsnf) = params
     (; fveg, fves, VAI, hcan) = landuse
@@ -110,6 +127,7 @@ end
     KHg[i, j] = Tf(1) / rgd
     Uc = exp(sl.wcan * ((z0v + dh) / hcan[i, j] - Tf(1))) * Uh
     KHv[i, j] = VAI[i, j] * sqrt(Uc) / sl.cveg
+    # Usc leaves the model only through the OSHDinternal output catalog (uaca)
     Usc[i, j] = Usub
 
     Qs = qsat(Ps[i, j], Tsrf[i, j])
@@ -127,6 +145,15 @@ end
     return nothing
 end
 
+"""
+    sfexch!(fsm, meteo)
+
+Surface exchange coefficients for turbulent transfer of heat and moisture.
+
+# Arguments
+- `fsm::FSM`: Model state structure
+- `meteo::MET`: Current meteorological conditions
+"""
 function sfexch!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
     (; reference_height, surface_layer, SNFRAC) = fsm.physics
@@ -153,27 +180,14 @@ end
     i, j = @index(Global, NTuple)
 
     (; tthresh, zT, zU) = params
-    (; tilefrac, z0_snow, z0sf, hcan) = landuse
-    (; Ds, fsnow) = state
+    (; tilefrac, hcan) = landuse
 
     if (tilefrac[i, j] >= tthresh)
 
         zU1, zT1 = reference_heights(reference_height, zU, zT, hcan[i, j])
+        z0g = ground_roughness(SNFRAC, i, j, state, landuse)
 
-        # Ground roughness length
-        z0g = z0_snow[i, j]
-        if SNFRAC isa PointSnowFraction
-            sumtmp = column_sum(Ds, i, j)
-            if (sumtmp <= Tf(0.05))
-                z0g = z0sf[i, j]
-            end
-        else
-            if (fsnow[i, j] <= eps(Tf))
-                z0g = z0sf[i, j]
-            end
-        end
-
-        exchange_coefficients!(surface_layer, state, diag, landuse, params, meteo, i, j, zU1, zT1, z0g)
+        exchange_coefficients!(surface_layer, i, j, state, diag, landuse, params, meteo, zU1, zT1, z0g)
 
     end
 end

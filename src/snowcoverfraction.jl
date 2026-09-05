@@ -15,6 +15,28 @@ PointSnowFraction{Tf}(Nx, Ny; kwargs...) where {Tf} = PointSnowFraction{Tf}()
 TanhSnowFraction{Tf}(Nx, Ny; kwargs...) where {Tf} = TanhSnowFraction{Tf}()
 
 """
+    ground_roughness(scheme, i, j, state, landuse)
+
+Roughness length of the ground at cell `(i, j)`: the snow value where the cell counts as
+snow covered, the snow-free value otherwise. Implemented for every `AbstractSnowFraction`;
+called from the `sfexch!` kernel.
+"""
+function ground_roughness end
+
+@inline function ground_roughness(::PointSnowFraction{Tf}, i, j, state, landuse) where {Tf}
+    (; Ds) = state
+    (; z0_snow, z0sf) = landuse
+    # 0.05 m snow-depth threshold stabilises tuning-point runs (vs fsnow)
+    return column_sum(Ds, i, j) <= Tf(0.05) ? z0sf[i, j] : z0_snow[i, j]
+end
+
+@inline function ground_roughness(::AbstractSnowFraction{Tf}, i, j, state, landuse) where {Tf}
+    (; fsnow) = state
+    (; z0_snow, z0sf) = landuse
+    return fsnow[i, j] <= eps(Tf) ? z0sf[i, j] : z0_snow[i, j]
+end
+
+"""
     snowcoverfraction_point!(scheme, state, landuse, snowdepth, SWEtmp, hfsn, i, j, update_hist)
 
 Snow cover fraction for one grid cell: dispatch to the `scheme`'s SCF model

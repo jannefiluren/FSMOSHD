@@ -62,7 +62,7 @@ export AbstractConductivity, FixedConductivity, DensityConductivity, snow_conduc
 export AbstractAlbedo, DiagnosticAlbedo, DecayAlbedo, PrognosticAlbedo, snow_albedo!
 export AbstractCanopy, NoCanopy, OneLayerCanopy, surface_energy_balance!
 export solar_radiation!, thermal_radiation!
-export AbstractSubstrate, SoilSubstrate, IceSubstrate
+export AbstractSubstrate, SoilSubstrate, IceSubstrate, soil_properties!
 export AbstractReferenceHeight, AboveGround, AboveCanopy
 export AbstractSurfaceLayer, OpenSurfaceLayer, ForestSurfaceLayer
 export AbstractStabilityCorrection, NoStabilityCorrection, LouisStabilityCorrection
