@@ -7,6 +7,24 @@
     Ny::Ti = 1                                       # Second array dimension (columns)
 end
 
+"""
+    check_layer_thicknesses(grid)
+
+Verify that the first snow layer can grow at least as thick as the top soil layer.
+The surface layer in `thermal!` blends snow and soil over a depth of `Dzsoil[1]`, so a
+thinner first snow layer leaves `Ts1` and `ks1` contaminated by soil however deep the
+snowpack gets.
+"""
+function check_layer_thicknesses(grid::Grid)
+    grid.Dzsnow[1] >= grid.Dzsoil[1] || throw(
+        ArgumentError(
+            "Dzsnow[1] = $(grid.Dzsnow[1]) must be at least Dzsoil[1] = $(grid.Dzsoil[1]), " *
+                "otherwise the surface layer in thermal! stays blended with the soil under deep snow"
+        )
+    )
+    return nothing
+end
+
 @with_kw struct Parameters{Tf, Ti}
     dt::Tf = 3600                                    # Time step (s)
     zT::Tf = 10                                      # Temperature measurement height (m)
@@ -210,6 +228,7 @@ function (::Type{FSM{Tf, Ti}})(;
         SNFRAC = PointSnowFraction{Tf}()) where {Tf, Ti}
 
     grid    = Grid{Ti, Vector{Tf}}(; Nx = Nx, Ny = Ny)
+    check_layer_thicknesses(grid)
     GT      = typeof(grid)
     params  = Parameters{Tf, Ti}()
     landuse = Landuse{Tf, GT, Matrix{Tf}, Matrix{Float64}}(; grid = grid)

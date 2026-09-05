@@ -1,9 +1,9 @@
 @kwdef struct FixedConductivity{Tf} <: AbstractConductivity{Tf}
-    kfix::Tf = 0.24                                          # Fixed thermal conductivity of snow (W/m/K)
+    kfix::Tf = 0.24        # Fixed thermal conductivity of snow (W/m/K)
 end
 
 @kwdef struct DensityConductivity{Tf} <: AbstractConductivity{Tf}
-    bthr::Tf = 2                                             # Snow thermal conductivity exponent (-)
+    bthr::Tf = 2           # Snow thermal conductivity exponent (-)
 end
 
 FixedConductivity{Tf}(Nx, Ny; kwargs...) where {Tf} = FixedConductivity{Tf}(; kwargs...)
@@ -12,8 +12,8 @@ DensityConductivity{Tf}(Nx, Ny; kwargs...) where {Tf} = DensityConductivity{Tf}(
 """
     snow_conductivity!(scheme, i, j, state, diag, params)
 
-Fill the snow thermal conductivity `diag.ksnow[1:Nsnow, i, j]` for cell `(i, j)`.
-Every `AbstractConductivity` implements it. See `.claude/rules/kernel-point-functions.md`.
+Fill the snow thermal conductivity `ksnow[1:Nsnow, i, j]` for cell `(i, j)`,
+implemented for every `AbstractConductivity`.
 """
 function snow_conductivity! end
 
@@ -46,20 +46,12 @@ end
 
 Thermal property calculations for snow and soil layers.
 
-The per-cell physics lives in `thermal_kernel!`, a KernelAbstractions kernel
-launched over the whole grid (see `ebalsrf!` for the pattern). The three
-former grid loops (snow conductivity, soil properties, surface layer) are
-fused into one kernel; they only communicate through values of the same grid
-cell, so the fusion is exact.
-
 # Arguments
 - `fsm::FSM`: Model state structure (modified in-place)
 """
 function thermal!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 
     (; CONDCT, SUBSTR) = fsm.physics
-
-    # Strings cannot cross into kernels: resolve the tile test here
 
     backend = get_backend(fsm.diag.gs1)
     kernel! = thermal_kernel!(backend)
@@ -83,15 +75,14 @@ end
     @unpack_constants(Tf)
 
     (; Dzsoil, Nsoil) = grid
-    (; tthresh, gsat, rhof) = params
+    (; tthresh, gsat) = params
     (; b, hcap_soil, hcon_soil, sathh, Vcrit, Vsat, tilefrac) = landuse
-    (; Ds, Nsnow, fsnow, Sice, Sliq, theta, Tsnow, Tsoil, Tveg) = state
+    (; Ds, theta, Tsnow, Tsoil, Tveg) = state
     (; ksnow, csoil, ksoil, gs1, Ds1, Ts1, ks1, Tveg0) = diag
 
-    if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
+    if (tilefrac[i, j] >= tthresh)
 
         # Thermal conductivity of snow
-
         snow_conductivity!(CONDCT, i, j, state, diag, params)
 
         # Heat capacity and thermal conductivity of soil
@@ -148,21 +139,19 @@ end
 
         end
 
-        # Surface layer
-
-        # GM/LQ: the following lines define the properties of the layer that interacts with the surface in EBALSRF.
-        # to maintain numerical stability, this layer is always at least as thick at the top soil layer (10cm in default),
-        # and layer properties incorporate soil properties for thin snowpacks.
-        # IMPORTANT consequence of this trick: when adapting the snow layering, we need to ensure that the thickness
-        # of the top soil layer does not exceed the max thickness of the first snow layer, otherwise we create artefacts in
-        # the surface energy balance (thermal properties of first layer affected by soil even when they shouldnt be)
-        # Note that this 'trick' has not yet been tested for top layers < 10cm!
+        # Surface layer (always at least as thick as the top soil layer) that
+        # requires Dzsnow[1] >= Dzsoil[1] since otherwise Ts1 is blended with
+        # Tsoil even under a deep snowpack
         Ds1[i, j] = max(Dzsoil[1], Ds[1, i, j])
         Ts1[i, j] = Tsoil[1, i, j] + (Tsnow[1, i, j] - Tsoil[1, i, j]) * Ds[1, i, j] / Dzsoil[1]
-        # Snow thermal resistance is zero when there is no snow in the first layer.
-        # Required because the conductivity schemes fill only the active layers.
+
+        # Series resistance of the composite surface layer with (a) guard to avoid zero
+        # division for cells that never held snow and (b) a soil resistance that turns negative
+        # once snow fills over half the layer and therefore ks1 is overridden by below
         snow_R = Ds[1, i, j] > zero(Tf) ? Tf(2) * Ds[1, i, j] / ksnow[1, i, j] : zero(Tf)
-        ks1[i, j] = Dzsoil[1] / (snow_R + (Dzsoil[1] - Tf(2) * Ds[1, i, j]) / ksoil[1, i, j])
+        soil_R = (Dzsoil[1] - Tf(2) * Ds[1, i, j]) / ksoil[1, i, j]
+
+        ks1[i, j] = Dzsoil[1] / (snow_R + soil_R)
         if (Ds[1, i, j] > Tf(0.5) * Dzsoil[1])
             ks1[i, j] = ksnow[1, i, j]
         end
