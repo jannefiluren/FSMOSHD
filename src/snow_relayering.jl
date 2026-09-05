@@ -1,7 +1,4 @@
-# Snow relayering parameterizations. Fieldless dispatch schemes selecting the
-# snowpack relayering algorithm. The per-cell relayering is a kernel point
-# function (see `.claude/rules/kernel-point-functions.md`); each scheme carries
-# its own layer scratch as kernel-local `MVector`s sized via `Val(Nsmax)`.
+# Snow relayering parameterizations
 
 struct OriginalLayering{Tf} <: AbstractLayering{Tf} end
 struct DensityLayering{Tf} <: AbstractLayering{Tf} end
@@ -20,19 +17,19 @@ caller. Every `AbstractLayering` implements it.
 """
 function relayer_snow! end
 
+# Both methods are @propagate_inbounds, not @inline: without the kernel's inbounds
+# context the bounds-check paths capture their MVector scratch onto the heap, once
+# per grid cell
+
 # Original layering routine
-@inline function relayer_snow!(::OriginalLayering{Tf}, i, j, state, diag, grid, params, snowdepth, Tsnow0, ::Val{Nsmax}) where {Tf, Nsmax}
+Base.@propagate_inbounds function relayer_snow!(::OriginalLayering{Tf}, i, j, state, diag, grid, params, snowdepth, Tsnow0, ::Val{Nsmax}) where {Tf, Nsmax}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, Tsnow, Nsnow, fsnow) = state
     (; Sice0) = diag
     (; Dzsnow) = grid
     (; Tsnow_min) = params
 
-    #-----------------------------------------------------------------------
-    # Original layering routine
-    #-----------------------------------------------------------------------
-
-    # Kernel-local scratch (one set per grid cell)
+    # Kernel-local scratch
     csnow = zero(MVector{Nsmax, Tf})
     D = zero(MVector{Nsmax, Tf})
     E = zero(MVector{Nsmax, Tf})
@@ -141,18 +138,13 @@ function relayer_snow! end
 end
 
 # Density dependent snowpack layering
-@inline function relayer_snow!(::DensityLayering{Tf}, i, j, state, diag, grid, params, snowdepth, Tsnow0, ::Val{Nsmax}) where {Tf, Nsmax}
+Base.@propagate_inbounds function relayer_snow!(::DensityLayering{Tf}, i, j, state, diag, grid, params, snowdepth, Tsnow0, ::Val{Nsmax}) where {Tf, Nsmax}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, Tsnow, histowet, Nsnow, fsnow) = state
     (; Ds0, Sice0) = diag
-    (; rho0, Ds_surflay, Ds_min, Tsnow_min) = params
+    (; rho0, Ds_surflay, Ds_min) = params
 
-    #-----------------------------------------------------------------------
-    # Density dependent snowpack layering
-    #-----------------------------------------------------------------------
-
-    # Kernel-local scratch (one set per grid cell); the _loc arrays
-    # can hold up to Nsmax + 1 layers
+    # Kernel-local scratch
     rho = zero(MVector{Nsmax + 1, Tf})
     diff_rho = zero(MVector{Nsmax, Tf})
     csnow_loc = zero(MVector{Nsmax + 1, Tf})
@@ -207,8 +199,8 @@ end
                 histowet_loc[Nsnow_loc - k + 1] = histowet_loc[Nsnow_loc - k]
             end
         end
-        Ds_loc[1] = Ds0[i, j]              # Set new top layer thickness
-        Sice_loc[1] = Sice0[i, j]          # Set new top layer ice content
+        Ds_loc[1] = Ds0[i, j]             # Set new top layer thickness
+        Sice_loc[1] = Sice0[i, j]         # Set new top layer ice content
         Sliq_loc[1] = 0                   # No liquid water in new snow
         Tsnow_loc[1] = Tsnow0             # Set new snow temperature
         if fsnow[i, j] > eps(Tf)

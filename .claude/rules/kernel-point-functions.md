@@ -77,8 +77,11 @@ are exempt — classify a new function by its shape, not by name:
   adaptor.
 - **`@kernel inbounds = true`** for kernels with `MVector` scratch — never a raw
   `@inbounds` block inside a `@kernel` body (it miscompiles with the KA CPU
-  aliasscope on Julia ≥ 1.11). Keep helper functions `@inline` so their `MVector`
-  scratch stays off the heap.
+  aliasscope on Julia ≥ 1.11). A helper that allocates `MVector` scratch must be
+  `Base.@propagate_inbounds`, not merely `@inline`: only that carries the kernel's
+  inbounds context into it. With plain `@inline` the bounds-check paths capture the
+  scratch and it is heap-allocated once per grid cell (measured: 3 allocations per
+  cell in `relayer_snow!` before this was fixed).
 
 ## Bit-identity
 

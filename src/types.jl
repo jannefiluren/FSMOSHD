@@ -110,7 +110,6 @@ end
     Ds::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)                 # Snow layer thicknesses (m)
     Nsnow::MI = zeros(Ti, grid.Nx, grid.Ny)                      # Number of snow layers
     Qcan::MF = zeros(grid.Nx, grid.Ny)                           # Canopy air space humidity (kg/kg)
-    rgrn::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)               # Snow layer grain radius (m)
     Sice::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)               # Ice content of snow layers (kg/m^2)
     Sliq::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)               # Liquid content of snow layers (kg/m^2)
     Sveg::MF = zeros(grid.Nx, grid.Ny)                           # Snow mass on vegetation (kg/m^2)

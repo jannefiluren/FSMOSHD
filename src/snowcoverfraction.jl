@@ -1,6 +1,4 @@
-# Snow cover fraction (SCF) parameterizations. Fieldless dispatch schemes
-# selecting the SCF model; every `AbstractSnowFraction` implements the point
-# function `snow_covered_fraction!`.
+# Snow cover fraction parameterizations
 
 struct SeasonalSnowFraction{Tf} <: AbstractSnowFraction{Tf} end   # OSHD seasonal model
 struct HelbigSnowFraction{Tf} <: AbstractSnowFraction{Tf} end     # HelbigHS
@@ -34,6 +32,26 @@ end
     (; fsnow) = state
     (; z0_snow, z0sf) = landuse
     return fsnow[i, j] <= eps(Tf) ? z0sf[i, j] : z0_snow[i, j]
+end
+
+"""
+    melt_snow_fraction(scheme, i, j, state)
+
+Snow cover fraction used to scale melt and sublimation at cell `(i, j)`. Away from the
+point model it is inflated over `state.fsnow` so that thin cover does not slow depletion
+into long SWE tails. Implemented for every `AbstractSnowFraction`; called from the `snow!`
+kernel.
+"""
+function melt_snow_fraction end
+
+@inline function melt_snow_fraction(::PointSnowFraction{Tf}, i, j, state) where {Tf}
+    (; fsnow) = state
+    return fsnow[i, j]
+end
+
+@inline function melt_snow_fraction(::AbstractSnowFraction{Tf}, i, j, state) where {Tf}
+    (; fsnow) = state
+    return min(fsnow[i, j] + Tf(0.25), Tf(1.0))
 end
 
 """
