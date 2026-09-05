@@ -4,17 +4,17 @@
 Execute one complete physics time step of the snow model.
 
 This function encapsulates the standard model execution sequence:
-1. Meteorological data processing (drive!)
-2. Radiation calculations  
+1. Meteorological data processing
+2. Radiation calculations
 3. Thermal property updates
-4. Iterative energy balance (tile-specific)
-5. Canopy processes (forest tiles only)
+4. Iterative energy balance
+5. Canopy processes
 6. Snow processes
 7. Soil thermal processes
 
 # Arguments
-- `fsm::FSM`: Model state structure (modified in-place)
-- `met::MET`: Current meteorological conditions (read-only, never modified)
+- `fsm::FSM`: Model state structure
+- `met::MET`: Current meteorological conditions
 - `t::DateTime`: Current simulation time
 
 # Example
@@ -41,7 +41,7 @@ function step!(fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, t) where {Tf, Ti}
         surface_energy_balance!(fsm.physics.CANOPY, fsm, met)
     end
 
-    # 5. Canopy interception / unloading (a no-op without canopy)
+    # 5. Canopy interception / unloading
     canopy!(fsm.physics.CANOPY, fsm, met)
 
     # 6. Snow processes

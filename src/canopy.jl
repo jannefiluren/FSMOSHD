@@ -23,16 +23,9 @@ end
 NoCanopy{Tf}(Nx, Ny; kwargs...) where {Tf} = NoCanopy{Tf}()
 OneLayerCanopy{Tf}(Nx, Ny; kwargs...) where {Tf} = OneLayerCanopy{Tf}(; kwargs...)
 
-
-# Neutral values let the shared radiation prologue run without branching: with no
-# canopy, fveg == 0 makes fsar's contribution vanish and aveg is multiplied by
-# acan == 0, so any finite value is correct.
 canopy_fsar(c::OneLayerCanopy) = c.fsar
-canopy_fsar(::NoCanopy{Tf}) where {Tf} = zero(Tf)
 canopy_avg0(c::OneLayerCanopy) = c.avg0
-canopy_avg0(::NoCanopy{Tf}) where {Tf} = zero(Tf)
 canopy_avgs(c::OneLayerCanopy) = c.avgs
-canopy_avgs(::NoCanopy{Tf}) where {Tf} = zero(Tf)
 
 """
     surface_energy_balance!(canopy, fsm, met)

@@ -125,7 +125,6 @@ end
     SWveg::MF = zeros(grid.Nx, grid.Ny)              # Net shortwave absorbed by vegetation (W/m^2)
     SWsrf::MF = zeros(grid.Nx, grid.Ny)              # Net shortwave absorbed by the surface (W/m^2)
     SWsci::MF = zeros(grid.Nx, grid.Ny)              # Subcanopy incoming shortwave (W/m^2)
-    LWt::MF = zeros(grid.Nx, grid.Ny)                # Incoming longwave corrected for topography (W/m^2)
     LWeff::MF = zeros(grid.Nx, grid.Ny)              # Incoming longwave used in the energy balance (W/m^2)
     # thermal
     ksnow::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)  # Thermal conductivity of snow (W/m/K)
