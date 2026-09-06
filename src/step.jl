@@ -10,12 +10,16 @@ This function encapsulates the standard model execution sequence:
 4. Iterative energy balance
 5. Canopy processes
 6. Snow processes
-7. Soil thermal processes
+7. Horizontal snow transport
+8. Soil thermal processes
 
 # Arguments
 - `fsm::FSM`: Model state structure
 - `met::MET`: Current meteorological conditions
 - `t::DateTime`: Current simulation time
+- `transport::Union{SnowTransport, Nothing}` (keyword): when a workspace is passed, run the
+  horizontal snow-transport step ([`transport!`](@ref)) after `snow!`; when `nothing` (default),
+  the step is identical to a run without transport. Transport is CPU-only.
 
 # Example
 ```julia
@@ -24,7 +28,7 @@ met = MET{Float32, Int32}(Nx = Nx, Ny = Ny)
 step!(fsm, met, DateTime(2023, 12, 1, 12))
 ```
 """
-function step!(fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, t) where {Tf, Ti}
+function step!(fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, t; transport = nothing) where {Tf, Ti}
 
     # 1. Meteorological data processing
     drive!(fsm, met)
@@ -47,7 +51,10 @@ function step!(fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, t) where {Tf, Ti}
     # 6. Snow processes
     snow!(fsm, met, t)
 
-    # 7. Soil thermal processes
+    # 7 Horizontal snow transport
+    transport === nothing || transport!(fsm, met, transport, t)
+
+    # 8. Soil thermal processes
     soil!(fsm)
 
     return nothing

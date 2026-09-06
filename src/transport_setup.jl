@@ -5,7 +5,7 @@
 # array computed here is shared and cannot make the two paths disagree.
 
 """
-    setup_transport(fsm, landuse; tiled = false) -> SnowTransport
+    setup_transport(fsm, landuse; wind = false, slide = false, use_fortran = false, tiled = false) -> SnowTransport
 
 Allocate and initialise a [`SnowTransport`](@ref) workspace for `fsm`:
 
@@ -15,14 +15,22 @@ Allocate and initialise a [`SnowTransport`](@ref) workspace for `fsm`:
 - sets the vegetation snow-holding capacity and the tuning constants (defaults match
   `deps/MODULES.F90`).
 
-`tiled` sets the tiled-transport flag. Transport is CPU-only, so `fsm` must hold host arrays.
+`wind`/`slide` select which processes [`transport!`](@ref) runs; `use_fortran` chooses the
+Fortran ccall path over the Julia port; `tiled` sets the tiled-transport flag. Transport is
+CPU-only, so `fsm` must hold host arrays.
 """
-function setup_transport(fsm::FSM{Tf, Ti}, landuse::Dict; tiled::Bool = false) where {Tf, Ti}
+function setup_transport(
+        fsm::FSM{Tf, Ti}, landuse::Dict;
+        wind::Bool = false, slide::Bool = false, use_fortran::Bool = false, tiled::Bool = false,
+    ) where {Tf, Ti}
 
     Nx = Int(fsm.grid.Nx)
     Ny = Int(fsm.grid.Ny)
 
     w = SnowTransport{Tf, Ti}(Nx = Ti(Nx), Ny = Ti(Ny))
+    w.wind = wind
+    w.slide = slide
+    w.use_fortran = use_fortran
     w.tiled_trans_run = tiled
 
     # Vegetation snow-holding capacity (constant on the operational setup)

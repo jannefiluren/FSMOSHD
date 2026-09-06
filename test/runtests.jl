@@ -25,6 +25,10 @@ end
     include("test_snowtran3d.jl")
 end
 
+@testset "Transport step" begin
+    include("test_transport_step.jl")
+end
+
 @testset "Regression Tests" begin
     include("test_regression.jl")
 end

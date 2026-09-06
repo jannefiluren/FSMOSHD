@@ -18,6 +18,11 @@
     Nx::Ti = 1                                               # Size of first array dimension (rows)
     Ny::Ti = 1                                               # Size of second array dimension (columns)
 
+    # Which processes run, and which implementation, when transport! is called from step!
+    wind::Bool = false                                      # Run wind transport (SnowTran3D)
+    slide::Bool = false                                     # Run snow slides (SnowSlide)
+    use_fortran::Bool = false                               # Use the Fortran ccall path (else the Julia port)
+
     # Tuning constants (defaults match deps/MODULES.F90)
     rhos_min::Tf = 50                                        # Minimum snow density (kg/m^3)
     rhos_max::Tf = 750                                       # Maximum snow density (kg/m^3)
@@ -41,6 +46,12 @@
     dSWE_tot_salt::Matrix{Tf} = zeros(Tf, Nx, Ny)           # ... due to saltation
     dSWE_tot_susp::Matrix{Tf} = zeros(Tf, Nx, Ny)           # ... due to suspension
     dSWE_tot_subl::Matrix{Tf} = zeros(Tf, Nx, Ny)           # ... due to sublimation
+
+    # Per-step SWE-change outputs (scratch for transport!, one process each)
+    dSWE_salt::Matrix{Tf} = zeros(Tf, Nx, Ny)               # This step's saltation SWE change
+    dSWE_susp::Matrix{Tf} = zeros(Tf, Nx, Ny)               # This step's suspension SWE change
+    dSWE_subl::Matrix{Tf} = zeros(Tf, Nx, Ny)               # This step's sublimation SWE change
+    dSWE_slide::Matrix{Tf} = zeros(Tf, Nx, Ny)              # This step's slide SWE change
 
     # SnowSlide work arrays
     snow_depo::Matrix{Bool} = zeros(Bool, Nx, Ny)           # Pixels receiving slide deposits

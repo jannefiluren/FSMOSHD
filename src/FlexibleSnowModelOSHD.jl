@@ -28,6 +28,7 @@ abstract type AbstractSnowFraction{Tf} <: AbstractParameterization{Tf} end
 import KernelAbstractions
 using KernelAbstractions: @kernel, @index, get_backend
 using StaticArrays: MVector, MMatrix
+import Libdl
 
 include("parameters.jl")
 include("schemes.jl")
@@ -64,6 +65,7 @@ include("snowslide.jl")
 include("snowslide_julia.jl")
 include("snowtran3d.jl")
 include("snowtran3d_julia.jl")
+include("transport.jl")
 
 export FSM, MET
 export AbstractParameterization, grid_array, check_grid, build_scheme
@@ -84,7 +86,7 @@ export AbstractArchitecture, CPU, GPU, on_architecture
 export canopy!, radiation!, thermal!, surface_exchange_coefficients!, snow!, soil!, snowcoverfraction!
 export qsat, tridiag!, ludcmp!
 export drive!, step!, setup
-export SnowTransport, setup_transport
+export SnowTransport, setup_transport, transport!, relayer!
 export snowslide!, snowslide_julia!, snowtran3d!, snowtran3d_julia!
 export @unpack_constants
 

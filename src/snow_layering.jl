@@ -91,3 +91,47 @@ Base.@propagate_inbounds function snow_layering!(
 
     return nothing
 end
+
+"""
+    relayer!(fsm, met, t; update_hist = false)
+
+Grid-level relayering pass: accumulate the deposit currently in `diag.snowdepth0` /
+`diag.Sice0` into the snowpack, update the snow cover fraction and relayer, at every cell above
+the tile threshold. Reuses the [`snow_layering!`](@ref) point function that `snow_kernel!` runs
+for new snow; [`transport!`](@ref) calls this to layer in redistributed snow. `update_hist`
+should be `false` here so the 14-day history is rolled only once per step (by `snow!`).
+"""
+function relayer!(fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, t; update_hist::Bool = false) where {Tf, Ti}
+
+    (; Nsmax) = fsm.grid
+
+    backend = get_backend(fsm.state.Tsnow)
+    kernel! = relayer_kernel!(backend)
+    kernel!(
+        fsm.state, fsm.diag, fsm.landuse, fsm.grid, fsm.params, met,
+        fsm.physics.LAYERING, fsm.physics.SNFRAC, update_hist, Val(Int(Nsmax));
+        ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
+    )
+    KernelAbstractions.synchronize(backend)
+
+    return nothing
+end
+
+@kernel inbounds = true function relayer_kernel!(
+        state, diag, landuse, grid, params::Parameters{Tf, Ti}, meteo,
+        LAYERING::AbstractLayering{Tf}, SNFRAC::AbstractSnowFraction{Tf},
+        update_hist::Bool, ::Val{Nsmax},
+    ) where {Tf, Ti, Nsmax}
+
+    i, j = @index(Global, NTuple)
+
+    (; tthresh) = params
+    (; tilefrac) = landuse
+
+    if (tilefrac[i, j] >= tthresh)
+        snow_layering!(
+            LAYERING, SNFRAC, i, j, state, diag, landuse, grid, params, meteo,
+            update_hist, Val(Nsmax)
+        )
+    end
+end
