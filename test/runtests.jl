@@ -17,6 +17,14 @@ end
     include("test_architectures.jl")
 end
 
+@testset "SnowSlide" begin
+    include("test_snowslide.jl")
+end
+
+@testset "SnowTran3D" begin
+    include("test_snowtran3d.jl")
+end
+
 @testset "Regression Tests" begin
     include("test_regression.jl")
 end

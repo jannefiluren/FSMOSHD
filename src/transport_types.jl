@@ -1,0 +1,89 @@
+# Snow-transport workspace.
+#
+# Transport (SnowSlide + SnowTran3D) is a neighbour-coupled, grid-global operator that was
+# excised from FSM in the type-domain refactor (commit fe38469) and is re-integrated here as a
+# standalone operator, not a `step!` stage. To keep the decomposed, GPU-adaptable FSM
+# untouched, ALL transport-specific state lives here instead of on the model: the static
+# per-cell setup arrays, the cumulative-change accumulators, the transport tuning constants
+# (defaults match deps/MODULES.F90 so the Julia and Fortran paths agree), and the SnowTran3D
+# working arrays. The struct is CPU-only (concrete `Matrix`) by design — transport does
+# neighbour-coupled scalar indexing and is not ported to the GPU.
+#
+# Build one with `setup_transport(fsm, landuse)` (see transport_setup.jl); the transport
+# operators take it as an explicit argument alongside `fsm`/`met`.
+
+@kwdef mutable struct SnowTransport{Tf, Ti}
+
+    # Domain size
+    Nx::Ti = 1                                               # Size of first array dimension (rows)
+    Ny::Ti = 1                                               # Size of second array dimension (columns)
+
+    # Tuning constants (defaults match deps/MODULES.F90)
+    rhos_min::Tf = 50                                        # Minimum snow density (kg/m^3)
+    rhos_max::Tf = 750                                       # Maximum snow density (kg/m^3)
+    rho_snow::Tf = 300                                       # Constant snow density for transport (kg/m^3)
+    dyn_ratio::Tf = 0.7                                      # Dynamic snow holding depth ratio (-)
+    trig_ratio::Tf = 1.5                                     # Hysteretic triggering snow holding depth ratio (-)
+    rho_deposit::Tf = 300                                    # Constant snow avalanche deposit density (kg/m^3)
+    slope_min::Tf = 25                                       # Minimum slope for snow slide occurrence (deg)
+    Shd_min::Tf = 0.05                                       # Minimum snow holding depth (m)
+    tiled_trans_run::Bool = false                            # Tiled transport run flag
+
+    # Static per-cell setup arrays (built in setup_transport)
+    slope::Matrix{Tf} = fill(Tf(NaN), Nx, Ny)               # Slope angles (deg)
+    Shd::Matrix{Tf} = fill(Tf(NaN), Nx, Ny)                 # Snow holding depth for gravitational transport (m)
+    vegsnowd_xy::Matrix{Tf} = fill(Tf(0.1), Nx, Ny)         # Vegetation snow holding capacity (m)
+    forestfrac::Matrix{Tf} = zeros(Tf, Nx, Ny)              # Forest fraction (-)
+    index_sorted_dem::Matrix{Ti} = zeros(Ti, Nx * Ny, 2)    # DEM indices sorted by decreasing elevation
+
+    # Cumulative SWE-change accumulators (kg/m^2)
+    dSWE_tot_slide::Matrix{Tf} = zeros(Tf, Nx, Ny)          # ... due to slides
+    dSWE_tot_salt::Matrix{Tf} = zeros(Tf, Nx, Ny)           # ... due to saltation
+    dSWE_tot_susp::Matrix{Tf} = zeros(Tf, Nx, Ny)           # ... due to suspension
+    dSWE_tot_subl::Matrix{Tf} = zeros(Tf, Nx, Ny)           # ... due to sublimation
+
+    # SnowSlide work arrays
+    snow_depo::Matrix{Bool} = zeros(Bool, Nx, Ny)           # Pixels receiving slide deposits
+    Shd_corr::Matrix{Tf} = zeros(Tf, Nx, Ny)                # Thresholded snow holding depth (m)
+
+    # SnowTran3D work arrays for snowtran3d_julia!
+    uwind::Matrix{Tf} = zeros(Tf, Nx, Ny)                   # x component of wind speed (m/s)
+    vwind::Matrix{Tf} = zeros(Tf, Nx, Ny)                   # y component of wind speed (m/s)
+    snowthickness::Matrix{Tf} = zeros(Tf, Nx, Ny)           # Snowpack depth, not scaled by fsnow (m)
+    veg_z0::Matrix{Tf} = zeros(Tf, Nx, Ny)                  # Vegetation roughness length (m)
+    Ds_soft::Matrix{Tf} = zeros(Tf, Nx, Ny)                 # Soft snow thickness (m)
+    Utau::Matrix{Tf} = zeros(Tf, Nx, Ny)                    # Friction velocity (m/s)
+    Utau_t::Matrix{Tf} = zeros(Tf, Nx, Ny)                  # Threshold friction velocity (m/s)
+    h_star::Matrix{Tf} = zeros(Tf, Nx, Ny)                  # Height of the saltation layer (m)
+    z_0::Matrix{Tf} = zeros(Tf, Nx, Ny)                     # Surface roughness length (m)
+    Qsalt::Matrix{Tf} = zeros(Tf, Nx, Ny)                   # Saltation flux (kg/m/s)
+    Qsalt_u::Matrix{Tf} = zeros(Tf, Nx, Ny)                 # x component of saltation flux (kg/m/s)
+    Qsalt_v::Matrix{Tf} = zeros(Tf, Nx, Ny)                 # y component of saltation flux (kg/m/s)
+    Qsalt_max::Matrix{Tf} = zeros(Tf, Nx, Ny)              # Maximum possible saltation flux (kg/m/s)
+    Qsalt_maxu::Matrix{Tf} = zeros(Tf, Nx, Ny)             # x component of Qsalt_max (kg/m/s)
+    Qsalt_maxv::Matrix{Tf} = zeros(Tf, Nx, Ny)             # y component of Qsalt_max (kg/m/s)
+    conc_salt::Matrix{Tf} = zeros(Tf, Nx, Ny)              # Saltation reference-level mass concentration (kg/m^3)
+    Qsusp::Matrix{Tf} = zeros(Tf, Nx, Ny)                  # Suspension flux (kg/m/s)
+    Qsusp_u::Matrix{Tf} = zeros(Tf, Nx, Ny)               # x component of suspension flux (kg/m/s)
+    Qsusp_v::Matrix{Tf} = zeros(Tf, Nx, Ny)               # y component of suspension flux (kg/m/s)
+    Qsubl::Matrix{Tf} = zeros(Tf, Nx, Ny)                 # Sublimation flux (kg/m^2/s)
+
+    # SnowTran3D work arrays for getnewdepth!
+    dh_s_u::Matrix{Tf} = zeros(Tf, Nx, Ny)                 # x component of snow depth change (m)
+    dh_s_v::Matrix{Tf} = zeros(Tf, Nx, Ny)                 # y component of snow depth change (m)
+    dSWE_s_u::Matrix{Tf} = zeros(Tf, Nx, Ny)              # x component of SWE change (kg/m^2)
+    dSWE_s_v::Matrix{Tf} = zeros(Tf, Nx, Ny)              # y component of SWE change (kg/m^2)
+    dSWE_s_u_loss::Matrix{Tf} = zeros(Tf, Nx, Ny)         # x component of SWE loss (kg/m^2)
+    dSWE_s_v_loss::Matrix{Tf} = zeros(Tf, Nx, Ny)         # y component of SWE loss (kg/m^2)
+    dh_s_u_loss::Matrix{Tf} = zeros(Tf, Nx, Ny)           # x component of snow depth loss (m)
+    dh_s_v_loss::Matrix{Tf} = zeros(Tf, Nx, Ny)           # y component of snow depth loss (m)
+    dSWE_s_u_gain::Matrix{Tf} = zeros(Tf, Nx, Ny)         # x component of SWE gain (kg/m^2)
+    dSWE_s_v_gain::Matrix{Tf} = zeros(Tf, Nx, Ny)         # y component of SWE gain (kg/m^2)
+
+    # Wind direction index arrays
+    index_ue::Matrix{Ti} = zeros(Ti, Nx, 2 * Ny + 1)        # Wind index array E
+    index_uw::Matrix{Ti} = zeros(Ti, Nx, 2 * Ny + 1)        # Wind index array W
+    index_vn::Matrix{Ti} = zeros(Ti, Ny, 2 * Nx + 1)        # Wind index array N
+    index_vs::Matrix{Ti} = zeros(Ti, Ny, 2 * Nx + 1)        # Wind index array S
+
+end

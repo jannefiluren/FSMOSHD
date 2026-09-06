@@ -54,6 +54,17 @@ include("soil.jl")
 include("step.jl")
 include("snowcoverfraction.jl")
 
+# Snow transport (SnowSlide + SnowTran3D). Standalone, CPU-only operators - NOT part of
+# step!. Both a Fortran (ccall) and a pure-Julia implementation are kept so the two can be
+# cross-validated as the Fortran evolves. The Fortran libraries are built by deps/build.jl
+# (Pkg.build); the ccall wrappers resolve them lazily, so the module loads without them.
+include("transport_types.jl")
+include("transport_setup.jl")
+include("snowslide.jl")
+include("snowslide_julia.jl")
+include("snowtran3d.jl")
+include("snowtran3d_julia.jl")
+
 export FSM, MET
 export AbstractParameterization, grid_array, check_grid, build_scheme
 export AbstractConductivity, FixedConductivity, DensityConductivity, snow_conductivity!
@@ -73,6 +84,8 @@ export AbstractArchitecture, CPU, GPU, on_architecture
 export canopy!, radiation!, thermal!, surface_exchange_coefficients!, snow!, soil!, snowcoverfraction!
 export qsat, tridiag!, ludcmp!
 export drive!, step!, setup
+export SnowTransport, setup_transport
+export snowslide!, snowslide_julia!, snowtran3d!, snowtran3d_julia!
 export @unpack_constants
 
 end

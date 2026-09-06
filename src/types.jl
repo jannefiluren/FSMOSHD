@@ -204,10 +204,14 @@ mutable struct FSM{Tf, Ti, G, P, L, S, D, PH}
 end
 
 # Positional constructor used by on_architecture
-function FSM(grid::Grid, params::Parameters{Tf, Ti}, landuse::Landuse, state::State,
-        diag::Diagnostics, physics) where {Tf, Ti}
-    return FSM{Tf, Ti, typeof(grid), typeof(params), typeof(landuse), typeof(state),
-        typeof(diag), typeof(physics)}(grid, params, landuse, state, diag, physics)
+function FSM(
+        grid::Grid, params::Parameters{Tf, Ti}, landuse::Landuse, state::State,
+        diag::Diagnostics, physics
+    ) where {Tf, Ti}
+    return FSM{
+        Tf, Ti, typeof(grid), typeof(params), typeof(landuse), typeof(state),
+        typeof(diag), typeof(physics),
+    }(grid, params, landuse, state, diag, physics)
 end
 
 # No getproperty/setproperty! forwarding: fields are reached explicitly through
@@ -228,19 +232,22 @@ function (::Type{FSM{Tf, Ti}})(;
         COMPACT = CrocusCompaction{Tf}(),
         HYDROL = DensityBucketHydrology{Tf}(),
         LAYERING = OriginalLayering{Tf}(),
-        SNFRAC = PointSnowFraction{Tf}()) where {Tf, Ti}
+        SNFRAC = PointSnowFraction{Tf}()
+    ) where {Tf, Ti}
 
-    grid    = Grid{Ti, Vector{Tf}}(; Nx = Nx, Ny = Ny)
+    grid = Grid{Ti, Vector{Tf}}(; Nx = Nx, Ny = Ny)
     check_layer_thicknesses(grid)
-    GT      = typeof(grid)
-    params  = Parameters{Tf, Ti}()
+    GT = typeof(grid)
+    params = Parameters{Tf, Ti}()
     landuse = Landuse{GT, Matrix{Tf}, Matrix{Float64}}(; grid = grid)
-    state   = State{GT, Matrix{Tf}, Matrix{Ti}, Array{Tf, 3}}(; grid = grid)
-    diag    = Diagnostics{GT, Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
-    physics = (ALBEDO = ALBEDO, CANOPY = CANOPY, SUBSTR = SUBSTR, CONDCT = CONDCT,
+    state = State{GT, Matrix{Tf}, Matrix{Ti}, Array{Tf, 3}}(; grid = grid)
+    diag = Diagnostics{GT, Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
+    physics = (
+        ALBEDO = ALBEDO, CANOPY = CANOPY, SUBSTR = SUBSTR, CONDCT = CONDCT,
         reference_height = reference_height, surface_layer = surface_layer,
         FSNRHO = FSNRHO, COMPACT = COMPACT, HYDROL = HYDROL, LAYERING = LAYERING,
-        SNFRAC = SNFRAC)
+        SNFRAC = SNFRAC,
+    )
 
     all(s -> s isa AbstractParameterization{Tf}, values(physics)) ||
         throw(ArgumentError("physics scheme precision does not match model Tf = $Tf"))
@@ -277,6 +284,7 @@ end
     Ua::MF = fill(NaN, Nx, Ny)                     # Wind speed (m/s)
     Ps::MF = fill(NaN, Nx, Ny)                     # Surface air pressure (Pa)
     Tv::MF = fill(NaN, Nx, Ny)                     # Time-varying transmissivity for direct shortwave radiation (-)
+    Udir::MF = fill(NaN, Nx, Ny)                    # Wind direction (degrees, clockwise from North) — read only by snow transport
 
     # Snowfall tracking variables
 
