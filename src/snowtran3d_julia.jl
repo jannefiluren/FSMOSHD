@@ -916,7 +916,7 @@ not enough erodible snow on the ground.
             if snowthickness[i, j] - dh_c_loss[i, j] / fsnow[i, j] <= snowdmin
                 dh_c_loss[i, j] = (snowthickness[i, j] - snowdmin) * fsnow[i, j]
                 if dh_c_loss[i, j] > eps(Tf)
-                    dSWE_c_loss[i, j] = swe_from_hs(fsm, dh_c_loss[i, j], i, j)
+                    dSWE_c_loss[i, j] = swe_from_hs(fsm, w, dh_c_loss[i, j], i, j)
                     # Same open tile weighting as before.
                     if !tiled_trans_run
                         dSWE_c_loss[i, j] = dSWE_c_loss[i, j] * (one(Tf) - forestfrac[i, j])
@@ -1146,7 +1146,7 @@ function accum!(
                 if snowthickness[i, j] - dh_subl_loss / fsnow[i, j] <= snowdmin
                     dh_subl_loss = (snowthickness[i, j] - snowdmin) * fsnow[i, j]
                     if dh_subl_loss > eps(Tf)
-                        dSWE_subl_loss = swe_from_hs(fsm, dh_subl_loss, i, j)
+                        dSWE_subl_loss = swe_from_hs(fsm, w, dh_subl_loss, i, j)
                         dSWE_subl[i, j] = -dSWE_subl_loss
                     else
                         dh_subl_loss = zero(Tf)

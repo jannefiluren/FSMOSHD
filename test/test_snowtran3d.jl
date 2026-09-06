@@ -210,3 +210,43 @@ end
     end
 
 end
+
+@testset "Erosion down to the holding-depth floor (swe_from_hs loss path)" begin
+
+    # Shallow, dry, fully-soft snow under a strong wind: erosion drives cells down to the
+    # vegetation snow-holding floor, exercising the getnewdepth / sublimation loss branches that
+    # convert an eroded depth back to SWE via swe_from_hs. Regression guard - this path is not
+    # reached by the moderate-wind cases above (it surfaced only on a full operational domain).
+    fsm_f, met, w_f = setup_snowtran3d_case(270.0f0)
+    Nx, Ny = fsm_f.grid.Nx, fsm_f.grid.Ny
+
+    met.Ua .*= 1.8f0                              # up to ~29 m/s, with the existing gradient
+    fsm_f.diag.Uaeff .= max.(met.Ua, 0.1f0)
+
+    st = fsm_f.state
+    st.Ds .= 0.0f0; st.Sice .= 0.0f0; st.Sliq .= 0.0f0; st.histowet .= 0.0f0; st.Tsnow .= 263.0f0
+    for j in 1:Ny, i in 1:Nx
+        st.Nsnow[i, j] = 1
+        st.fsnow[i, j] = 1.0f0
+        st.Ds[1, i, j] = 0.15f0
+        st.Sice[1, i, j] = 120.0f0 * 0.15f0      # dry, low-density (soft) snow
+    end
+
+    fsm_j, w_j = deepcopy(fsm_f), deepcopy(w_f)
+    aj = [zeros(Float32, Nx, Ny) for _ in 1:5]
+    snowtran3d_julia!(fsm_j, met, w_j, aj...)
+
+    # Some cells eroded below the initial 0.15 m (guards against the swe_from_hs MethodError)
+    @test any(<(0.15f0 - 1.0f-6), fsm_j.state.Ds[1, :, :])
+
+    if HAVE_LIBSNOWTRAN3D
+        af = [zeros(Float32, Nx, Ny) for _ in 1:5]
+        snowtran3d!(fsm_f, met, w_f, af...)
+        @test isapprox(fsm_j.state.Ds, fsm_f.state.Ds; rtol = 1.0f-4, atol = 1.0f-5)
+        @test isapprox(fsm_j.state.Sice, fsm_f.state.Sice; rtol = 1.0f-4, atol = 1.0f-5)
+        for (a, b) in zip(aj, af)
+            @test isapprox(a, b; rtol = 1.0f-4, atol = 1.0f-5)
+        end
+    end
+
+end
