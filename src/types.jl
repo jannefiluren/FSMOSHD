@@ -248,7 +248,11 @@ function (::Type{FSM{Tf, Ti}})(;
     return FSM(grid, params, landuse, state, diag, physics)
 end
 
-@kwdef mutable struct MET{
+# Immutable so it is `isbits` once Adapt rewrites its array fields to device arrays and can
+# therefore be passed by value into a GPU kernel (a mutable struct never is). Nothing
+# reassigns a whole field - the forcing is written in place with `.=`/`copyto!` - so
+# immutability costs nothing.
+@kwdef struct MET{
         Tf, Ti,
         MF <: AbstractMatrix{Tf}, MF64 <: AbstractMatrix{Float64},
         AF64_3 <: AbstractArray{Float64, 3},
