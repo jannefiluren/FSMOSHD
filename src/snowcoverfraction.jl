@@ -6,14 +6,14 @@ struct HelbigMaxSnowFraction{Tf} <: AbstractSnowFraction{Tf} end  # HelbigHS0 (r
 struct PointSnowFraction{Tf} <: AbstractSnowFraction{Tf} end      # point model (0/1)
 struct TanhSnowFraction{Tf} <: AbstractSnowFraction{Tf} end       # tanh model / original FSM
 
-SeasonalSnowFraction{Tf}(Nx, Ny; kwargs...) where {Tf} = SeasonalSnowFraction{Tf}()
-HelbigSnowFraction{Tf}(Nx, Ny; kwargs...) where {Tf} = HelbigSnowFraction{Tf}()
-HelbigMaxSnowFraction{Tf}(Nx, Ny; kwargs...) where {Tf} = HelbigMaxSnowFraction{Tf}()
-PointSnowFraction{Tf}(Nx, Ny; kwargs...) where {Tf} = PointSnowFraction{Tf}()
-TanhSnowFraction{Tf}(Nx, Ny; kwargs...) where {Tf} = TanhSnowFraction{Tf}()
+SeasonalSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = SeasonalSnowFraction{Tf}()
+HelbigSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = HelbigSnowFraction{Tf}()
+HelbigMaxSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = HelbigMaxSnowFraction{Tf}()
+PointSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = PointSnowFraction{Tf}()
+TanhSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = TanhSnowFraction{Tf}()
 
 """
-    ground_roughness(scheme, i, j, state, landuse)
+    ground_roughness(scheme, i, j, state, surface)
 
 Roughness length of the ground at cell `(i, j)`: the snow value where the cell counts as
 snow covered, the snow-free value otherwise. Implemented for every `AbstractSnowFraction`;
@@ -21,16 +21,16 @@ called from the `surface_exchange_coefficients!` kernel.
 """
 function ground_roughness end
 
-@inline function ground_roughness(::PointSnowFraction{Tf}, i, j, state, landuse) where {Tf}
+@inline function ground_roughness(::PointSnowFraction{Tf}, i, j, state, surface) where {Tf}
     (; Ds) = state
-    (; z0_snow, z0sf) = landuse
+    (; z0_snow, z0sf) = surface
     # 0.05 m snow-depth threshold stabilises tuning-point runs (vs fsnow)
     return column_sum(Ds, i, j) <= Tf(0.05) ? z0sf[i, j] : z0_snow[i, j]
 end
 
-@inline function ground_roughness(::AbstractSnowFraction{Tf}, i, j, state, landuse) where {Tf}
+@inline function ground_roughness(::AbstractSnowFraction{Tf}, i, j, state, surface) where {Tf}
     (; fsnow) = state
-    (; z0_snow, z0sf) = landuse
+    (; z0_snow, z0sf) = surface
     return fsnow[i, j] <= eps(Tf) ? z0sf[i, j] : z0_snow[i, j]
 end
 
@@ -55,7 +55,7 @@ end
 end
 
 """
-    snowcoverfraction_point!(scheme, state, landuse, snowdepth, SWEtmp, hfsn, i, j, update_hist)
+    snowcoverfraction_point!(scheme, state, surface, snowdepth, SWEtmp, hfsn, i, j, update_hist)
 
 Snow cover fraction for one grid cell: dispatch to the `scheme`'s SCF model
 (`snow_covered_fraction!`), then apply the shared final clamp. A kernel point
@@ -68,11 +68,11 @@ the depth scale (tanh model); `update_hist` refreshes the 14-day history state
 kernel).
 """
 @inline function snowcoverfraction_point!(
-        scheme::AbstractSnowFraction, state, landuse,
+        scheme::AbstractSnowFraction, state, surface,
         snowdepth::Tf, SWEtmp::Tf, hfsn::Tf, i::Integer, j::Integer, update_hist::Bool
     ) where {Tf <: Real}
 
-    snow_covered_fraction!(scheme, state, landuse, snowdepth, SWEtmp, hfsn, i, j, update_hist)
+    snow_covered_fraction!(scheme, state, surface, snowdepth, SWEtmp, hfsn, i, j, update_hist)
 
     (; fsnow) = state
     # Final adjustments
@@ -89,11 +89,11 @@ end
 # the local MVector history buffers (which would force them onto the heap,
 # allocating once per grid cell); tests run with --check-bounds=yes, overriding.
 @inline function snow_covered_fraction!(
-        ::SeasonalSnowFraction{Tf}, state, landuse,
+        ::SeasonalSnowFraction{Tf}, state, surface,
         snowdepth::Tf, SWEtmp::Tf, hfsn::Tf, i, j, update_hist::Bool
     ) where {Tf}
     (; fsnow, swehist, swemin, swemax, snowdepthhist, snowdepthmin, snowdepthmax) = state
-    (; slopemu, xi, Ld) = landuse
+    (; slopemu, xi, Ld) = surface
     @inbounds begin
         # calculate topo terms needed for standard deviation of snow depth (done)
         sd_snowdepth1 = exp(Tf(-1) / (Ld[i, j] / xi[i, j])^Tf(2))
@@ -274,11 +274,11 @@ end
 
 # HelbigHS
 @inline function snow_covered_fraction!(
-        ::HelbigSnowFraction{Tf}, state, landuse,
+        ::HelbigSnowFraction{Tf}, state, surface,
         snowdepth::Tf, SWEtmp::Tf, hfsn::Tf, i, j, update_hist::Bool
     ) where {Tf}
     (; fsnow) = state
-    (; slopemu, xi, Ld) = landuse
+    (; slopemu, xi, Ld) = surface
     # HelbigHS
     sd_snowdepth2 = snowdepth^Tf(0.549)
     sd_snowdepth1 = exp(Tf(-1) / (Ld[i, j] / xi[i, j])^Tf(2))
@@ -291,11 +291,11 @@ end
 
 # HelbigHS0 (running max)
 @inline function snow_covered_fraction!(
-        ::HelbigMaxSnowFraction{Tf}, state, landuse,
+        ::HelbigMaxSnowFraction{Tf}, state, surface,
         snowdepth::Tf, SWEtmp::Tf, hfsn::Tf, i, j, update_hist::Bool
     ) where {Tf}
     (; fsnow, snowdepthmax) = state
-    (; slopemu, xi, Ld) = landuse
+    (; slopemu, xi, Ld) = surface
     # HelbigHS0
     if snowdepth == Tf(0)
         snowdepthmax[i, j] = Tf(0.0)
@@ -316,7 +316,7 @@ end
 
 # Point model
 @inline function snow_covered_fraction!(
-        ::PointSnowFraction{Tf}, state, landuse,
+        ::PointSnowFraction{Tf}, state, surface,
         snowdepth::Tf, SWEtmp::Tf, hfsn::Tf, i, j, update_hist::Bool
     ) where {Tf}
     (; fsnow) = state
@@ -327,7 +327,7 @@ end
 
 # tanh model / original FSM
 @inline function snow_covered_fraction!(
-        ::TanhSnowFraction{Tf}, state, landuse,
+        ::TanhSnowFraction{Tf}, state, surface,
         snowdepth::Tf, SWEtmp::Tf, hfsn::Tf, i, j, update_hist::Bool
     ) where {Tf}
     (; fsnow) = state
@@ -353,7 +353,7 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
     update_hist = 4.5 < hour(t) < 5.5
 
     snowcoverfraction_point!(
-        fsm.physics.SNFRAC, fsm.state, fsm.landuse,
+        fsm.physics.SNFRAC, fsm.state, fsm.surface,
         snowdepth, SWEtmp, hfsn, i, j, update_hist
     )
 

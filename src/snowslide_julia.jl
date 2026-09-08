@@ -286,7 +286,7 @@ function snowslide_julia!(
 
     (; Nx, Ny) = fsm.grid
     (; fsnow, Ds) = fsm.state
-    (; dem) = fsm.landuse
+    (; dem) = fsm.surface
     (; dSWE_tot_slide, index_sorted_dem, slope, Shd, forestfrac) = w
     (; dyn_ratio, trig_ratio, rho_deposit, slope_min, Shd_min) = w
     (; tiled_trans_run, snow_depo, Shd_corr) = w

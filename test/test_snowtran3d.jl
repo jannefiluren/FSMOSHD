@@ -56,9 +56,9 @@ function setup_snowtran3d_case(Udir0; forest = false, tiled = false)
         met.RH[i, j] = 60.0f0 + 3.0f0 * (j % 10)
 
         # Terrain / surface properties
-        fsm.landuse.Ld[i, j] = 100.0f0                    # Grid cell size (m)
+        fsm.surface.Ld[i, j] = 100.0f0                    # Grid cell size (m)
         w.vegsnowd_xy[i, j] = 0.1f0
-        fsm.landuse.z0_snow[i, j] = 0.001f0 + 0.001f0 * (j % 5)
+        fsm.surface.z0_snow[i, j] = 0.001f0 + 0.001f0 * (j % 5)
 
         # Snowpack with 0-2 layers (bare pixels included)
         nsnow = (i + 2 * j) % 3

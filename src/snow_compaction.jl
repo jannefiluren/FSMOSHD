@@ -6,9 +6,9 @@ struct AgeCompaction{Tf} <: AbstractCompaction{Tf} end
 struct OverburdenCompaction{Tf} <: AbstractCompaction{Tf} end
 struct CrocusCompaction{Tf} <: AbstractCompaction{Tf} end
 
-AgeCompaction{Tf}(Nx, Ny; kwargs...) where {Tf} = AgeCompaction{Tf}()
-OverburdenCompaction{Tf}(Nx, Ny; kwargs...) where {Tf} = OverburdenCompaction{Tf}()
-CrocusCompaction{Tf}(Nx, Ny; kwargs...) where {Tf} = CrocusCompaction{Tf}()
+AgeCompaction{Tf}(grid::Grid; kwargs...) where {Tf} = AgeCompaction{Tf}()
+OverburdenCompaction{Tf}(grid::Grid; kwargs...) where {Tf} = OverburdenCompaction{Tf}()
+CrocusCompaction{Tf}(grid::Grid; kwargs...) where {Tf} = CrocusCompaction{Tf}()
 
 """
     compact_snow!(scheme, i, j, state, params)

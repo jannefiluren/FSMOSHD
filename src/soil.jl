@@ -1,11 +1,11 @@
 struct SoilSubstrate{Tf} <: AbstractSubstrate{Tf} end
 struct IceSubstrate{Tf} <: AbstractSubstrate{Tf} end
 
-SoilSubstrate{Tf}(Nx, Ny; kwargs...) where {Tf} = SoilSubstrate{Tf}()
-IceSubstrate{Tf}(Nx, Ny; kwargs...) where {Tf} = IceSubstrate{Tf}()
+SoilSubstrate{Tf}(grid::Grid; kwargs...) where {Tf} = SoilSubstrate{Tf}()
+IceSubstrate{Tf}(grid::Grid; kwargs...) where {Tf} = IceSubstrate{Tf}()
 
 """
-    soil_properties!(substrate, i, j, state, diag, landuse, grid, params)
+    soil_properties!(substrate, i, j, state, diag, surface, grid, params)
 
 Fill the soil heat capacity `diag.csoil[1:Nsoil, i, j]`, thermal conductivity
 `diag.ksoil[1:Nsoil, i, j]` and surface moisture conductance `diag.gs1[i, j]` for cell
@@ -13,7 +13,7 @@ Fill the soil heat capacity `diag.csoil[1:Nsoil, i, j]`, thermal conductivity
 """
 function soil_properties! end
 
-@inline function soil_properties!(::IceSubstrate{Tf}, i, j, state, diag, landuse, grid, params) where {Tf}
+@inline function soil_properties!(::IceSubstrate{Tf}, i, j, state, diag, surface, grid, params) where {Tf}
     @unpack_constants(Tf)
     (; Dzsoil, Nsoil) = grid
     (; gsat) = params
@@ -29,11 +29,11 @@ function soil_properties! end
     return nothing
 end
 
-@inline function soil_properties!(::SoilSubstrate{Tf}, i, j, state, diag, landuse, grid, params) where {Tf}
+@inline function soil_properties!(::SoilSubstrate{Tf}, i, j, state, diag, surface, grid, params) where {Tf}
     @unpack_constants(Tf)
     (; Dzsoil, Nsoil) = grid
     (; gsat) = params
-    (; b, hcap_soil, hcon_soil, sathh, Vcrit, Vsat) = landuse
+    (; b, hcap_soil, hcon_soil, sathh, Vcrit, Vsat) = surface
     (; theta, Tsoil) = state
     (; csoil, ksoil, gs1) = diag
 
@@ -166,7 +166,7 @@ function soil!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
     backend = get_backend(fsm.state.Tsoil)
     kernel! = soil_kernel!(backend)
     kernel!(
-        fsm.state, fsm.diag, fsm.landuse, fsm.grid, fsm.params,
+        fsm.state, fsm.diag, fsm.surface, fsm.grid, fsm.params,
         SUBSTR, Val(Int(Nsoil));
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
@@ -176,14 +176,14 @@ function soil!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 end
 
 @kernel inbounds = true function soil_kernel!(
-        state, diag, landuse, grid, params::Parameters{Tf},
+        state, diag, surface, grid, params::Parameters{Tf},
         SUBSTR::AbstractSubstrate{Tf}, ::Val{Nsoil},
     ) where {Tf, Nsoil}
 
     i, j = @index(Global, NTuple)
 
     (; tthresh) = params
-    (; tilefrac) = landuse
+    (; tilefrac) = surface
 
     if (tilefrac[i, j] >= tthresh)
 

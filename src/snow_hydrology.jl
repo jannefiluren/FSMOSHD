@@ -10,9 +10,9 @@ struct FreeDrainingHydrology{Tf} <: AbstractHydrology{Tf} end
 struct BucketHydrology{Tf} <: AbstractHydrology{Tf} end
 struct DensityBucketHydrology{Tf} <: AbstractHydrology{Tf} end
 
-FreeDrainingHydrology{Tf}(Nx, Ny; kwargs...) where {Tf} = FreeDrainingHydrology{Tf}()
-BucketHydrology{Tf}(Nx, Ny; kwargs...) where {Tf} = BucketHydrology{Tf}()
-DensityBucketHydrology{Tf}(Nx, Ny; kwargs...) where {Tf} = DensityBucketHydrology{Tf}()
+FreeDrainingHydrology{Tf}(grid::Grid; kwargs...) where {Tf} = FreeDrainingHydrology{Tf}()
+BucketHydrology{Tf}(grid::Grid; kwargs...) where {Tf} = BucketHydrology{Tf}()
+DensityBucketHydrology{Tf}(grid::Grid; kwargs...) where {Tf} = DensityBucketHydrology{Tf}()
 
 """
     snow_hydrology!(scheme, i, j, state, diag, params)

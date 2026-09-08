@@ -21,7 +21,7 @@ Adapt.adapt_storage(::DeviceAdaptor, a::Array) = DeviceArray(a)
     moved = on_architecture(FlexibleSnowModelOSHD.CPU(), fsm)
     @test typeof(moved) === typeof(fsm)
     @test moved.grid.Dzsnow == fsm.grid.Dzsnow
-    @test moved.landuse.alb0 == fsm.landuse.alb0
+    @test moved.surface.alb0 == fsm.surface.alb0
     @test moved.state.Ds == fsm.state.Ds
     @test moved.diag.ksnow == fsm.diag.ksnow
     @test moved.physics == fsm.physics
@@ -45,10 +45,10 @@ end
 
     # Tf is the declared type of no field on these three, so the reconstruction has
     # to recover it from a representative array
-    landuse = Adapt.adapt(to, fsm.landuse)
-    @test landuse isa FlexibleSnowModelOSHD.Landuse
-    @test landuse.alb0 isa DeviceArray{Float32, 2}
-    @test landuse.prec_multi isa DeviceArray{Float64, 2}
+    surface = Adapt.adapt(to, fsm.surface)
+    @test surface isa FlexibleSnowModelOSHD.Surface
+    @test surface.alb0 isa DeviceArray{Float32, 2}
+    @test surface.prec_multi isa DeviceArray{Float64, 2}
 
     state = Adapt.adapt(to, fsm.state)
     @test state isa FlexibleSnowModelOSHD.State

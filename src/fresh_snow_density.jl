@@ -6,9 +6,9 @@ struct FixedFreshSnowDensity{Tf} <: AbstractFreshSnowDensity{Tf} end
 struct ClimateFreshSnowDensity{Tf} <: AbstractFreshSnowDensity{Tf} end
 struct ElevationFreshSnowDensity{Tf} <: AbstractFreshSnowDensity{Tf} end
 
-FixedFreshSnowDensity{Tf}(Nx, Ny; kwargs...) where {Tf} = FixedFreshSnowDensity{Tf}()
-ClimateFreshSnowDensity{Tf}(Nx, Ny; kwargs...) where {Tf} = ClimateFreshSnowDensity{Tf}()
-ElevationFreshSnowDensity{Tf}(Nx, Ny; kwargs...) where {Tf} = ElevationFreshSnowDensity{Tf}()
+FixedFreshSnowDensity{Tf}(grid::Grid; kwargs...) where {Tf} = FixedFreshSnowDensity{Tf}()
+ClimateFreshSnowDensity{Tf}(grid::Grid; kwargs...) where {Tf} = ClimateFreshSnowDensity{Tf}()
+ElevationFreshSnowDensity{Tf}(grid::Grid; kwargs...) where {Tf} = ElevationFreshSnowDensity{Tf}()
 
 """
     fresh_snow_density(scheme, rho0, rhob, rhoc, rhof, rhos_min, Ta, Ua, dem)

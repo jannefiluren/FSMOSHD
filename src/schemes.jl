@@ -39,16 +39,16 @@ function check_grid(scheme::AbstractParameterization, Nx, Ny)
 end
 
 """
-    build_scheme(Tf, requested, Nx, Ny, params)
+    build_scheme(Tf, requested, grid, params)
 
-Instantiate a parameterization. `requested` is either a type - constructed at precision `Tf` on an
-`Nx` by `Ny` grid, consuming any `params` entry named like one of its fields - or a ready-made
-instance, returned unchanged.
+Instantiate a parameterization. `requested` is either a type - constructed at precision `Tf` on
+`grid`, consuming any `params` entry named like one of its fields - or a ready-made instance,
+returned unchanged.
 
 Routing matters: a scheme's parameters live on the scheme, so an entry such as "adm" would
 otherwise be set on `FSM`, where nothing reads it any more.
 """
-function build_scheme(Tf, requested, Nx, Ny, params)
+function build_scheme(Tf, requested, grid, params)
 
     requested isa Type || return requested
 
@@ -58,7 +58,7 @@ function build_scheme(Tf, requested, Nx, Ny, params)
         haskey(params, key) && (kwargs[name] = pop!(params, key))
     end
 
-    return requested{Tf}(Nx, Ny; kwargs...)
+    return requested{Tf}(grid; kwargs...)
 
 end
 
@@ -101,15 +101,15 @@ end
     apply_params!(fsm, params)
 
 Apply parameter overrides: a `Parameters` scalar is reconstructed onto `fsm.params`;
-a `Landuse` per-cell array is filled (scalar) or copied (array) in place.
+a `Surface` per-cell array is filled (scalar) or copied (array) in place.
 """
 function apply_params!(fsm, params)
     for (key, value) in params
         sym = Symbol(key)
         if hasfield(typeof(fsm.params), sym)
             set_param!(fsm, sym, value)
-        elseif hasfield(typeof(fsm.landuse), sym)
-            arr = getfield(fsm.landuse, sym)
+        elseif hasfield(typeof(fsm.surface), sym)
+            arr = getfield(fsm.surface, sym)
             value isa AbstractArray ? (arr .= eltype(arr).(value)) : fill!(arr, eltype(arr)(value))
         else
             throw(ArgumentError("unknown parameter override \"$key\""))

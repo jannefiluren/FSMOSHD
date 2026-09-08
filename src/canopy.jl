@@ -10,15 +10,15 @@ struct NoCanopy{Tf} <: AbstractCanopy{Tf} end
     psr::Tf = 0.1                        # Solid precipitation multiplier range (-)
 end
 
-NoCanopy{Tf}(Nx, Ny; kwargs...) where {Tf} = NoCanopy{Tf}()
-OneLayerCanopy{Tf}(Nx, Ny; kwargs...) where {Tf} = OneLayerCanopy{Tf}(; kwargs...)
+NoCanopy{Tf}(grid::Grid; kwargs...) where {Tf} = NoCanopy{Tf}()
+OneLayerCanopy{Tf}(grid::Grid; kwargs...) where {Tf} = OneLayerCanopy{Tf}(; kwargs...)
 
 canopy_fsar(c::OneLayerCanopy) = c.fsar
 canopy_avg0(c::OneLayerCanopy) = c.avg0
 canopy_avgs(c::OneLayerCanopy) = c.avgs
 
 """
-    canopy_snow!(canopy, i, j, state, diag, landuse, params)
+    canopy_snow!(canopy, i, j, state, diag, surface, params)
 
 Snow on the canopy at cell `(i, j)`: interception from the throughfall `diag.Sfeff`,
 sublimation and unloading, updating `state.Sveg` and `diag.intcpt`/`Sbveg`/`unload`.
@@ -41,7 +41,7 @@ function canopy!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
     backend = get_backend(fsm.state.Sveg)
     kernel! = canopy_kernel!(backend)
     kernel!(
-        fsm.state, fsm.diag, fsm.landuse, fsm.params,
+        fsm.state, fsm.diag, fsm.surface, fsm.params,
         CANOPY;
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
@@ -51,30 +51,30 @@ function canopy!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 end
 
 @kernel function canopy_kernel!(
-        state, diag, landuse, params::Parameters{Tf},
+        state, diag, surface, params::Parameters{Tf},
         CANOPY::AbstractCanopy{Tf},
     ) where {Tf}
 
     i, j = @index(Global, NTuple)
 
     (; tthresh) = params
-    (; tilefrac) = landuse
+    (; tilefrac) = surface
 
     if (tilefrac[i, j] >= tthresh)
 
-        canopy_snow!(CANOPY, i, j, state, diag, landuse, params)
+        canopy_snow!(CANOPY, i, j, state, diag, surface, params)
 
     end
 end
 
-@inline canopy_snow!(::NoCanopy, i, j, state, diag, landuse, params) = nothing
+@inline canopy_snow!(::NoCanopy, i, j, state, diag, surface, params) = nothing
 
-@inline function canopy_snow!(CANOPY::OneLayerCanopy{Tf}, i, j, state, diag, landuse, params) where {Tf}
+@inline function canopy_snow!(CANOPY::OneLayerCanopy{Tf}, i, j, state, diag, surface, params) where {Tf}
 
     @unpack_constants(Tf)
 
     (; dt, tcnc, tcnm) = params
-    (; scap, fveg, pmultf) = landuse
+    (; scap, fveg, pmultf) = surface
     (; Sveg, Tveg) = state
     (; unload, intcpt, Sbveg, Sfeff, Eveg) = diag
 

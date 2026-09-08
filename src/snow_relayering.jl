@@ -3,8 +3,8 @@
 struct OriginalLayering{Tf} <: AbstractLayering{Tf} end
 struct DensityLayering{Tf} <: AbstractLayering{Tf} end
 
-OriginalLayering{Tf}(Nx, Ny; kwargs...) where {Tf} = OriginalLayering{Tf}()
-DensityLayering{Tf}(Nx, Ny; kwargs...) where {Tf} = DensityLayering{Tf}()
+OriginalLayering{Tf}(grid::Grid; kwargs...) where {Tf} = OriginalLayering{Tf}()
+DensityLayering{Tf}(grid::Grid; kwargs...) where {Tf} = DensityLayering{Tf}()
 
 """
     relayer_snow!(scheme, i, j, state, diag, grid, params, snowdepth, Tsnow0, ::Val{Nsmax})

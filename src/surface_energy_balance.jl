@@ -1,7 +1,7 @@
 # Surface energy balance
 
 """
-    energy_balance!(canopy, i, j, state, diag, landuse, params, meteo, substrate)
+    energy_balance!(canopy, i, j, state, diag, surface, params, meteo, substrate)
 
 Solve the energy balance at cell `(i, j)`, implemented for every `AbstractCanopy`:
 `NoCanopy` solves the surface alone, `OneLayerCanopy` solves the joint surface and canopy
@@ -26,7 +26,7 @@ function surface_energy_balance!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf
     backend = get_backend(fsm.state.Tsrf)
     kernel! = surface_energy_balance_kernel!(backend)
     kernel!(
-        fsm.state, fsm.diag, fsm.landuse, fsm.params, meteo,
+        fsm.state, fsm.diag, fsm.surface, fsm.params, meteo,
         CANOPY, SUBSTR;
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
@@ -39,29 +39,29 @@ end
 # off the heap; raw @inbounds block inside a @kernel body corrupts the
 # KernelAbstractions CPU transformation
 @kernel inbounds = true function surface_energy_balance_kernel!(
-        state, diag, landuse, params::Parameters{Tf}, meteo,
+        state, diag, surface, params::Parameters{Tf}, meteo,
         CANOPY::AbstractCanopy{Tf}, SUBSTR::AbstractSubstrate{Tf},
     ) where {Tf}
 
     i, j = @index(Global, NTuple)
 
     (; tthresh) = params
-    (; tilefrac) = landuse
+    (; tilefrac) = surface
 
     if (tilefrac[i, j] >= tthresh)
 
-        energy_balance!(CANOPY, i, j, state, diag, landuse, params, meteo, SUBSTR)
+        energy_balance!(CANOPY, i, j, state, diag, surface, params, meteo, SUBSTR)
 
     end
 end
 
 # Open and non-forest tiles
-@inline function energy_balance!(::NoCanopy{Tf}, i, j, state, diag, landuse, params, meteo, SUBSTR) where {Tf}
+@inline function energy_balance!(::NoCanopy{Tf}, i, j, state, diag, surface, params, meteo, SUBSTR) where {Tf}
 
     @unpack_constants(Tf)
 
     (; dt) = params
-    (; trcn) = landuse
+    (; trcn) = surface
     (; Sice, Tcan, Tsrf, Tveg) = state
     (; Esrf, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf, SWsrf, Ds1, Ts1, ks1, KH, KWg, Qa, LWeff) = diag
     (; Ps, Ta) = meteo
@@ -166,12 +166,12 @@ end
 end
 
 # Forest tiles
-@inline function energy_balance!(::OneLayerCanopy{Tf}, i, j, state, diag, landuse, params, meteo, SUBSTR) where {Tf}
+@inline function energy_balance!(::OneLayerCanopy{Tf}, i, j, state, diag, surface, params, meteo, SUBSTR) where {Tf}
 
     @unpack_constants(Tf)
 
     (; dt) = params
-    (; canh, fsky, trcn) = landuse
+    (; canh, fsky, trcn) = surface
     (; Qcan, Sice, Tcan, Tsrf, Tveg) = state
     (; Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf, Ds1, KHa, KHg, KHv, KWg, KWv, ks1, SWsrf, SWveg, Ts1, Tveg0, Qa, LWeff) = diag
     (; Ps, Ta) = meteo

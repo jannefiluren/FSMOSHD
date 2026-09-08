@@ -30,7 +30,7 @@ function snowslide!(
     (; rhos_min, rhos_max, tiled_trans_run) = w
     (; fsnow, Ds, Sice, Sliq, Tsnow, histowet, Nsnow) = fsm.state
     (; dSWE_tot_slide, index_sorted_dem, slope, Shd, forestfrac) = w
-    (; dem) = fsm.landuse
+    (; dem) = fsm.surface
 
     # Call the standalone Fortran wrapper
     ccall(

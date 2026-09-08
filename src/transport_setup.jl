@@ -53,7 +53,7 @@ function setup_transport(
     w.Shd .= shd_norm .* max.(cosd.(slope_thres), Tf(0.001))
 
     # Processing order for SnowSlide: cells from highest to lowest elevation
-    sort_dem_indices!(w.index_sorted_dem, fsm.landuse.dem)
+    sort_dem_indices!(w.index_sorted_dem, fsm.surface.dem)
 
     return w
 end

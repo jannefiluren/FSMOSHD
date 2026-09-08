@@ -34,7 +34,7 @@ function snowtran3d!(
     Ua_eff = fsm.diag.Uaeff
     (; Udir, Ta, RH) = met
     (; vegsnowd_xy, forestfrac) = w
-    (; z0_snow, Ld, dem) = fsm.landuse
+    (; z0_snow, Ld, dem) = fsm.surface
     (; fsnow, Ds, Sice, Sliq, Tsnow, histowet, Nsnow) = fsm.state
     (; dSWE_tot_subl, dSWE_tot_salt, dSWE_tot_susp) = w
 

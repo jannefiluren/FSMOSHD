@@ -7,7 +7,7 @@ KernelAbstractions GPU backend, e.g. with CUDA.jl loaded:
 
     using CUDA
     arch = GPU(CUDABackend())
-    fsm = setup(arch, Float32, Int32, landuse, Nx, Ny, settings)
+    fsm = setup(arch, Float32, Int32, surface, Nx, Ny, settings)
     met = on_architecture(arch, MET{Float32, Int32}(Nx = Nx, Ny = Ny))
 
 Physics routines pick their compute backend from the arrays themselves (via
@@ -71,7 +71,7 @@ end
 # and the physics NamedTuple are rebuilt with each array field moved.
 on_architecture(::AbstractArchitecture, p::Parameters) = p
 
-function on_architecture(arch::AbstractArchitecture, x::Union{Grid, Landuse, State, Diagnostics, MET})
+function on_architecture(arch::AbstractArchitecture, x::Union{Grid, Surface, State, Diagnostics, MET})
     T = typeof(x).name.wrapper
     return T(map(f -> on_architecture(arch, getfield(x, f)), fieldnames(typeof(x)))...)
 end

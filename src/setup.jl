@@ -29,7 +29,7 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
 end
 
 """
-    build_scheme_from_flag(process, requested, Tf, Nx, Ny, params)
+    build_scheme_from_flag(process, requested, Tf, grid, params)
 
 Build the parameterization a configuration entry asks for. `requested` is either an integer
 flag - translated to a scheme type through the table below, which is the FSM2oshd naming - or
@@ -38,9 +38,9 @@ a scheme type/instance, which `build_scheme` takes unchanged.
 The integer-flag layer exists to keep `config` aligned with OSHDinternal while the two are
 tested against each other; it is meant to go away once `config` names scheme types directly.
 """
-function build_scheme_from_flag(process, requested, Tf, Nx, Ny, params)
+function build_scheme_from_flag(process, requested, Tf, grid, params)
 
-    requested isa Number || return build_scheme(Tf, requested, Nx, Ny, params)
+    requested isa Number || return build_scheme(Tf, requested, grid, params)
 
     lookup = Dict(
         "ALBEDO" => Dict(
@@ -97,7 +97,7 @@ function build_scheme_from_flag(process, requested, Tf, Nx, Ny, params)
     haskey(flags, flag) ||
         error("$process=$flag is not supported (use $(join(sort!(collect(keys(flags))), ", ")))")
 
-    return build_scheme(Tf, flags[flag], Nx, Ny, params)
+    return build_scheme(Tf, flags[flag], grid, params)
 
 end
 
@@ -107,6 +107,8 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
 
     config = copy(get(settings, "config", Dict()))
     params = copy(get(settings, "params", Dict()))
+
+    grid = Grid{Ti, Vector{Tf}}(; Nx = Nx, Ny = Ny)
 
     tile = settings["tile"]
     tile in ("open", "forest", "glacier") || error("tile requires open, forest or glacier (got tile = $tile)")
@@ -123,7 +125,7 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
     FSNRHO = pop!(config, "FSNRHO", 2)
     SNOLAY = pop!(config, "SNOLAY", 0)
 
-    canopy = build_scheme_from_flag("CANMOD", CANMOD, Tf, Nx, Ny, params)
+    canopy = build_scheme_from_flag("CANMOD", CANMOD, Tf, grid, params)
 
     # Validate combinations of configurations
     if tile == "forest"
@@ -135,29 +137,29 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
 
     # Define surface and substrate layer given tile class
     surface_layer, substrate_layer = if tile == "forest"
-        (build_scheme(Tf, ForestSurfaceLayer, Nx, Ny, params),
-         build_scheme(Tf, SoilSubstrate, Nx, Ny, params))
+        (build_scheme(Tf, ForestSurfaceLayer, grid, params),
+         build_scheme(Tf, SoilSubstrate, grid, params))
     else
-        stability = build_scheme_from_flag("EXCHNG", EXCHNG, Tf, Nx, Ny, params)
+        stability = build_scheme_from_flag("EXCHNG", EXCHNG, Tf, grid, params)
         (OpenSurfaceLayer{Tf}(; stability = stability),
-         build_scheme(Tf, tile == "open" ? SoilSubstrate : IceSubstrate, Nx, Ny, params))
+         build_scheme(Tf, tile == "open" ? SoilSubstrate : IceSubstrate, grid, params))
     end
 
     schemes = (
         surface_layer    = surface_layer,
         SUBSTR           = substrate_layer,
-        ALBEDO           = build_scheme_from_flag("ALBEDO", ALBEDO, Tf, Nx, Ny, params),
+        ALBEDO           = build_scheme_from_flag("ALBEDO", ALBEDO, Tf, grid, params),
         CANOPY           = canopy,
-        CONDCT           = build_scheme_from_flag("CONDCT", CONDCT, Tf, Nx, Ny, params),
-        COMPACT          = build_scheme_from_flag("DENSTY", DENSTY, Tf, Nx, Ny, params),
-        HYDROL           = build_scheme_from_flag("HYDROL", HYDROL, Tf, Nx, Ny, params),
-        SNFRAC           = build_scheme_from_flag("SNFRAC", SNFRAC, Tf, Nx, Ny, params),
-        reference_height = build_scheme_from_flag("ZOFFST", ZOFFST, Tf, Nx, Ny, params),
-        FSNRHO           = build_scheme_from_flag("FSNRHO", FSNRHO, Tf, Nx, Ny, params),
-        LAYERING         = build_scheme_from_flag("SNOLAY", SNOLAY, Tf, Nx, Ny, params),
+        CONDCT           = build_scheme_from_flag("CONDCT", CONDCT, Tf, grid, params),
+        COMPACT          = build_scheme_from_flag("DENSTY", DENSTY, Tf, grid, params),
+        HYDROL           = build_scheme_from_flag("HYDROL", HYDROL, Tf, grid, params),
+        SNFRAC           = build_scheme_from_flag("SNFRAC", SNFRAC, Tf, grid, params),
+        reference_height = build_scheme_from_flag("ZOFFST", ZOFFST, Tf, grid, params),
+        FSNRHO           = build_scheme_from_flag("FSNRHO", FSNRHO, Tf, grid, params),
+        LAYERING         = build_scheme_from_flag("SNOLAY", SNOLAY, Tf, grid, params),
     )
 
-    fsm = FSM{Tf, Ti}(; Nx = Nx, Ny = Ny, schemes...)
+    fsm = FSM{Tf, Ti}(; grid = grid, schemes...)
 
     for scheme in schemes
         check_grid(scheme, Nx, Ny)
@@ -167,7 +169,7 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
     apply_config!(fsm, config)
     apply_params!(fsm, params)
 
-    lu = fsm.landuse
+    lu = fsm.surface
     st = fsm.state
 
     # Settings specific for fixed fresh snow density

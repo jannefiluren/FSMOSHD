@@ -383,7 +383,7 @@ function solve_utau!(
 
     (; Nx, Ny) = fsm.grid
     (; zU) = fsm.params
-    (; z0_snow) = fsm.landuse
+    (; z0_snow) = fsm.surface
     Ua_eff = fsm.diag.Uaeff
     (; vegsnowd_xy, Utau, Utau_t, z_0, h_star, snowthickness, veg_z0, Ds_soft) = w
     @unpack_constants(Tf)
@@ -1230,7 +1230,7 @@ function snowtran3d_julia!(
 
     (; Nx, Ny) = fsm.grid
     (; Ds) = fsm.state
-    (; Ld) = fsm.landuse
+    (; Ld) = fsm.surface
     Ua_eff = fsm.diag.Uaeff
     (; vegsnowd_xy) = w
     (; Udir) = met

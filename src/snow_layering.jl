@@ -1,5 +1,5 @@
 """
-    snow_layering!(layering, snowfraction, i, j, state, diag, landuse, grid, params, meteo, update_hist, ::Val{Nsmax})
+    snow_layering!(layering, snowfraction, i, j, state, diag, surface, grid, params, meteo, update_hist, ::Val{Nsmax})
 
 Accumulation of new snow, snow cover fraction update and relayering at cell `(i, j)`,
 after the melt, sublimation and compaction of the same step. The snow cover fraction
@@ -10,7 +10,7 @@ history state and is resolved by the caller, since `Dates` cannot run in a kerne
 # down to relayer_snow!, whose MVector scratch would otherwise go to the heap
 Base.@propagate_inbounds function snow_layering!(
         LAYERING::AbstractLayering{Tf}, SNFRAC::AbstractSnowFraction{Tf},
-        i, j, state, diag, landuse, grid, params, meteo, update_hist::Bool, ::Val{Nsmax},
+        i, j, state, diag, surface, grid, params, meteo, update_hist::Bool, ::Val{Nsmax},
     ) where {Tf, Nsmax}
 
     @unpack_constants(Tf)
@@ -55,7 +55,7 @@ Base.@propagate_inbounds function snow_layering!(
     end
 
     snowcoverfraction_point!(
-        SNFRAC, state, landuse, snowdepth, SWEtmp, hfsn, i, j, update_hist
+        SNFRAC, state, surface, snowdepth, SWEtmp, hfsn, i, j, update_hist
     )
 
     # Rescale Ds with new snow cover fraction
@@ -108,7 +108,7 @@ function relayer!(fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, t; update_hist::Bool = fal
     backend = get_backend(fsm.state.Tsnow)
     kernel! = relayer_kernel!(backend)
     kernel!(
-        fsm.state, fsm.diag, fsm.landuse, fsm.grid, fsm.params, met,
+        fsm.state, fsm.diag, fsm.surface, fsm.grid, fsm.params, met,
         fsm.physics.LAYERING, fsm.physics.SNFRAC, update_hist, Val(Int(Nsmax));
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
@@ -118,7 +118,7 @@ function relayer!(fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, t; update_hist::Bool = fal
 end
 
 @kernel inbounds = true function relayer_kernel!(
-        state, diag, landuse, grid, params::Parameters{Tf, Ti}, meteo,
+        state, diag, surface, grid, params::Parameters{Tf, Ti}, meteo,
         LAYERING::AbstractLayering{Tf}, SNFRAC::AbstractSnowFraction{Tf},
         update_hist::Bool, ::Val{Nsmax},
     ) where {Tf, Ti, Nsmax}
@@ -126,11 +126,11 @@ end
     i, j = @index(Global, NTuple)
 
     (; tthresh) = params
-    (; tilefrac) = landuse
+    (; tilefrac) = surface
 
     if (tilefrac[i, j] >= tthresh)
         snow_layering!(
-            LAYERING, SNFRAC, i, j, state, diag, landuse, grid, params, meteo,
+            LAYERING, SNFRAC, i, j, state, diag, surface, grid, params, meteo,
             update_hist, Val(Nsmax)
         )
     end

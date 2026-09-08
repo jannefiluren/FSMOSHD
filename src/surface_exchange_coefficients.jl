@@ -1,20 +1,20 @@
 # Reference height
 struct AboveGround{Tf} <: AbstractReferenceHeight{Tf} end
 struct AboveCanopy{Tf} <: AbstractReferenceHeight{Tf} end
-AboveGround{Tf}(Nx, Ny; kwargs...) where {Tf} = AboveGround{Tf}()
-AboveCanopy{Tf}(Nx, Ny; kwargs...) where {Tf} = AboveCanopy{Tf}()
+AboveGround{Tf}(grid::Grid; kwargs...) where {Tf} = AboveGround{Tf}()
+AboveCanopy{Tf}(grid::Grid; kwargs...) where {Tf} = AboveCanopy{Tf}()
 
 @inline reference_heights(::AboveGround, zU, zT, hcan) = (zU, zT)
 @inline reference_heights(::AboveCanopy, zU, zT, hcan) = (zU + hcan, zT + hcan)
 
 # Stability correction for open/glacier surfaces
 struct NoStabilityCorrection{Tf} <: AbstractStabilityCorrection{Tf} end
-NoStabilityCorrection{Tf}(Nx, Ny; kwargs...) where {Tf} = NoStabilityCorrection{Tf}()
+NoStabilityCorrection{Tf}(grid::Grid; kwargs...) where {Tf} = NoStabilityCorrection{Tf}()
 
 @kwdef struct LouisStabilityCorrection{Tf} <: AbstractStabilityCorrection{Tf}
     bstb::Tf = 5                         # Atmospheric stability parameter (-)
 end
-LouisStabilityCorrection{Tf}(Nx, Ny; kwargs...) where {Tf} = LouisStabilityCorrection{Tf}(; kwargs...)
+LouisStabilityCorrection{Tf}(grid::Grid; kwargs...) where {Tf} = LouisStabilityCorrection{Tf}(; kwargs...)
 
 """
     stability_factor(scheme, CD, z0, Ta, Tsrf, Ua, zU1, zT1)
@@ -58,10 +58,10 @@ OpenSurfaceLayer{Tf}(Nx, Ny; stability = NoStabilityCorrection{Tf}()) where {Tf}
     khcf::Tf = 3                         # Diffusivity adjustment for canopy effects (-)
     cveg::Tf = 20                        # Vegetation turbulent transfer coefficient ((s/m)^0.5)
 end
-ForestSurfaceLayer{Tf}(Nx, Ny; kwargs...) where {Tf} = ForestSurfaceLayer{Tf}(; kwargs...)
+ForestSurfaceLayer{Tf}(grid::Grid; kwargs...) where {Tf} = ForestSurfaceLayer{Tf}(; kwargs...)
 
 """
-    exchange_coefficients!(surface_layer, i, j, state, diag, landuse, params, meteo, zU1, zT1, z0g)
+    exchange_coefficients!(surface_layer, i, j, state, diag, surface, params, meteo, zU1, zT1, z0g)
 
 Eddy diffusivities for turbulent heat and moisture transfer at cell `(i, j)`, implemented
 for every `AbstractSurfaceLayer`: `diag.KH` and `diag.KWg` over open terrain, and
@@ -72,7 +72,7 @@ resolved by the caller.
 function exchange_coefficients! end
 
 # Open/glacier terrain
-@inline function exchange_coefficients!(sl::OpenSurfaceLayer{Tf}, i, j, state, diag, landuse, params, meteo, zU1, zT1, z0g) where {Tf}
+@inline function exchange_coefficients!(sl::OpenSurfaceLayer{Tf}, i, j, state, diag, surface, params, meteo, zU1, zT1, z0g) where {Tf}
     @unpack_constants(Tf)
     (; Sice, Tsrf) = state
     (; KH, KWg, gs1, Qa, Uaeff) = diag
@@ -98,10 +98,10 @@ function exchange_coefficients! end
 end
 
 # Forest terrain
-@inline function exchange_coefficients!(sl::ForestSurfaceLayer{Tf}, i, j, state, diag, landuse, params, meteo, zU1, zT1, z0g) where {Tf}
+@inline function exchange_coefficients!(sl::ForestSurfaceLayer{Tf}, i, j, state, diag, surface, params, meteo, zU1, zT1, z0g) where {Tf}
     @unpack_constants(Tf)
     (; zU, zsub, gsnf) = params
-    (; fveg, fves, VAI, hcan) = landuse
+    (; fveg, fves, VAI, hcan) = surface
     (; Sveg, Tsrf, Tveg, Qcan) = state
     (; KHa, KHg, KHv, KWg, KWv, Usc, gs1, Uaeff) = diag
     (; Ps) = meteo
@@ -162,7 +162,7 @@ function surface_exchange_coefficients!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) wh
     backend = get_backend(fsm.state.Tsrf)
     kernel! = surface_exchange_coefficients_kernel!(backend)
     kernel!(
-        fsm.state, fsm.diag, fsm.landuse, fsm.params, meteo,
+        fsm.state, fsm.diag, fsm.surface, fsm.params, meteo,
         reference_height, surface_layer, SNFRAC;
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
@@ -172,7 +172,7 @@ function surface_exchange_coefficients!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) wh
 end
 
 @kernel function surface_exchange_coefficients_kernel!(
-        state, diag, landuse, params::Parameters{Tf}, meteo,
+        state, diag, surface, params::Parameters{Tf}, meteo,
         reference_height::AbstractReferenceHeight{Tf},
         surface_layer::AbstractSurfaceLayer{Tf},
         SNFRAC::AbstractSnowFraction{Tf},
@@ -181,14 +181,14 @@ end
     i, j = @index(Global, NTuple)
 
     (; tthresh, zT, zU) = params
-    (; tilefrac, hcan) = landuse
+    (; tilefrac, hcan) = surface
 
     if (tilefrac[i, j] >= tthresh)
 
         zU1, zT1 = reference_heights(reference_height, zU, zT, hcan[i, j])
-        z0g = ground_roughness(SNFRAC, i, j, state, landuse)
+        z0g = ground_roughness(SNFRAC, i, j, state, surface)
 
-        exchange_coefficients!(surface_layer, i, j, state, diag, landuse, params, meteo, zU1, zT1, z0g)
+        exchange_coefficients!(surface_layer, i, j, state, diag, surface, params, meteo, zU1, zT1, z0g)
 
     end
 end

@@ -1,40 +1,48 @@
 # Snow albedo parameterizations
 
 @kwdef struct DiagnosticAlbedo{Tf} <: AbstractAlbedo{Tf}
-    amin::Tf = 0.6                       # Minimum albedo for melting snow (-)
-    amax::Tf = 0.86                      # Maximum albedo for fresh snow (-)
-    Talb::Tf = -2                        # Albedo decay temperature threshold (C)
+    amin::Tf = 0.6                            # Minimum albedo for melting snow (-)
+    amax::Tf = 0.86                           # Maximum albedo for fresh snow (-)
+    Talb::Tf = -2                             # Albedo decay temperature threshold (C)
 end
 
-@kwdef struct DecayAlbedo{Tf} <: AbstractAlbedo{Tf}
-    amin::Tf = 0.6                       # Minimum albedo for melting snow (-)
-    tcld::Tf = 3600 * 1000               # Cold snow albedo decay time scale (s)
-    tmlt::Tf = 3600 * 100                # Melting snow albedo decay time scale (s)
-    adfs::Tf = 3                         # Albedo adjustment, shortwave (-)
-    adfl::Tf = 2                         # Albedo adjustment, longwave (-)
-    Sfmin::Tf = 10                       # Min 24h snowfall to refresh albedo (kg/m^2)
+@kwdef struct DecayAlbedo{Tf, GT, MF <: AbstractMatrix{<:AbstractFloat}} <: AbstractAlbedo{Tf}
+    grid::GT
+    amin::Tf = 0.6                            # Minimum albedo for melting snow (-)
+    tcld::Tf = 3600 * 1000                    # Cold snow albedo decay time scale (s)
+    tmlt::Tf = 3600 * 100                     # Melting snow albedo decay time scale (s)
+    adfs::Tf = 3                              # Albedo adjustment, shortwave (-)
+    adfl::Tf = 2                              # Albedo adjustment, longwave (-)
+    Sfmin::Tf = 10                            # Min 24h snowfall to refresh albedo (kg/m^2)
+    afs::MF = 0.86 * ones(grid.Nx, grid.Ny)   # Maximum albedo for fresh snow (-)
 end
 
-@kwdef struct PrognosticAlbedo{Tf} <: AbstractAlbedo{Tf}
-    ALRADT::Bool = true                  # Aspect-dependent decay tuning
-    adm::Tf = 100                        # Melting snow albedo decay time (h)
-    amin::Tf = 0.6                       # Minimum albedo for melting snow (-)
-    Sfmin::Tf = 10                       # Min 24h snowfall to refresh albedo (kg/m^2)
+@kwdef struct PrognosticAlbedo{Tf, GT, MF <: AbstractMatrix{<:AbstractFloat}} <: AbstractAlbedo{Tf}
+    grid::GT
+    ALRADT::Bool = true                       # Aspect-dependent decay tuning
+    adm::Tf = 100                             # Melting snow albedo decay time (h)
+    amin::Tf = 0.6                            # Minimum albedo for melting snow (-)
+    Sfmin::Tf = 10                            # Min 24h snowfall to refresh albedo (kg/m^2)
+    afs::MF = 0.86 * ones(grid.Nx, grid.Ny)   # Maximum albedo for fresh snow (-)
+    adc::MF = 1000 * ones(grid.Nx, grid.Ny)   # Cold snow albedo decay time (h)
 end
 
-DiagnosticAlbedo{Tf}(Nx, Ny; kwargs...) where {Tf} = DiagnosticAlbedo{Tf}(; kwargs...)
-DecayAlbedo{Tf}(Nx, Ny; kwargs...) where {Tf} = DecayAlbedo{Tf}(; kwargs...)
-PrognosticAlbedo{Tf}(Nx, Ny; kwargs...) where {Tf} = PrognosticAlbedo{Tf}(; kwargs...)
+DiagnosticAlbedo{Tf}(grid::Grid; kwargs...) where {Tf} = DiagnosticAlbedo{Tf}(; kwargs...)
+DecayAlbedo{Tf}(grid::Grid; kwargs...) where {Tf} = DecayAlbedo{Tf, typeof(grid), Matrix{Tf}}(; grid, kwargs...)
+PrognosticAlbedo{Tf}(grid::Grid; kwargs...) where {Tf} = PrognosticAlbedo{Tf, typeof(grid), Matrix{Tf}}(; grid, kwargs...)
+
+@adapt_structure DecayAlbedo
+@adapt_structure PrognosticAlbedo
 
 """
-    snow_albedo!(scheme, i, j, state, landuse, meteo, params, summer_decay)
+    snow_albedo!(scheme, i, j, state, surface, meteo, params, summer_decay)
 
 Update snow albedo `albs[i, j]` for cell `(i, j)` implemented for every 
 `AbstractAlbedo`.
 """
 function snow_albedo! end
 
-@inline function snow_albedo!(c::DiagnosticAlbedo{Tf}, i, j, state, landuse, meteo, params, summer_decay) where {Tf}
+@inline function snow_albedo!(c::DiagnosticAlbedo{Tf}, i, j, state, surface, meteo, params, summer_decay) where {Tf}
     @unpack_constants(Tf)
     (; albs, Tsrf) = state
     afs_loc = c.amax
@@ -45,13 +53,13 @@ function snow_albedo! end
     return nothing
 end
 
-@inline function snow_albedo!(c::DecayAlbedo{Tf}, i, j, state, landuse, meteo, params, summer_decay) where {Tf}
+@inline function snow_albedo!(c::DecayAlbedo{Tf}, i, j, state, surface, meteo, params, summer_decay) where {Tf}
     @unpack_constants(Tf)
     (; albs, Tsrf) = state
-    (; fveg, trcn, fsky, afs) = landuse
+    (; fveg, trcn, fsky) = surface
     (; Sdir, Sdif, Sf, Tv) = meteo
     (; dt) = params
-    afs_loc = afs[i, j]
+    afs_loc = c.afs[i, j]
 
     tau = c.tcld
     if (Tsrf[i, j] >= Tm)
@@ -84,15 +92,14 @@ end
     return nothing
 end
 
-@inline function snow_albedo!(c::PrognosticAlbedo{Tf}, i, j, state, landuse, meteo, params, summer_decay) where {Tf}
+@inline function snow_albedo!(c::PrognosticAlbedo{Tf}, i, j, state, surface, meteo, params, summer_decay) where {Tf}
     @unpack_constants(Tf)
     (; albs, Tsrf, Sice, Sliq) = state
-    (; afs, adc) = landuse
     (; Sdir, Sdird, Sf, Sf24h) = meteo
     (; dt) = params
-    adc_loc = adc[i, j]
+    adc_loc = c.adc[i, j]
     adm_loc = c.adm
-    afs_loc = afs[i, j]
+    afs_loc = c.afs[i, j]
 
     SWEtmp = zero(Tf)
     for si in 1:size(Sice, 1)
@@ -147,7 +154,7 @@ end
 # Canopy radiative transfer
 
 """
-    solar_radiation!(canopy, i, j, state, diag, landuse, meteo)
+    solar_radiation!(canopy, i, j, state, diag, surface, meteo)
 
 Surface albedo and shortwave transmission for cell `(i, j)`: fills `diag.alb`,
 `diag.asrf_out`, `diag.SWsrf`, `diag.SWveg` and `diag.SWsci`. Expects `state.albs`
@@ -155,7 +162,7 @@ to already hold the bare-ground albedo where the snow has gone.
 """
 function solar_radiation! end
 
-@inline function solar_radiation!(c::NoCanopy{Tf}, i, j, state, diag, landuse, meteo) where {Tf}
+@inline function solar_radiation!(c::NoCanopy{Tf}, i, j, state, diag, surface, meteo) where {Tf}
     (; albs) = state
     (; alb, asrf_out, SWveg, SWsrf, SWsci) = diag
     (; Sdif, Sdir) = meteo
@@ -169,10 +176,10 @@ function solar_radiation! end
     return nothing
 end
 
-@inline function solar_radiation!(c::OneLayerCanopy{Tf}, i, j, state, diag, landuse, meteo) where {Tf}
+@inline function solar_radiation!(c::OneLayerCanopy{Tf}, i, j, state, diag, surface, meteo) where {Tf}
     (; albs, fsnow, Sveg) = state
     (; alb, asrf_out, SWveg, SWsrf, SWsci) = diag
-    (; fveg, fsky, fsky_terr, scap, trcn) = landuse
+    (; fveg, fsky, fsky_terr, scap, trcn) = surface
     (; Sdif, Sdir, Tv) = meteo
 
     asrf = albs[i, j]
@@ -203,24 +210,24 @@ end
 end
 
 """
-    thermal_radiation!(canopy, i, j, diag, landuse, meteo)
+    thermal_radiation!(canopy, i, j, diag, surface, meteo)
 
 Effective incoming longwave `diag.LWeff` for cell `(i, j)`. Without canopy the terrain
 emission is computed here, while in forested cells `energy_balance!` accounts for it.
 """
 function thermal_radiation! end
 
-@inline function thermal_radiation!(c::NoCanopy{Tf}, i, j, diag, landuse, meteo) where {Tf}
+@inline function thermal_radiation!(c::NoCanopy{Tf}, i, j, diag, surface, meteo) where {Tf}
     @unpack_constants(Tf)
     (; LWeff) = diag
-    (; fsky_terr) = landuse
+    (; fsky_terr) = surface
     (; LW, Ta) = meteo
 
     LWeff[i, j] = fsky_terr[i, j] * LW[i, j] + (Tf(1) - fsky_terr[i, j]) * sb * Ta[i, j]^Tf(4)
     return nothing
 end
 
-@inline function thermal_radiation!(c::OneLayerCanopy{Tf}, i, j, diag, landuse, meteo) where {Tf}
+@inline function thermal_radiation!(c::OneLayerCanopy{Tf}, i, j, diag, surface, meteo) where {Tf}
     (; LWeff) = diag
     (; LW) = meteo
 
@@ -248,7 +255,7 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, 
     backend = get_backend(fsm.state.albs)
     kernel! = radiation_kernel!(backend)
     kernel!(
-        fsm.state, fsm.diag, fsm.landuse, fsm.params, meteo,
+        fsm.state, fsm.diag, fsm.surface, fsm.params, meteo,
         CANOPY, ALBEDO, summer_decay;
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
@@ -258,7 +265,7 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, 
 end
 
 @kernel function radiation_kernel!(
-        state, diag, landuse, params::Parameters{Tf}, meteo,
+        state, diag, surface, params::Parameters{Tf}, meteo,
         CANOPY::AbstractCanopy{Tf},
         ALBEDO::AbstractAlbedo{Tf}, summer_decay::Bool,
     ) where {Tf}
@@ -266,13 +273,13 @@ end
     i, j = @index(Global, NTuple)
 
     (; tthresh) = params
-    (; tilefrac, alb0) = landuse
+    (; tilefrac, alb0) = surface
     (; albs, fsnow) = state
 
     if (tilefrac[i, j] >= tthresh)
 
         # Snow albedo
-        snow_albedo!(ALBEDO, i, j, state, landuse, meteo, params, summer_decay)
+        snow_albedo!(ALBEDO, i, j, state, surface, meteo, params, summer_decay)
 
         # Bare ground shows through once the snow has gone
         if (fsnow[i, j] <= eps(Tf))
@@ -280,8 +287,8 @@ end
         end
 
         # Surface albedo, shortwave transmission and thermal emission from surroundings
-        solar_radiation!(CANOPY, i, j, state, diag, landuse, meteo)
-        thermal_radiation!(CANOPY, i, j, diag, landuse, meteo)
+        solar_radiation!(CANOPY, i, j, state, diag, surface, meteo)
+        thermal_radiation!(CANOPY, i, j, diag, surface, meteo)
 
     end
 end

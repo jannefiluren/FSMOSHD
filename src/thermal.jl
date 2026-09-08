@@ -6,8 +6,8 @@ end
     bthr::Tf = 2           # Snow thermal conductivity exponent (-)
 end
 
-FixedConductivity{Tf}(Nx, Ny; kwargs...) where {Tf} = FixedConductivity{Tf}(; kwargs...)
-DensityConductivity{Tf}(Nx, Ny; kwargs...) where {Tf} = DensityConductivity{Tf}(; kwargs...)
+FixedConductivity{Tf}(grid::Grid; kwargs...) where {Tf} = FixedConductivity{Tf}(; kwargs...)
+DensityConductivity{Tf}(grid::Grid; kwargs...) where {Tf} = DensityConductivity{Tf}(; kwargs...)
 
 """
     snow_conductivity!(scheme, i, j, state, diag, params)
@@ -90,7 +90,7 @@ function thermal!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
     backend = get_backend(fsm.diag.gs1)
     kernel! = thermal_kernel!(backend)
     kernel!(
-        fsm.state, fsm.diag, fsm.landuse, fsm.grid, fsm.params,
+        fsm.state, fsm.diag, fsm.surface, fsm.grid, fsm.params,
         CONDCT, SUBSTR;
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
@@ -100,21 +100,21 @@ function thermal!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
 end
 
 @kernel function thermal_kernel!(
-        state, diag, landuse, grid, params::Parameters{Tf},
+        state, diag, surface, grid, params::Parameters{Tf},
         CONDCT::AbstractConductivity{Tf}, SUBSTR::AbstractSubstrate{Tf},
     ) where {Tf}
 
     i, j = @index(Global, NTuple)
 
     (; tthresh) = params
-    (; tilefrac) = landuse
+    (; tilefrac) = surface
     (; Tveg) = state
     (; Tveg0) = diag
 
     if (tilefrac[i, j] >= tthresh)
 
         snow_conductivity!(CONDCT, i, j, state, diag, params)
-        soil_properties!(SUBSTR, i, j, state, diag, landuse, grid, params)
+        soil_properties!(SUBSTR, i, j, state, diag, surface, grid, params)
         surface_layer_properties!(i, j, state, diag, grid)
 
         Tveg0[i, j] = Tveg[i, j]

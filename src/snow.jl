@@ -18,7 +18,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
     backend = get_backend(fsm.state.Tsnow)
     kernel! = snow_kernel!(backend)
     kernel!(
-        fsm.state, fsm.diag, fsm.landuse, fsm.grid, fsm.params, meteo,
+        fsm.state, fsm.diag, fsm.surface, fsm.grid, fsm.params, meteo,
         fsm.physics.FSNRHO, fsm.physics.COMPACT, fsm.physics.HYDROL, fsm.physics.SNFRAC,
         fsm.physics.LAYERING, update_hist, Val(Int(Nsmax));
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
@@ -30,7 +30,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
 end
 
 @kernel inbounds = true function snow_kernel!(
-        state, diag, landuse, grid, params::Parameters{Tf, Ti}, meteo,
+        state, diag, surface, grid, params::Parameters{Tf, Ti}, meteo,
         FSNRHO::AbstractFreshSnowDensity{Tf}, COMPACT::AbstractCompaction{Tf},
         HYDROL::AbstractHydrology{Tf}, SNFRAC::AbstractSnowFraction{Tf},
         LAYERING::AbstractLayering{Tf}, update_hist::Bool, ::Val{Nsmax},
@@ -42,7 +42,7 @@ end
 
     (; dt, tthresh, rho0, rhob, rhoc, rhof, rhos_min, Tsnow_min) = params
     (; Dzsoil) = grid
-    (; dem, tilefrac) = landuse
+    (; dem, tilefrac) = surface
     (; Tsnow, Ds, Sice, Sliq, Nsnow, fsnow, Tsoil, Tsrf) = state
     (; Sbsrf, Roff_bare, Roff_snow, Roff, meltflux_out, Gsoil, Sice0, snowdepth0,
        unload, ksnow, ksoil, G, Melt, Esrf, Uaeff, Sfeff) = diag
@@ -212,7 +212,7 @@ end
 
         # Accumulation of new snow, snow cover fraction and relayering
         snow_layering!(
-            LAYERING, SNFRAC, i, j, state, diag, landuse, grid, params, meteo,
+            LAYERING, SNFRAC, i, j, state, diag, surface, grid, params, meteo,
             update_hist, Val(Nsmax)
         )
 

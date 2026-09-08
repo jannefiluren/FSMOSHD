@@ -14,8 +14,8 @@ and GPU-safe.
 
 - **Launcher** `foo!(fsm, ...)` (exported): pick the backend, launch, synchronize.
   No physics. Pass the sub-structs the kernel needs — `fsm.state`, `fsm.diag`,
-  `fsm.landuse`, `fsm.grid`, `fsm.params` (and `meteo`) — plus isbits scheme
-  objects and any `Val`/computed scalars. Do not unpack arrays in the launcher.
+  `fsm.surface`, `fsm.grid`, `fsm.params` (and `meteo`) — plus the scheme objects
+  and any `Val`/computed scalars. Do not unpack arrays in the launcher.
 - **Kernel** `foo_kernel!` (`@kernel`): `i, j = @index(Global, NTuple)`,
   `@unpack_constants(Tf)`, destructure the fields it uses from the passed
   sub-structs (`(; Tsrf, Ds) = state`), then dispatch to point functions.
@@ -68,13 +68,19 @@ are exempt — classify a new function by its shape, not by name:
 - **`Tf`-purity:** no literal `0.0`/`1.0`/`2` in kernels or point functions — use
   `Tf(0)`, `Tf(0.1)`, `zero(Tf)`. A Float64 literal silently promotes the whole
   expression to Float64.
-- **Physics schemes are isbits** (scalars only): they cross into a kernel by
-  value. Per-cell array maps (e.g. `afs`, `adc`) live on `Landuse`, not on the
-  scheme.
+- **Schemes own their parameters — scalars, or per-cell grids.** Scalar
+  parameters keep the scheme isbits (it crosses into a kernel by value). A per-cell
+  parameter is a grid field sized from the model grid, exactly like `Surface`
+  (e.g. `afs`, `adc` on the albedo schemes): the scheme takes a `grid` at
+  construction (`Scheme{Tf}(grid; ...)`, threaded by `build_scheme`) and gets
+  `@adapt_structure` (see radiation.jl) so Adapt moves the arrays to the device.
+  Reserve the `Surface` field container for domain inputs and setup-derived per-cell
+  fields — not a scheme's own parameters.
 - **Passing a sub-struct into a kernel** requires `@adapt_structure` on that
   struct (see types.jl); Adapt rewrites its array fields to the device array type
-  at launch (a no-op on CPU). `Parameters` and the schemes are isbits and need no
-  adaptor.
+  at launch (a no-op on CPU). `Parameters` and all-scalar schemes are isbits and
+  need no adaptor; a scheme carrying a per-cell array is adapted like any other
+  array-holding struct.
 - **`@kernel inbounds = true`** for kernels with `MVector` scratch — never a raw
   `@inbounds` block inside a `@kernel` body (it miscompiles with the KA CPU
   aliasscope on Julia ≥ 1.11). A helper that allocates `MVector` scratch must be

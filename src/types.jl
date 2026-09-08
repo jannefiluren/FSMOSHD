@@ -69,33 +69,41 @@ end
     Tprof::Tf = 285                                  # Initial soil layer temperatures (K)
 end
 
-@kwdef struct Landuse{GT, MF <: AbstractMatrix{<:AbstractFloat}, MF64 <: AbstractMatrix{Float64}}
+@kwdef struct Surface{GT, MF <: AbstractMatrix{<:AbstractFloat}, MF64 <: AbstractMatrix{Float64}}
     grid::GT
-    z0_snow::MF = 0.002 * ones(grid.Nx, grid.Ny)    # Roughness length of snow (m)
-    alb0::MF = 0.2 * ones(grid.Nx, grid.Ny)         # Snow-free ground albedo (-)
-    afs::MF = 0.86 * ones(grid.Nx, grid.Ny)         # Maximum albedo for fresh snow (-)  [Decay/Prognostic albedo]
-    adc::MF = 1000 * ones(grid.Nx, grid.Ny)         # Cold snow albedo decay time (h)  [Prognostic albedo]
-    z0sf::MF = 0.2 * ones(grid.Nx, grid.Ny)         # Snow-free roughness length (m)
-    fcly::MF = 0.3 * ones(grid.Nx, grid.Ny)         # Soil clay fraction (-)
-    fsnd::MF = 0.6 * ones(grid.Nx, grid.Ny)         # Soil sand fraction (-)
-    VAI::MF = zeros(grid.Nx, grid.Ny)               # Vegetation area index (-)
-    vfhp::MF = fill(NaN, grid.Nx, grid.Ny)          # Hemispherical sky-view fraction incl. canopy (-)
-    canh::MF = fill(NaN, grid.Nx, grid.Ny)          # Canopy heat capacity (J/K/m^2)
-    fsky::MF = ones(grid.Nx, grid.Ny)               # Sky view fraction (-)
-    fveg::MF = zeros(grid.Nx, grid.Ny)              # Canopy cover fraction (-)  = 1-exp(-kveg*VAI), VAI=0
-    fves::MF = zeros(grid.Nx, grid.Ny)              # Stand-scale canopy cover fraction (-)
-    hcan::MF = zeros(grid.Nx, grid.Ny)              # Canopy height (m)
-    lai::MF = fill(NaN, grid.Nx, grid.Ny)           # Leaf area index (-)
-    pmultf::MF = fill(NaN, grid.Nx, grid.Ny)        # Precipitation multiplier reverting open-area correction (-)
-    scap::MF = fill(NaN, grid.Nx, grid.Ny)          # Canopy snow capacity (kg/m^2)
-    trcn::MF = ones(grid.Nx, grid.Ny)               # Canopy transmissivity (-)  = exp(-kdif*VAI), VAI=0
+
+    # Terrain
+    dem::MF = fill(NaN, grid.Nx, grid.Ny)           # Grid elevation (m)
+    Ld::MF = fill(NaN, grid.Nx, grid.Ny)            # Grid cell size (m)
     slopemu::MF = fill(NaN, grid.Nx, grid.Ny)       # Slope parameter (-)
     xi::MF = fill(NaN, grid.Nx, grid.Ny)            # Terrain correlation length (m)
-    Ld::MF = fill(NaN, grid.Nx, grid.Ny)            # Grid cell size (m)
     fsky_terr::MF = fill(NaN, grid.Nx, grid.Ny)     # Sky view fraction terrain (-)
-    dem::MF = fill(NaN, grid.Nx, grid.Ny)           # Grid elevation (m)
     tilefrac::MF = ones(grid.Nx, grid.Ny)           # Tile fraction (-)
+
+    # Snow and ground surface
+    z0_snow::MF = 0.002 * ones(grid.Nx, grid.Ny)    # Roughness length of snow (m)
+    z0sf::MF = 0.2 * ones(grid.Nx, grid.Ny)         # Snow-free roughness length (m)
+    alb0::MF = 0.2 * ones(grid.Nx, grid.Ny)         # Snow-free ground albedo (-)
+
+    # Forest
+    VAI::MF = zeros(grid.Nx, grid.Ny)               # Vegetation area index (-)
+    lai::MF = fill(NaN, grid.Nx, grid.Ny)           # Leaf area index (-)
+    fveg::MF = zeros(grid.Nx, grid.Ny)              # Canopy cover fraction (-)
+    fves::MF = zeros(grid.Nx, grid.Ny)              # Stand-scale canopy cover fraction (-)
+    fsky::MF = ones(grid.Nx, grid.Ny)               # Sky view fraction (-)
+    vfhp::MF = fill(NaN, grid.Nx, grid.Ny)          # Hemispherical sky-view fraction incl. canopy (-)
+    hcan::MF = zeros(grid.Nx, grid.Ny)              # Canopy height (m)
+    canh::MF = fill(NaN, grid.Nx, grid.Ny)          # Canopy heat capacity (J/K/m^2)
+    scap::MF = fill(NaN, grid.Nx, grid.Ny)          # Canopy snow capacity (kg/m^2)
+    trcn::MF = ones(grid.Nx, grid.Ny)               # Canopy transmissivity (-)  = exp(-kdif*VAI), VAI=0
+
+    # Precipitation
+    pmultf::MF = fill(NaN, grid.Nx, grid.Ny)        # Precipitation multiplier reverting open-area correction (-)
     prec_multi::MF64 = fill(NaN, grid.Nx, grid.Ny)  # Precipitation multiplier (-)  TODO float64 legacy
+
+    # Soil
+    fcly::MF = 0.3 * ones(grid.Nx, grid.Ny)         # Soil clay fraction (-)
+    fsnd::MF = 0.6 * ones(grid.Nx, grid.Ny)         # Soil sand fraction (-)
     b::MF = zeros(grid.Nx, grid.Ny)                 # Clapp-Hornberger exponent (-)
     hcap_soil::MF = zeros(grid.Nx, grid.Ny)         # Volumetric heat capacity of dry soil (J/K/m^3)
     hcon_soil::MF = zeros(grid.Nx, grid.Ny)         # Thermal conductivity of dry soil (W/m/K)
@@ -197,7 +205,7 @@ end
 mutable struct FSM{Tf, Ti, G, P, L, S, D, PH}
     grid::G
     params::P
-    landuse::L
+    surface::L
     state::S
     diag::D
     physics::PH
@@ -205,13 +213,13 @@ end
 
 # Positional constructor used by on_architecture
 function FSM(
-        grid::Grid, params::Parameters{Tf, Ti}, landuse::Landuse, state::State,
+        grid::Grid, params::Parameters{Tf, Ti}, surface::Surface, state::State,
         diag::Diagnostics, physics
     ) where {Tf, Ti}
     return FSM{
-        Tf, Ti, typeof(grid), typeof(params), typeof(landuse), typeof(state),
+        Tf, Ti, typeof(grid), typeof(params), typeof(surface), typeof(state),
         typeof(diag), typeof(physics),
-    }(grid, params, landuse, state, diag, physics)
+    }(grid, params, surface, state, diag, physics)
 end
 
 # No getproperty/setproperty! forwarding: fields are reached explicitly through
@@ -222,7 +230,8 @@ end
 # FSM{Tf, Ti}(; Nx, Ny, schemes...) builds the model on plain CPU Arrays
 function (::Type{FSM{Tf, Ti}})(;
         Nx = 1, Ny = 1,
-        ALBEDO = PrognosticAlbedo{Tf}(Nx, Ny),
+        grid = Grid{Ti, Vector{Tf}}(; Nx = Nx, Ny = Ny),
+        ALBEDO = PrognosticAlbedo{Tf}(grid),
         CANOPY = NoCanopy{Tf}(),
         SUBSTR = SoilSubstrate{Tf}(),
         CONDCT = DensityConductivity{Tf}(),
@@ -235,11 +244,10 @@ function (::Type{FSM{Tf, Ti}})(;
         SNFRAC = PointSnowFraction{Tf}()
     ) where {Tf, Ti}
 
-    grid = Grid{Ti, Vector{Tf}}(; Nx = Nx, Ny = Ny)
     check_layer_thicknesses(grid)
     GT = typeof(grid)
     params = Parameters{Tf, Ti}()
-    landuse = Landuse{GT, Matrix{Tf}, Matrix{Float64}}(; grid = grid)
+    surface = Surface{GT, Matrix{Tf}, Matrix{Float64}}(; grid = grid)
     state = State{GT, Matrix{Tf}, Matrix{Ti}, Array{Tf, 3}}(; grid = grid)
     diag = Diagnostics{GT, Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
     physics = (
@@ -252,7 +260,7 @@ function (::Type{FSM{Tf, Ti}})(;
     all(s -> s isa AbstractParameterization{Tf}, values(physics)) ||
         throw(ArgumentError("physics scheme precision does not match model Tf = $Tf"))
 
-    return FSM(grid, params, landuse, state, diag, physics)
+    return FSM(grid, params, surface, state, diag, physics)
 end
 
 # Immutable so it is `isbits` once Adapt rewrites its array fields to device arrays and can
@@ -301,7 +309,7 @@ end
 # field to the device array type at launch (a no-op on the CPU). Parameters and
 # the physics schemes are isbits and need no adaptor.
 @adapt_structure Grid
-@adapt_structure Landuse
+@adapt_structure Surface
 @adapt_structure State
 @adapt_structure Diagnostics
 @adapt_structure MET

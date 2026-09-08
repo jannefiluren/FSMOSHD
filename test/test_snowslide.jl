@@ -49,7 +49,7 @@ function setup_snowslide_case(; forest = false, tiled = false)
 
         # Terrain descending from north (high i) to south (low i), with a small
         # cross-slope tilt so that diagonal neighbours also receive snow
-        fsm.landuse.dem[i, j] = 1000.0f0 + 50.0f0 * i + 2.0f0 * j
+        fsm.surface.dem[i, j] = 1000.0f0 + 50.0f0 * i + 2.0f0 * j
 
         # Steep in the upper part, flat run-out zone in the lowest rows
         w.slope[i, j] = i >= 4 ? 45.0f0 : 10.0f0
@@ -74,7 +74,7 @@ function setup_snowslide_case(; forest = false, tiled = false)
     end
 
     # Processing order from highest to lowest pixel
-    FlexibleSnowModelOSHD.sort_dem_indices!(w.index_sorted_dem, fsm.landuse.dem)
+    FlexibleSnowModelOSHD.sort_dem_indices!(w.index_sorted_dem, fsm.surface.dem)
 
     return fsm, w
 
@@ -156,7 +156,7 @@ total_swe(fsm, Sice0) = sum(fsm.state.Sice) + sum(fsm.state.Sliq) + sum(Sice0)
         end
 
         # Snow moves downhill: deposits only on pixels with a higher neighbour
-        dem = fsm_j.landuse.dem
+        dem = fsm_j.surface.dem
         for j in 1:Ny, i in 1:Nx
             if Sice0_j[i, j] > 0
                 @test any(
