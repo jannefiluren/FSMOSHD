@@ -9,7 +9,7 @@
 # was not built, so a run never hard-fails on a missing gfortran toolchain.
 function transport_use_fortran(w::SnowTransport, lib::String)
     w.use_fortran || return false
-    if !isfile(joinpath(@__DIR__, "..", "deps", lib * "." * Libdl.dlext))
+    if !isfile(joinpath(@__DIR__, "..", "..", "deps", lib * "." * Libdl.dlext))
         @warn "use_fortran = true but $lib is not built (run Pkg.build with gfortran); " *
             "falling back to the Julia implementation" maxlog = 1
         return false

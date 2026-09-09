@@ -1,5 +1,5 @@
 # Global constant for library path
-const LIBSNOWSLIDE = joinpath(@__DIR__, "..", "deps", "libsnowslide")
+const LIBSNOWSLIDE = joinpath(@__DIR__, "..", "..", "deps", "libsnowslide")
 
 """
     snowslide!(fsm, w, snowdepth0, Sice0, dSWE_slide)

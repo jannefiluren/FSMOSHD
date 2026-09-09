@@ -30,42 +30,57 @@ using KernelAbstractions: @kernel, @index, get_backend
 using StaticArrays: MVector, MMatrix
 import Libdl
 
+# Core: physical constants, precision-parametric structs, architecture, parameter overrides, setup
 include("parameters.jl")
 include("schemes.jl")
 include("types.jl")
 include("architectures.jl")
 include("kernel_utils.jl")
 include("setup.jl")
-include("qsat.jl")
-include("tridiag.jl")
-include("ludcmp.jl")
-include("fresh_snow_density.jl")
-include("snow_compaction.jl")
-include("snow_hydrology.jl")
-include("snow_relayering.jl")
-include("snow_layering.jl")
-include("drive.jl")
-include("canopy.jl")
-include("radiation.jl")
-include("thermal.jl")
-include("surface_exchange_coefficients.jl")
-include("surface_energy_balance.jl")
-include("snow.jl")
-include("soil.jl")
+
+# Numerical utilities (grid-agnostic solvers and math)
+include("numerics/qsat.jl")
+include("numerics/tridiag.jl")
+include("numerics/ludcmp.jl")
+
+# Parameterizations: one AbstractParameterization scheme family per file. Included before the
+# processes, whose kernels dispatch on / call these schemes.
+include("parameterizations/albedo.jl")
+include("parameterizations/conductivity.jl")
+include("parameterizations/canopy.jl")
+include("parameterizations/substrate.jl")
+include("parameterizations/reference_height.jl")
+include("parameterizations/stability.jl")
+include("parameterizations/surface_layer.jl")
+include("parameterizations/fresh_snow_density.jl")
+include("parameterizations/snow_compaction.jl")
+include("parameterizations/snow_hydrology.jl")
+include("parameterizations/snowcoverfraction.jl")
+include("parameterizations/snow_relayering.jl")
+
+# Processes: each defines a launcher foo!(fsm, ...) + its kernel, called from step!
+include("processes/drive.jl")
+include("processes/canopy.jl")
+include("processes/radiation.jl")
+include("processes/thermal.jl")
+include("processes/surface_exchange_coefficients.jl")
+include("processes/surface_energy_balance.jl")
+include("processes/snow.jl")
+include("processes/soil.jl")
 include("step.jl")
-include("snowcoverfraction.jl")
 
 # Snow transport (SnowSlide + SnowTran3D). Standalone, CPU-only operators - NOT part of
 # step!. Both a Fortran (ccall) and a pure-Julia implementation are kept so the two can be
 # cross-validated as the Fortran evolves. The Fortran libraries are built by deps/build.jl
 # (Pkg.build); the ccall wrappers resolve them lazily, so the module loads without them.
-include("transport_types.jl")
-include("transport_setup.jl")
-include("snowslide.jl")
-include("snowslide_julia.jl")
-include("snowtran3d.jl")
-include("snowtran3d_julia.jl")
-include("transport.jl")
+include("transport/transport_types.jl")
+include("transport/transport_setup.jl")
+include("transport/snowslide.jl")
+include("transport/snowslide_julia.jl")
+include("transport/snowtran3d.jl")
+include("transport/snowtran3d_julia.jl")
+include("transport/relayer.jl")
+include("transport/transport.jl")
 
 export FSM, MET, Grid
 export AbstractParameterization, grid_array, check_grid, instantiate

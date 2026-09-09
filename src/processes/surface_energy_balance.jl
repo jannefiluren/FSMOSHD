@@ -1,16 +1,6 @@
 # Surface energy balance
 
 """
-    energy_balance!(canopy, i, j, state, diag, surface, params, meteo, substrate)
-
-Solve the energy balance at cell `(i, j)`, implemented for every `AbstractCanopy`:
-`NoCanopy` solves the surface alone, `OneLayerCanopy` solves the joint surface and canopy
-system. `substrate` caps the surface temperature over bare glacier ice and is
-unused under a canopy.
-"""
-function energy_balance! end
-
-"""
     surface_energy_balance!(fsm, meteo)
 
 Surface energy balance solution, coupled to the canopy where there is one.
@@ -54,6 +44,16 @@ end
 
     end
 end
+
+"""
+    energy_balance!(canopy, i, j, state, diag, surface, params, meteo, substrate)
+
+Solve the energy balance at cell `(i, j)`, implemented for every `AbstractCanopy`:
+`NoCanopy` solves the surface alone, `OneLayerCanopy` solves the joint surface and canopy
+system. `substrate` caps the surface temperature over bare glacier ice and is
+unused under a canopy.
+"""
+function energy_balance! end
 
 # Open and non-forest tiles
 @inline function energy_balance!(::NoCanopy{Tf}, i, j, state, diag, surface, params, meteo, substrate) where {Tf}
