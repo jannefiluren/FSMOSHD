@@ -83,15 +83,15 @@ end
 # Mirrors the configurations of the regression tests: exercises ebalsrf and
 # ebalfor, both snow cover fraction code paths, and the glacier branches
 const configs = [
-    ("open", Dict("tile" => "open", "config" => Dict("SNFRAC" => 0))),
+    ("open", Dict("tile" => "open", "physics" => Dict("snow_fraction" => SeasonalSnowFraction))),
     (
         "forest", Dict(
             "tile" => "forest",
-            "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
+            "physics" => Dict("canopy" => OneLayerCanopy, "snow_fraction" => TanhSnowFraction, "reference_height" => AboveCanopy),
             "params" => Dict("hfsn" => 0.3, "z0_snow" => 0.01),
         ),
     ),
-    ("glacier", Dict("tile" => "glacier", "config" => Dict("SNFRAC" => 0))),
+    ("glacier", Dict("tile" => "glacier", "physics" => Dict("snow_fraction" => SeasonalSnowFraction))),
 ]
 
 # Initial snowpack, set on the CPU structure before moving it to the device
@@ -147,7 +147,7 @@ function apply_forcing!(met, f)
 end
 
 function run_case(arch, landuse, settings, forcing)
-    fsm = setup(FlexibleSnowModelOSHD.CPU(), Tf, landuse, Nx, Ny, settings)
+    fsm = setup(FlexibleSnowModelOSHD.CPU(), Grid(Tf; Nx = Nx, Ny = Ny), landuse, settings)
     init_snowpack!(fsm)
     fsm = on_architecture(arch, fsm)
     met = on_architecture(arch, MET{Tf}(Nx = Nx, Ny = Ny))

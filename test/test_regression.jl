@@ -97,7 +97,7 @@ function run_simulations(settings, Tf = Float32)
     Ny = size(landuse["elevation"]["data"], 2)
     Nt = length(times)
 
-    fsm = setup(Tf, landuse, Nx, Ny, settings)
+    fsm = setup(Grid(Tf; Nx = Nx, Ny = Ny), landuse, settings)
     met = MET{Tf}(Nx = Nx, Ny = Ny)
 
     # Preallocate arrays to store simulation results
@@ -182,16 +182,16 @@ ref_file = joinpath(projdir, "test", "simulation_results.jls")
 settings = [
     Dict(
         "tile" => "open",
-        "config" => Dict("SNFRAC" => 0),
+        "physics" => Dict("snow_fraction" => SeasonalSnowFraction),
     ),
     Dict(
         "tile" => "forest",
-        "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
+        "physics" => Dict("canopy" => OneLayerCanopy, "snow_fraction" => TanhSnowFraction, "reference_height" => AboveCanopy),
         "params" => Dict("hfsn" => 0.3, "z0_snow" => 0.01)
     ),
     Dict(
         "tile" => "glacier",
-        "config" => Dict("SNFRAC" => 0),
+        "physics" => Dict("snow_fraction" => SeasonalSnowFraction),
     ),
 ]
 

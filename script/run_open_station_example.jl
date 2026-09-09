@@ -20,10 +20,10 @@ function setup_example()
     settings = Dict("tile" => "open")
 
     # create fsm struct
-    fsm = setup(Float32, Int32, lus, 1, 1, settings)
+    fsm = setup(Grid(Float32; Nx = 1, Ny = 1), lus, settings)
 
     # define meteo data struct
-    met = MET{Float32, Int32}()
+    met = MET{Float32}()
 
     # read meteo file
     df_meteo = CSV.read(joinpath(path, "../data/input_SLF_5WJ.txt"), DataFrame)

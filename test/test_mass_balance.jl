@@ -6,7 +6,7 @@ using Test
 
 const path = dirname(@__FILE__)
 
-function setup_open_example(SNFRAC)
+function setup_open_example(snow_fraction)
 
     # set landuse properties
     lus = Dict()
@@ -18,10 +18,10 @@ function setup_open_example(SNFRAC)
     lus["prec_multi"] = Dict("data" => [1.0;;])
 
     # define custom settings
-    settings = Dict("tile" => "open", "config" => Dict("SNFRAC" => SNFRAC))
+    settings = Dict("tile" => "open", "physics" => Dict("snow_fraction" => snow_fraction))
 
     # create fsm struct
-    fsm = setup(Float32, lus, 1, 1, settings)
+    fsm = setup(Grid(Float32; Nx = 1, Ny = 1), lus, settings)
 
     # define meteo data struct
     met = MET{Float32}()
@@ -33,7 +33,7 @@ function setup_open_example(SNFRAC)
 
 end
 
-function setup_forest_example(SNFRAC)
+function setup_forest_example(snow_fraction)
 
     # set landuse properties
     lus = Dict()
@@ -55,17 +55,16 @@ function setup_forest_example(SNFRAC)
     # define custom settings
     settings = Dict(
         "tile" => "forest",
-        "config" => Dict(
-            "EXCHNG" => 2,
-            "ZOFFST" => 1,
-            "SNFRAC" => SNFRAC,
+        "physics" => Dict(
+            "reference_height" => AboveCanopy,
+            "snow_fraction" => snow_fraction,
             # No preferential deposition in canopy gaps
-            "CANMOD" => OneLayerCanopy{Float32}(psr = 0, psf = 1),
+            "canopy" => OneLayerCanopy{Float32}(psr = 0, psf = 1),
         ),
     )
 
     # create fsm struct
-    fsm = setup(Float32, lus, 1, 1, settings)
+    fsm = setup(Grid(Float32; Nx = 1, Ny = 1), lus, settings)
 
     # define meteo data struct
     met = MET{Float32}()
@@ -161,15 +160,15 @@ end
 @testset "Mass balance tests" begin
 
     # Test open tile for all snow cover fraction schemes
-    for SNFRAC in 0:4
-        fsm, met, df_meteo = setup_open_example(SNFRAC)
+    for snow_fraction in (SeasonalSnowFraction, HelbigSnowFraction, HelbigMaxSnowFraction, PointSnowFraction, TanhSnowFraction)
+        fsm, met, df_meteo = setup_open_example(snow_fraction)
         results = run_fsm(fsm, met, df_meteo)
         test_results(results)
     end
 
     # Test forest tile for all snow cover fraction schemes
-    for SNFRAC in 0:4
-        fsm, met, df_meteo = setup_forest_example(SNFRAC)
+    for snow_fraction in (SeasonalSnowFraction, HelbigSnowFraction, HelbigMaxSnowFraction, PointSnowFraction, TanhSnowFraction)
+        fsm, met, df_meteo = setup_forest_example(snow_fraction)
         results = run_fsm(fsm, met, df_meteo)
         test_results(results)
     end

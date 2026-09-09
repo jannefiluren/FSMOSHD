@@ -36,55 +36,46 @@ end
 
 # The three tile configurations, matching test/test_regression.jl
 const TILE_SETTINGS = [
-    ("open", Dict("tile" => "open", "config" => Dict("SNFRAC" => 0))),
+    ("open", Dict("tile" => "open", "physics" => Dict("snow_fraction" => SeasonalSnowFraction))),
     (
         "forest", Dict(
             "tile" => "forest",
-            "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
+            "physics" => Dict("canopy" => OneLayerCanopy, "snow_fraction" => TanhSnowFraction, "reference_height" => AboveCanopy),
             "params" => Dict("hfsn" => 0.3, "z0_snow" => 0.01),
         ),
     ),
-    ("glacier", Dict("tile" => "glacier", "config" => Dict("SNFRAC" => 0))),
+    ("glacier", Dict("tile" => "glacier", "physics" => Dict("snow_fraction" => SeasonalSnowFraction))),
 ]
 
-# Per-flag baseline matrix. Every configuration flag that the type-domain refactor will convert,
-# at every value it accepts, run over all three tiles. A converted parameterization must reproduce
-# the rows for its old integer value bit-for-bit.
-#
-# Generated from a *pinned* commit (6c4dda5) rather than from the tree preceding each conversion,
-# so the target cannot drift stage by stage.
+# Per-scheme baseline matrix: every physics slot, at each concrete scheme it accepts, run over all
+# three tiles. Generated from a *pinned* commit (6c4dda5) so the target cannot drift.
 #
 # SNTRAN / SNSLID are absent: enabling them needs a 'slope' field that data/domain_data.nc does
-# not carry, so transport cannot be baselined with the current fixture at all.
-#
-# NOTE the `Vector{Any}` values: written as a plain literal, Julia promotes the element type across
-# all the pairs, so `[false, true]` silently becomes `[0, 1]`. That matters because `setfield!` on a
-# `Bool` field *rejects* an integer ("non-boolean (Int32) used in boolean context") rather than
-# converting it, so HN_ON must be fed genuine Bools.
-const FLAG_MATRIX = Pair{String, Vector{Any}}[
-    "ALBEDO" => [0, 1, 2],
-    "CONDCT" => [0, 1],
-    "DENSTY" => [1, 2, 3],   # constant-density (0) option removed in the AbstractCompaction refactor
-    "HYDROL" => [0, 1, 2],
-    "SNFRAC" => [0, 1, 2, 3, 4],
-    "EXCHNG" => [0, 1, 2],
-    "ZOFFST" => [0, 1],
-    "FSNRHO" => [0, 1, 2],
-    "SNOLAY" => [0, 1],
-    "HN_ON" => [false, true],
+# not carry, so transport cannot be baselined with the current fixture at all. The surface-layer
+# stability (was EXCHNG) is tile-derived, and the new-snow floor (was HN_ON, now the `Tsnow_min`
+# parameter) is exercised by the OSHDinternal new-snow tests, so neither is swept here.
+const SCHEME_MATRIX = Pair{String, Vector{Any}}[
+    "snow_albedo" => [DiagnosticAlbedo, DecayAlbedo, PrognosticAlbedo],
+    "conductivity" => [FixedConductivity, DensityConductivity],
+    "compaction" => [AgeCompaction, OverburdenCompaction, CrocusCompaction],
+    "hydrology" => [FreeDrainingHydrology, BucketHydrology, DensityBucketHydrology],
+    "snow_fraction" => [SeasonalSnowFraction, HelbigSnowFraction, HelbigMaxSnowFraction, PointSnowFraction, TanhSnowFraction],
+    "reference_height" => [AboveGround, AboveCanopy],
+    "new_snow_density" => [FixedFreshSnowDensity, ClimateFreshSnowDensity, ElevationFreshSnowDensity],
+    "layering" => [OriginalLayering, DensityLayering],
 ]
 
 """
     generate_matrix(path)
 
-Write a per-flag baseline matrix to `path`: each flag in [`FLAG_MATRIX`] at each of its values,
+Write a per-flag baseline matrix to `path`: each flag in [`SCHEME_MATRIX`] at each of its values,
 over all three tiles. A configuration that raises is recorded as an ERROR row rather than
 aborting the run, since an unsupported combination is itself worth knowing about.
 """
 function generate_matrix(path, only_flags = String[])
 
-    selected = isempty(only_flags) ? FLAG_MATRIX :
-        [pr for pr in FLAG_MATRIX if first(pr) in only_flags]
+    selected = isempty(only_flags) ? SCHEME_MATRIX :
+        [pr for pr in SCHEME_MATRIX if first(pr) in only_flags]
     isempty(selected) && error("no flags matched $only_flags")
 
     commit = try
@@ -109,10 +100,8 @@ function generate_matrix(path, only_flags = String[])
             for (name, base) in TILE_SETTINGS
                 done += 1
                 settings = deepcopy(base)
-                # `Dict("SNFRAC" => 0)` is a Dict{String,Int64}; assigning a Bool into it would
-                # convert to 0/1, and setfield! then rejects an integer for a Bool field.
-                settings["config"] = Dict{String, Any}(settings["config"])
-                settings["config"][flag] = value
+                settings["physics"] = Dict{String, Any}(get(settings, "physics", Dict()))
+                settings["physics"][flag] = value
                 print(stderr, "[", done, "/", total, "] ", label, " ", name, "\n")
                 try
                     results = run_simulations(settings, Float32)

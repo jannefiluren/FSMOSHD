@@ -248,7 +248,7 @@ longwave radiation for open terrain.
 """
 function radiation!(fsm::FSM{Tf}, meteo::MET{Tf}, t) where {Tf <: Real}
 
-    (; CANOPY, ALBEDO) = fsm.physics
+    (; canopy, snow_albedo) = fsm.physics
 
     summer_decay = Dates.value(Month(t)) > 4 && Dates.value(Month(t)) < 10
 
@@ -256,7 +256,7 @@ function radiation!(fsm::FSM{Tf}, meteo::MET{Tf}, t) where {Tf <: Real}
     kernel! = radiation_kernel!(backend)
     kernel!(
         fsm.state, fsm.diag, fsm.surface, fsm.params, meteo,
-        CANOPY, ALBEDO, summer_decay;
+        canopy, snow_albedo, summer_decay;
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -266,8 +266,8 @@ end
 
 @kernel function radiation_kernel!(
         state, diag, surface, params::Parameters{Tf}, meteo,
-        CANOPY::AbstractCanopy{Tf},
-        ALBEDO::AbstractAlbedo{Tf}, summer_decay::Bool,
+        canopy::AbstractCanopy{Tf},
+        snow_albedo::AbstractAlbedo{Tf}, summer_decay::Bool,
     ) where {Tf}
 
     i, j = @index(Global, NTuple)
@@ -279,7 +279,7 @@ end
     if (tilefrac[i, j] >= tthresh)
 
         # Snow albedo
-        snow_albedo!(ALBEDO, i, j, state, surface, meteo, params, summer_decay)
+        snow_albedo!(snow_albedo, i, j, state, surface, meteo, params, summer_decay)
 
         # Bare ground shows through once the snow has gone
         if (fsnow[i, j] <= eps(Tf))
@@ -287,8 +287,8 @@ end
         end
 
         # Surface albedo, shortwave transmission and thermal emission from surroundings
-        solar_radiation!(CANOPY, i, j, state, diag, surface, meteo)
-        thermal_radiation!(CANOPY, i, j, diag, surface, meteo)
+        solar_radiation!(canopy, i, j, state, diag, surface, meteo)
+        thermal_radiation!(canopy, i, j, diag, surface, meteo)
 
     end
 end

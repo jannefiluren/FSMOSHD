@@ -7,8 +7,8 @@ KernelAbstractions GPU backend, e.g. with CUDA.jl loaded:
 
     using CUDA
     arch = GPU(CUDABackend())
-    fsm = setup(arch, Float32, Int32, surface, Nx, Ny, settings)
-    met = on_architecture(arch, MET{Float32, Int32}(Nx = Nx, Ny = Ny))
+    fsm = setup(arch, Grid(Float32; Nx = Nx, Ny = Ny), surface, settings)
+    met = on_architecture(arch, MET{Float32}(Nx = Nx, Ny = Ny))
 
 Physics routines pick their compute backend from the arrays themselves (via
 `KernelAbstractions.get_backend`), so no architecture object needs to be

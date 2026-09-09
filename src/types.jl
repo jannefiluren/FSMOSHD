@@ -237,17 +237,17 @@ end
 # from the grid (`eltype(grid)`), so the grid is the single source of truth for size and
 # precision; integer counts/indices are plain `Int`.
 function FSM(grid::Grid{Tf};
-        ALBEDO = PrognosticAlbedo{Tf}(grid),
-        CANOPY = NoCanopy{Tf}(),
-        SUBSTR = SoilSubstrate{Tf}(),
-        CONDCT = DensityConductivity{Tf}(),
+        snow_albedo = PrognosticAlbedo{Tf}(grid),
+        canopy = NoCanopy{Tf}(),
+        substrate = SoilSubstrate{Tf}(),
+        conductivity = DensityConductivity{Tf}(),
         reference_height = AboveGround{Tf}(),
         surface_layer = OpenSurfaceLayer{Tf}(; stability = LouisStabilityCorrection{Tf}()),
-        FSNRHO = ElevationFreshSnowDensity{Tf}(),
-        COMPACT = CrocusCompaction{Tf}(),
-        HYDROL = DensityBucketHydrology{Tf}(),
-        LAYERING = OriginalLayering{Tf}(),
-        SNFRAC = PointSnowFraction{Tf}()
+        new_snow_density = ElevationFreshSnowDensity{Tf}(),
+        compaction = CrocusCompaction{Tf}(),
+        hydrology = DensityBucketHydrology{Tf}(),
+        layering = OriginalLayering{Tf}(),
+        snow_fraction = PointSnowFraction{Tf}()
     ) where {Tf}
 
     check_layer_thicknesses(grid)
@@ -256,18 +256,18 @@ function FSM(grid::Grid{Tf};
     surface = Surface{GT, Matrix{Tf}, Matrix{Float64}}(; grid = grid)
     state = State{GT, Matrix{Tf}, Matrix{Int}, Array{Tf, 3}}(; grid = grid)
     diag = Diagnostics{GT, Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
-    physics = (
-        ALBEDO = ALBEDO,
-        CANOPY = CANOPY,
-        SUBSTR = SUBSTR,
-        CONDCT = CONDCT,
-        reference_height = reference_height,
-        surface_layer = surface_layer,
-        FSNRHO = FSNRHO,
-        COMPACT = COMPACT,
-        HYDROL = HYDROL,
-        LAYERING = LAYERING,
-        SNFRAC = SNFRAC,
+    physics = (;
+        snow_albedo,
+        canopy,
+        substrate,
+        conductivity,
+        reference_height,
+        surface_layer,
+        new_snow_density,
+        compaction,
+        hydrology,
+        layering,
+        snow_fraction,
     )
 
     all(s -> s isa AbstractParameterization{Tf}, values(physics)) ||

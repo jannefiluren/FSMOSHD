@@ -32,8 +32,8 @@ function make_transport_step_case(; wind = false, slide = false)
         "prec_multi" => Dict("data" => ones(Nx, Ny)),
     )
 
-    settings = Dict("tile" => "open", "config" => Dict("SNFRAC" => 0))
-    fsm = setup(Float32, lus, Nx, Ny, settings)
+    settings = Dict("tile" => "open", "physics" => Dict("snow_fraction" => SeasonalSnowFraction))
+    fsm = setup(Grid(Float32; Nx = Nx, Ny = Ny), lus, settings)
     w = setup_transport(fsm, lus; wind = wind, slide = slide, use_fortran = false)
 
     # Seed a snowpack (0-2 layers per cell, densities within [rhos_min, rhos_max])

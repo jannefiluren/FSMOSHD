@@ -25,13 +25,13 @@ function setup_example()
     lus["vfhp"] = Dict("data" => [0.5;;]) # Hemispherical sky-view fraction including canopy
 
     # define custom settings
-    settings = Dict("tile" => "forest", "config" => Dict("EXCHNG" => 2, "ZOFFST" => 1))
+    settings = Dict("tile" => "forest", "physics" => Dict("reference_height" => AboveCanopy))
 
     # create fsm struct
-    fsm = setup(Float32, Int32, lus, 1, 1, settings)
+    fsm = setup(Grid(Float32; Nx = 1, Ny = 1), lus, settings)
 
     # define meteo data struct
-    met = MET{Float32, Int32}()
+    met = MET{Float32}()
 
     # read meteo file
     df_meteo = CSV.read(joinpath(path, "../data/input_SLF_5WJ.txt"), DataFrame)

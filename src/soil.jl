@@ -160,14 +160,14 @@ Soil thermal processes: the temperature of the soil or glacier ice column.
 """
 function soil!(fsm::FSM{Tf}) where {Tf <: Real}
 
-    (; SUBSTR) = fsm.physics
+    (; substrate) = fsm.physics
     (; Nsoil) = fsm.grid
 
     backend = get_backend(fsm.state.Tsoil)
     kernel! = soil_kernel!(backend)
     kernel!(
         fsm.state, fsm.diag, fsm.surface, fsm.grid, fsm.params,
-        SUBSTR, Val(Int(Nsoil));
+        substrate, Val(Int(Nsoil));
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -177,7 +177,7 @@ end
 
 @kernel inbounds = true function soil_kernel!(
         state, diag, surface, grid, params::Parameters{Tf},
-        SUBSTR::AbstractSubstrate{Tf}, ::Val{Nsoil},
+        substrate::AbstractSubstrate{Tf}, ::Val{Nsoil},
     ) where {Tf, Nsoil}
 
     i, j = @index(Global, NTuple)
@@ -188,7 +188,7 @@ end
     if (tilefrac[i, j] >= tthresh)
 
         soil_temperature!(i, j, state, diag, grid, params, Val(Nsoil))
-        cap_soil_temperature!(SUBSTR, i, j, state, grid)
+        cap_soil_temperature!(substrate, i, j, state, grid)
 
     end
 end

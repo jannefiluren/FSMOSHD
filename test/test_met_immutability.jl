@@ -23,7 +23,7 @@ function setup_immutability_example(tile)
         lus["hcan"] = Dict("data" => [20;;])
         lus["lai"] = Dict("data" => [2.5;;])
         lus["vfhp"] = Dict("data" => [0.5;;])
-        settings = Dict("tile" => "forest", "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "ZOFFST" => 1))
+        settings = Dict("tile" => "forest", "physics" => Dict("canopy" => OneLayerCanopy, "reference_height" => AboveCanopy))
     else
         if tile == "glacier"
             lus["glacier"] = Dict("data" => [1;;])
@@ -31,7 +31,7 @@ function setup_immutability_example(tile)
         settings = Dict("tile" => tile)
     end
 
-    fsm = setup(Float32, lus, 1, 1, settings)
+    fsm = setup(Grid(Float32; Nx = 1, Ny = 1), lus, settings)
     met = MET{Float32}()
 
     # Wind speed below the 0.1 m/s minimum to exercise the clamping in drive!,

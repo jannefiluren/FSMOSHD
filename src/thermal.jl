@@ -85,13 +85,13 @@ Thermal property calculations for snow and soil layers.
 """
 function thermal!(fsm::FSM{Tf}) where {Tf <: Real}
 
-    (; CONDCT, SUBSTR) = fsm.physics
+    (; conductivity, substrate) = fsm.physics
 
     backend = get_backend(fsm.diag.gs1)
     kernel! = thermal_kernel!(backend)
     kernel!(
         fsm.state, fsm.diag, fsm.surface, fsm.grid, fsm.params,
-        CONDCT, SUBSTR;
+        conductivity, substrate;
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -101,7 +101,7 @@ end
 
 @kernel function thermal_kernel!(
         state, diag, surface, grid, params::Parameters{Tf},
-        CONDCT::AbstractConductivity{Tf}, SUBSTR::AbstractSubstrate{Tf},
+        conductivity::AbstractConductivity{Tf}, substrate::AbstractSubstrate{Tf},
     ) where {Tf}
 
     i, j = @index(Global, NTuple)
@@ -113,8 +113,8 @@ end
 
     if (tilefrac[i, j] >= tthresh)
 
-        snow_conductivity!(CONDCT, i, j, state, diag, params)
-        soil_properties!(SUBSTR, i, j, state, diag, surface, grid, params)
+        snow_conductivity!(conductivity, i, j, state, diag, params)
+        soil_properties!(substrate, i, j, state, diag, surface, grid, params)
         surface_layer_properties!(i, j, state, diag, grid)
 
         Tveg0[i, j] = Tveg[i, j]

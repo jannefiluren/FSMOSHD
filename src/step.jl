@@ -23,7 +23,7 @@ This function encapsulates the standard model execution sequence:
 
 # Example
 ```julia
-fsm = setup(Float32, surface, Nx, Ny, Dict("tile" => "forest"))
+fsm = setup(Grid(Float32; Nx = Nx, Ny = Ny), surface, Dict("tile" => "forest"))
 met = MET{Float32}(Nx = Nx, Ny = Ny)
 step!(fsm, met, DateTime(2023, 12, 1, 12))
 ```

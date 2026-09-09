@@ -82,22 +82,6 @@ end
 end
 
 """
-    apply_config!(fsm, config)
-
-Apply each configuration flag (a `Parameters` scalar) onto `fsm.params`. `setup` consumes
-the scheme-selecting flags before calling this, so anything left that `Parameters` does not
-name is a typo and throws.
-"""
-function apply_config!(fsm, config)
-    for (key, value) in config
-        sym = Symbol(key)
-        hasfield(typeof(fsm.params), sym) || throw(ArgumentError("unknown config flag \"$key\""))
-        set_param!(fsm, sym, value)
-    end
-    return fsm
-end
-
-"""
     apply_params!(fsm, params)
 
 Apply parameter overrides: a `Parameters` scalar is reconstructed onto `fsm.params`;

@@ -19,8 +19,8 @@ function snow!(fsm::FSM{Tf}, meteo::MET{Tf}, t) where {Tf <: Real}
     kernel! = snow_kernel!(backend)
     kernel!(
         fsm.state, fsm.diag, fsm.surface, fsm.grid, fsm.params, meteo,
-        fsm.physics.FSNRHO, fsm.physics.COMPACT, fsm.physics.HYDROL, fsm.physics.SNFRAC,
-        fsm.physics.LAYERING, update_hist, Val(Int(Nsmax));
+        fsm.physics.new_snow_density, fsm.physics.compaction, fsm.physics.hydrology, fsm.physics.snow_fraction,
+        fsm.physics.layering, update_hist, Val(Int(Nsmax));
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -31,9 +31,9 @@ end
 
 @kernel inbounds = true function snow_kernel!(
         state, diag, surface, grid, params::Parameters{Tf}, meteo,
-        FSNRHO::AbstractFreshSnowDensity{Tf}, COMPACT::AbstractCompaction{Tf},
-        HYDROL::AbstractHydrology{Tf}, SNFRAC::AbstractSnowFraction{Tf},
-        LAYERING::AbstractLayering{Tf}, update_hist::Bool, ::Val{Nsmax},
+        new_snow_density::AbstractFreshSnowDensity{Tf}, compaction::AbstractCompaction{Tf},
+        hydrology::AbstractHydrology{Tf}, snow_fraction::AbstractSnowFraction{Tf},
+        layering::AbstractLayering{Tf}, update_hist::Bool, ::Val{Nsmax},
     ) where {Tf, Nsmax}
 
     i, j = @index(Global, NTuple)
@@ -80,7 +80,7 @@ end
 
         if (fsnow[i, j] > eps(Tf)) # This condition should be equivalent to Nsnow[i,j] > 0
 
-            fsnow_thres = melt_snow_fraction(SNFRAC, i, j, state)
+            fsnow_thres = melt_snow_fraction(snow_fraction, i, j, state)
 
             # Heat conduction
             for k in 1:Nsnow[i, j]
@@ -164,10 +164,10 @@ end
             end
 
             # Snow hydraulics
-            snow_hydrology!(HYDROL, i, j, state, diag, params)
+            snow_hydrology!(hydrology, i, j, state, diag, params)
 
             # Snow compaction
-            compact_snow!(COMPACT, i, j, state, params)
+            compact_snow!(compaction, i, j, state, params)
 
         end  # Existing snowpack
 
@@ -193,7 +193,7 @@ end
             dSice = Tf(trunc(Int, dSice * Tf(1000) + Tf(0.5))) / Tf(1000)
         end
 
-        rhonew = fresh_snow_density(FSNRHO, rho0, rhob, rhoc, rhof, rhos_min, Ta[i, j], Uaeff[i, j], dem[i, j])
+        rhonew = fresh_snow_density(new_snow_density, rho0, rhob, rhoc, rhof, rhos_min, Ta[i, j], Uaeff[i, j], dem[i, j])
 
         Sice0[i, j] = dSice
         snowdepth0[i, j] = dSice / rhonew
@@ -212,7 +212,7 @@ end
 
         # Accumulation of new snow, snow cover fraction and relayering
         snow_layering!(
-            LAYERING, SNFRAC, i, j, state, diag, surface, grid, params, meteo,
+            layering, snow_fraction, i, j, state, diag, surface, grid, params, meteo,
             update_hist, Val(Nsmax)
         )
 

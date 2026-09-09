@@ -9,7 +9,7 @@ history state and is resolved by the caller, since `Dates` cannot run in a kerne
 # @propagate_inbounds: this is the link that carries the kernel's inbounds context
 # down to relayer_snow!, whose MVector scratch would otherwise go to the heap
 Base.@propagate_inbounds function snow_layering!(
-        LAYERING::AbstractLayering{Tf}, SNFRAC::AbstractSnowFraction{Tf},
+        layering::AbstractLayering{Tf}, snow_fraction::AbstractSnowFraction{Tf},
         i, j, state, diag, surface, grid, params, meteo, update_hist::Bool, ::Val{Nsmax},
     ) where {Tf, Nsmax}
 
@@ -41,7 +41,7 @@ Base.@propagate_inbounds function snow_layering!(
         Nsnow[i, j] = Nsnow[i, j] - 1
     end
 
-    if LAYERING isa OriginalLayering
+    if layering isa OriginalLayering
         Sice[1, i, j] = Sice[1, i, j] + Sice0[i, j]
     end
     snowdepth = column_sum(Ds, i, j) * fsnow[i, j] + snowdepth0[i, j]
@@ -50,19 +50,19 @@ Base.@propagate_inbounds function snow_layering!(
     fold = fsnow[i, j]
     # Updated Fractional Snow-Covered Area
     SWEtmp = column_sum(Sice, i, j) + column_sum(Sliq, i, j)
-    if LAYERING isa DensityLayering
+    if layering isa DensityLayering
         SWEtmp = SWEtmp + Sice0[i, j]
     end
 
     snowcoverfraction_point!(
-        SNFRAC, state, surface, snowdepth, SWEtmp, hfsn, i, j, update_hist
+        snow_fraction, state, surface, snowdepth, SWEtmp, hfsn, i, j, update_hist
     )
 
     # Rescale Ds with new snow cover fraction
     if fsnow[i, j] > eps(Tf)
         Ds0[i, j] = snowdepth0[i, j] / fsnow[i, j]
         # Update surface layer thickness based on new fsnow
-        if LAYERING isa OriginalLayering
+        if layering isa OriginalLayering
             Ds[1, i, j] = Ds[1, i, j] * fold / fsnow[i, j] + Ds0[i, j]
         else
             Ds[1, i, j] = Ds[1, i, j] * fold / fsnow[i, j]
@@ -87,7 +87,7 @@ Base.@propagate_inbounds function snow_layering!(
     Tsnow0 = min(Ta[i, j], Tm)
     Tsnow0 = max(Tsnow0, Tsnow_min)
 
-    relayer_snow!(LAYERING, i, j, state, diag, grid, params, snowdepth, Tsnow0, Val(Nsmax))
+    relayer_snow!(layering, i, j, state, diag, grid, params, snowdepth, Tsnow0, Val(Nsmax))
 
     return nothing
 end
@@ -109,7 +109,7 @@ function relayer!(fsm::FSM{Tf}, met::MET{Tf}, t; update_hist::Bool = false) wher
     kernel! = relayer_kernel!(backend)
     kernel!(
         fsm.state, fsm.diag, fsm.surface, fsm.grid, fsm.params, met,
-        fsm.physics.LAYERING, fsm.physics.SNFRAC, update_hist, Val(Int(Nsmax));
+        fsm.physics.layering, fsm.physics.snow_fraction, update_hist, Val(Int(Nsmax));
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -119,7 +119,7 @@ end
 
 @kernel inbounds = true function relayer_kernel!(
         state, diag, surface, grid, params::Parameters{Tf}, meteo,
-        LAYERING::AbstractLayering{Tf}, SNFRAC::AbstractSnowFraction{Tf},
+        layering::AbstractLayering{Tf}, snow_fraction::AbstractSnowFraction{Tf},
         update_hist::Bool, ::Val{Nsmax},
     ) where {Tf, Nsmax}
 
@@ -130,7 +130,7 @@ end
 
     if (tilefrac[i, j] >= tthresh)
         snow_layering!(
-            LAYERING, SNFRAC, i, j, state, diag, surface, grid, params, meteo,
+            layering, snow_fraction, i, j, state, diag, surface, grid, params, meteo,
             update_hist, Val(Nsmax)
         )
     end

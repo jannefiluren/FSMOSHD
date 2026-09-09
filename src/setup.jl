@@ -1,161 +1,95 @@
 """
-    setup([arch], Tf, landuse, Nx, Ny, settings)
+    setup([arch], grid, landuse; tile, physics = Dict(), params = Dict())
 
-Initialize the FSM snow model with specified configuration and domain properties.
+Initialize the FSM snow model on `grid` for a landuse domain.
 
-Creates and configures the FSM model state structure with landuse data, model parameters,
-and domain dimensions. Sets up soil properties, surface characteristics, and applies
-configuration-specific settings for different surface types and model behaviors.
+Builds and configures the model state, selecting physics parameterizations from `physics`
+(falling back to defaults) and applying `params` overrides. Float precision and domain size are
+taken from `grid` (`eltype(grid)`, `grid.Nx`, `grid.Ny`).
 
 # Arguments
-- `arch::AbstractArchitecture`: Architecture the model arrays live on
-  (optional, default `CPU()`); pass e.g. `GPU(CUDABackend())` for GPU runs
-- `Tf`: Floating-point precision type (typically Float32 or Float64)
-- `landuse::Dict`: Landuse data dictionary with topographic and surface properties
-- `Nx::Int, Ny::Int`: Model domain dimensions
-- `settings::Dict`: Configuration dictionary containing:
-  - `"tile"`: Surface tile type ("open", "forest", "glacier")
-  - `"config"` (optional): Model configuration flags (CANMOD, SNFRAC, EXCHNG, ZOFFST, etc.)
-  - `"params"` (optional): Parameter overrides (hfsn etc.)
+- `arch::AbstractArchitecture`: architecture the model arrays live on (optional, default `CPU()`);
+  pass e.g. `GPU(CUDABackend())` for GPU runs.
+- `grid::Grid`: model grid, carrying float precision and `Nx`/`Ny`.
+- `landuse::Dict`: landuse data with topographic and surface properties.
+
+# Keyword arguments
+- `tile`: surface tile type (`"open"`, `"forest"`, `"glacier"`).
+- `physics::Dict` (optional): scheme selection, mapping a physics name to a scheme type or
+  instance, e.g. `Dict("snow_fraction" => TanhSnowFraction, "canopy" => OneLayerCanopy)`. Keys:
+  `snow_albedo`, `canopy`, `substrate`, `conductivity`, `compaction`, `hydrology`,
+  `new_snow_density`, `layering`, `snow_fraction`, `reference_height`, `surface_layer`.
+  Unspecified schemes use defaults; `canopy`/`surface_layer`/`substrate` default from `tile`.
+- `params::Dict` (optional): parameter overrides routed by field name to `Parameters`, `Surface`,
+  or the selected scheme (e.g. `hfsn`, `z0_snow`, `adm`, `adc`).
 
 # Returns
-- `FSM`: Initialized model state structure ready for simulation
+- `FSM`: initialized model state ready for simulation.
 """
 function setup end
 
-function setup(Tf, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
-    return setup(CPU(), Tf, landuse, Nx, Ny, settings)
+function setup(grid::Grid, landuse::Dict; kwargs...)
+    return setup(CPU(), grid, landuse; kwargs...)
 end
 
-"""
-    build_scheme_from_flag(process, requested, Tf, grid, params)
-
-Build the parameterization a configuration entry asks for. `requested` is either an integer
-flag - translated to a scheme type through the table below, which is the FSM2oshd naming - or
-a scheme type/instance, which `build_scheme` takes unchanged.
-
-The integer-flag layer exists to keep `config` aligned with OSHDinternal while the two are
-tested against each other; it is meant to go away once `config` names scheme types directly.
-"""
-function build_scheme_from_flag(process, requested, Tf, grid, params)
-
-    requested isa Number || return build_scheme(Tf, requested, grid, params)
-
-    lookup = Dict(
-        "ALBEDO" => Dict(
-            0 => DiagnosticAlbedo,
-            1 => DecayAlbedo,
-            2 => PrognosticAlbedo,
-            ),
-        "CANMOD" => Dict(
-            0 => NoCanopy,
-            1 => OneLayerCanopy,
-            ),
-        "CONDCT" => Dict(
-            0 => FixedConductivity,
-            1 => DensityConductivity,
-            ),
-        "DENSTY" => Dict(
-            1 => AgeCompaction,
-            2 => OverburdenCompaction,
-            3 => CrocusCompaction,
-            ),
-        "EXCHNG" => Dict(
-            0 => NoStabilityCorrection,
-            1 => LouisStabilityCorrection,
-            ),
-        "HYDROL" => Dict(
-            0 => FreeDrainingHydrology,
-            1 => BucketHydrology,
-            2 => DensityBucketHydrology,
-            ),
-        "SNFRAC" => Dict(
-            0 => SeasonalSnowFraction,
-            1 => HelbigSnowFraction,
-            2 => HelbigMaxSnowFraction,
-            3 => PointSnowFraction,
-            4 => TanhSnowFraction,
-            ),
-        "ZOFFST" => Dict(
-            0 => AboveGround,
-            1 => AboveCanopy,
-            ),
-        "FSNRHO" => Dict(
-            0 => FixedFreshSnowDensity,
-            1 => ClimateFreshSnowDensity,
-            2 => ElevationFreshSnowDensity,
-            ),
-        "SNOLAY" => Dict(
-            0 => OriginalLayering,
-            1 => DensityLayering,
-            ),
-        )
-
-    flags = lookup[process]
-    flag = Int(requested)
-    haskey(flags, flag) ||
-        error("$process=$flag is not supported (use $(join(sort!(collect(keys(flags))), ", ")))")
-
-    return build_scheme(Tf, flags[flag], grid, params)
-
+# Convenience: a settings dict with "tile" (required) and optional "physics"/"params" keys.
+function setup(arch::AbstractArchitecture, grid::Grid, landuse::Dict, settings::AbstractDict)
+    return setup(
+        arch, grid, landuse;
+        tile = settings["tile"],
+        physics = get(settings, "physics", Dict()),
+        params = get(settings, "params", Dict()),
+    )
 end
 
-function setup(arch::AbstractArchitecture, Tf, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
+setup(grid::Grid, landuse::Dict, settings::AbstractDict) = setup(CPU(), grid, landuse, settings)
 
+const PHYSICS_KEYS = (
+    "snow_albedo", "canopy", "substrate", "conductivity", "compaction", "hydrology",
+    "new_snow_density", "layering", "snow_fraction", "reference_height", "surface_layer",
+)
+
+function setup(
+        arch::AbstractArchitecture, grid::Grid, landuse::Dict;
+        tile, physics::AbstractDict = Dict(), params::AbstractDict = Dict(),
+    )
+
+    Tf = eltype(grid)
+    Nx, Ny = grid.Nx, grid.Ny
     @unpack_constants(Tf)
 
-    config = copy(get(settings, "config", Dict()))
-    params = copy(get(settings, "params", Dict()))
+    # build_scheme / apply_params! consume entries in place
+    params = copy(params)
 
-    grid = Grid(Tf; Nx = Nx, Ny = Ny)
-
-    tile = settings["tile"]
     tile in ("open", "forest", "glacier") || error("tile requires open, forest or glacier (got tile = $tile)")
 
-    # Default configuration
-    ALBEDO = pop!(config, "ALBEDO", 2)
-    CANMOD = pop!(config, "CANMOD", 0)
-    CONDCT = pop!(config, "CONDCT", 1)
-    DENSTY = pop!(config, "DENSTY", 3)
-    EXCHNG = pop!(config, "EXCHNG", 1)
-    HYDROL = pop!(config, "HYDROL", 2)
-    SNFRAC = pop!(config, "SNFRAC", 3)
-    ZOFFST = pop!(config, "ZOFFST", 0)
-    FSNRHO = pop!(config, "FSNRHO", 2)
-    SNOLAY = pop!(config, "SNOLAY", 0)
-
-    canopy = build_scheme_from_flag("CANMOD", CANMOD, Tf, grid, params)
-
-    # Validate combinations of configurations
-    if tile == "forest"
-        canopy isa OneLayerCanopy || error("forest tile requires CANMOD == 1 (got CANMOD = $CANMOD)")
-        EXCHNG == 2 || error("forest tile requires EXCHNG == 2 (got EXCHNG = $EXCHNG)")
-    else
-        EXCHNG in (0, 1) || error("open/glacier tile requires EXCHNG 0 or 1 (got EXCHNG = $EXCHNG)")
+    for key in keys(physics)
+        key in PHYSICS_KEYS || throw(ArgumentError("unknown physics key \"$key\" (known: $(join(PHYSICS_KEYS, ", ")))"))
     end
 
-    # Define surface and substrate layer given tile class
-    surface_layer, substrate_layer = if tile == "forest"
-        (build_scheme(Tf, ForestSurfaceLayer, grid, params),
-         build_scheme(Tf, SoilSubstrate, grid, params))
+    # canopy / surface_layer / substrate default from the tile; the user may override via physics.
+    canopy = build_scheme(Tf, get(physics, "canopy", tile == "forest" ? OneLayerCanopy : NoCanopy), grid, params)
+    if tile == "forest"
+        canopy isa OneLayerCanopy || error("forest tile requires a OneLayerCanopy canopy")
+        default_surface_layer = ForestSurfaceLayer
+        default_substrate = SoilSubstrate
     else
-        stability = build_scheme_from_flag("EXCHNG", EXCHNG, Tf, grid, params)
-        (OpenSurfaceLayer{Tf}(; stability = stability),
-         build_scheme(Tf, tile == "open" ? SoilSubstrate : IceSubstrate, grid, params))
+        default_surface_layer = OpenSurfaceLayer{Tf}(; stability = LouisStabilityCorrection{Tf}())
+        default_substrate = tile == "open" ? SoilSubstrate : IceSubstrate
     end
 
     schemes = (
-        surface_layer    = surface_layer,
-        SUBSTR           = substrate_layer,
-        ALBEDO           = build_scheme_from_flag("ALBEDO", ALBEDO, Tf, grid, params),
-        CANOPY           = canopy,
-        CONDCT           = build_scheme_from_flag("CONDCT", CONDCT, Tf, grid, params),
-        COMPACT          = build_scheme_from_flag("DENSTY", DENSTY, Tf, grid, params),
-        HYDROL           = build_scheme_from_flag("HYDROL", HYDROL, Tf, grid, params),
-        SNFRAC           = build_scheme_from_flag("SNFRAC", SNFRAC, Tf, grid, params),
-        reference_height = build_scheme_from_flag("ZOFFST", ZOFFST, Tf, grid, params),
-        FSNRHO           = build_scheme_from_flag("FSNRHO", FSNRHO, Tf, grid, params),
-        LAYERING         = build_scheme_from_flag("SNOLAY", SNOLAY, Tf, grid, params),
+        snow_albedo        = build_scheme(Tf, get(physics, "snow_albedo", PrognosticAlbedo), grid, params),
+        canopy             = canopy,
+        substrate          = build_scheme(Tf, get(physics, "substrate", default_substrate), grid, params),
+        conductivity       = build_scheme(Tf, get(physics, "conductivity", DensityConductivity), grid, params),
+        compaction         = build_scheme(Tf, get(physics, "compaction", CrocusCompaction), grid, params),
+        hydrology          = build_scheme(Tf, get(physics, "hydrology", DensityBucketHydrology), grid, params),
+        new_snow_density   = build_scheme(Tf, get(physics, "new_snow_density", ElevationFreshSnowDensity), grid, params),
+        layering           = build_scheme(Tf, get(physics, "layering", OriginalLayering), grid, params),
+        snow_fraction      = build_scheme(Tf, get(physics, "snow_fraction", PointSnowFraction), grid, params),
+        reference_height   = build_scheme(Tf, get(physics, "reference_height", AboveGround), grid, params),
+        surface_layer      = build_scheme(Tf, get(physics, "surface_layer", default_surface_layer), grid, params),
     )
 
     fsm = FSM(grid; schemes...)
@@ -164,15 +98,14 @@ function setup(arch::AbstractArchitecture, Tf, landuse::Dict, Nx::Int, Ny::Int, 
         check_grid(scheme, Nx, Ny)
     end
 
-    # Apply config flags and parameter overrides to the right sub-struct.
-    apply_config!(fsm, config)
+    # Apply parameter overrides to the right sub-struct.
     apply_params!(fsm, params)
 
     lu = fsm.surface
     st = fsm.state
 
     # Settings specific for fixed fresh snow density
-    if fsm.physics.FSNRHO isa FixedFreshSnowDensity
+    if fsm.physics.new_snow_density isa FixedFreshSnowDensity
         fsm.params = reconstruct(fsm.params; rhof = fsm.params.rho0)
     end
 
@@ -195,7 +128,7 @@ function setup(arch::AbstractArchitecture, Tf, landuse::Dict, Nx::Int, Ny::Int, 
     end
 
     # Cap surface and soil temperatures for glacier
-    if fsm.physics.SUBSTR isa IceSubstrate
+    if fsm.physics.substrate isa IceSubstrate
         st.Tsrf .= min.(st.Tsrf, Tm)
         st.Tsoil .= min.(st.Tsoil, Tm)
     end
@@ -257,5 +190,3 @@ function setup(arch::AbstractArchitecture, Tf, landuse::Dict, Nx::Int, Ny::Int, 
     return fsm
 
 end
-
-

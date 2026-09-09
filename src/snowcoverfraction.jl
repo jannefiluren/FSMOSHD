@@ -353,7 +353,7 @@ function snowcoverfraction!(fsm::FSM{Tf}, snowdepth::Tf, SWEtmp::Tf, t::DateTime
     update_hist = 4.5 < hour(t) < 5.5
 
     snowcoverfraction_point!(
-        fsm.physics.SNFRAC, fsm.state, fsm.surface,
+        fsm.physics.snow_fraction, fsm.state, fsm.surface,
         snowdepth, SWEtmp, hfsn, i, j, update_hist
     )
 

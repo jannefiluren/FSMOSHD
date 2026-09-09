@@ -36,13 +36,13 @@ Snow interception, sublimation, and unloading from the vegetation canopy.
 """
 function canopy!(fsm::FSM{Tf}) where {Tf <: Real}
 
-    (; CANOPY) = fsm.physics
+    (; canopy) = fsm.physics
 
     backend = get_backend(fsm.state.Sveg)
     kernel! = canopy_kernel!(backend)
     kernel!(
         fsm.state, fsm.diag, fsm.surface, fsm.params,
-        CANOPY;
+        canopy;
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -52,7 +52,7 @@ end
 
 @kernel function canopy_kernel!(
         state, diag, surface, params::Parameters{Tf},
-        CANOPY::AbstractCanopy{Tf},
+        canopy::AbstractCanopy{Tf},
     ) where {Tf}
 
     i, j = @index(Global, NTuple)
@@ -62,14 +62,14 @@ end
 
     if (tilefrac[i, j] >= tthresh)
 
-        canopy_snow!(CANOPY, i, j, state, diag, surface, params)
+        canopy_snow!(canopy, i, j, state, diag, surface, params)
 
     end
 end
 
 @inline canopy_snow!(::NoCanopy, i, j, state, diag, surface, params) = nothing
 
-@inline function canopy_snow!(CANOPY::OneLayerCanopy{Tf}, i, j, state, diag, surface, params) where {Tf}
+@inline function canopy_snow!(canopy::OneLayerCanopy{Tf}, i, j, state, diag, surface, params) where {Tf}
 
     @unpack_constants(Tf)
 
@@ -91,7 +91,7 @@ end
     Sfeff[i, j] = Sfeff[i, j] - intcpt[i, j] / dt
 
     # Preferential deposition of snowfall in canopy gaps (not mass conserving)
-    Sfeff[i, j] = (CANOPY.psf - CANOPY.psr * fveg[i, j]) * Sfeff[i, j]
+    Sfeff[i, j] = (canopy.psf - canopy.psr * fveg[i, j]) * Sfeff[i, j]
 
     # Sublimation
     Evegs = Tf(0)

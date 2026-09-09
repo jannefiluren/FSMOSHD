@@ -21,13 +21,13 @@ Surface energy balance solution, coupled to the canopy where there is one.
 """
 function surface_energy_balance!(fsm::FSM{Tf}, meteo::MET{Tf}) where {Tf <: Real}
 
-    (; CANOPY, SUBSTR) = fsm.physics
+    (; canopy, substrate) = fsm.physics
 
     backend = get_backend(fsm.state.Tsrf)
     kernel! = surface_energy_balance_kernel!(backend)
     kernel!(
         fsm.state, fsm.diag, fsm.surface, fsm.params, meteo,
-        CANOPY, SUBSTR;
+        canopy, substrate;
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -40,7 +40,7 @@ end
 # KernelAbstractions CPU transformation
 @kernel inbounds = true function surface_energy_balance_kernel!(
         state, diag, surface, params::Parameters{Tf}, meteo,
-        CANOPY::AbstractCanopy{Tf}, SUBSTR::AbstractSubstrate{Tf},
+        canopy::AbstractCanopy{Tf}, substrate::AbstractSubstrate{Tf},
     ) where {Tf}
 
     i, j = @index(Global, NTuple)
@@ -50,13 +50,13 @@ end
 
     if (tilefrac[i, j] >= tthresh)
 
-        energy_balance!(CANOPY, i, j, state, diag, surface, params, meteo, SUBSTR)
+        energy_balance!(canopy, i, j, state, diag, surface, params, meteo, substrate)
 
     end
 end
 
 # Open and non-forest tiles
-@inline function energy_balance!(::NoCanopy{Tf}, i, j, state, diag, surface, params, meteo, SUBSTR) where {Tf}
+@inline function energy_balance!(::NoCanopy{Tf}, i, j, state, diag, surface, params, meteo, substrate) where {Tf}
 
     @unpack_constants(Tf)
 
@@ -122,7 +122,7 @@ end
     # Handle energy fluxes on bare glacier ice assuming glaciers are an
     # infinite heat reservoir. The capping of surface temperature at melting
     # point is not energy conserving
-    if SUBSTR isa IceSubstrate
+    if substrate isa IceSubstrate
         if (Tsrf[i, j] + dTs > Tm && Sice[1, i, j] <= eps(Tf))
             Qs = qsat(Ps[i, j], Tm)
             Esrf[i, j] = rho * KWg[i, j] * (Qs - Qa[i, j])
@@ -166,7 +166,7 @@ end
 end
 
 # Forest tiles
-@inline function energy_balance!(::OneLayerCanopy{Tf}, i, j, state, diag, surface, params, meteo, SUBSTR) where {Tf}
+@inline function energy_balance!(::OneLayerCanopy{Tf}, i, j, state, diag, surface, params, meteo, substrate) where {Tf}
 
     @unpack_constants(Tf)
 
