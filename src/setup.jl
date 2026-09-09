@@ -58,9 +58,6 @@ function setup(
     Nx, Ny = grid.Nx, grid.Ny
     @unpack_constants(Tf)
 
-    # build_scheme / apply_params! consume entries in place
-    params = copy(params)
-
     tile in ("open", "forest", "glacier") || error("tile requires open, forest or glacier (got tile = $tile)")
 
     for key in keys(physics)
@@ -68,7 +65,7 @@ function setup(
     end
 
     # canopy / surface_layer / substrate default from the tile; the user may override via physics.
-    canopy = build_scheme(Tf, get(physics, "canopy", tile == "forest" ? OneLayerCanopy : NoCanopy), grid, params)
+    canopy = instantiate(get(physics, "canopy", tile == "forest" ? OneLayerCanopy : NoCanopy), grid)
     if tile == "forest"
         canopy isa OneLayerCanopy || error("forest tile requires a OneLayerCanopy canopy")
         default_surface_layer = ForestSurfaceLayer
@@ -79,17 +76,17 @@ function setup(
     end
 
     schemes = (
-        snow_albedo        = build_scheme(Tf, get(physics, "snow_albedo", PrognosticAlbedo), grid, params),
+        snow_albedo        = instantiate(get(physics, "snow_albedo", PrognosticAlbedo), grid),
         canopy             = canopy,
-        substrate          = build_scheme(Tf, get(physics, "substrate", default_substrate), grid, params),
-        conductivity       = build_scheme(Tf, get(physics, "conductivity", DensityConductivity), grid, params),
-        compaction         = build_scheme(Tf, get(physics, "compaction", CrocusCompaction), grid, params),
-        hydrology          = build_scheme(Tf, get(physics, "hydrology", DensityBucketHydrology), grid, params),
-        new_snow_density   = build_scheme(Tf, get(physics, "new_snow_density", ElevationFreshSnowDensity), grid, params),
-        layering           = build_scheme(Tf, get(physics, "layering", OriginalLayering), grid, params),
-        snow_fraction      = build_scheme(Tf, get(physics, "snow_fraction", PointSnowFraction), grid, params),
-        reference_height   = build_scheme(Tf, get(physics, "reference_height", AboveGround), grid, params),
-        surface_layer      = build_scheme(Tf, get(physics, "surface_layer", default_surface_layer), grid, params),
+        substrate          = instantiate(get(physics, "substrate", default_substrate), grid),
+        conductivity       = instantiate(get(physics, "conductivity", DensityConductivity), grid),
+        compaction         = instantiate(get(physics, "compaction", CrocusCompaction), grid),
+        hydrology          = instantiate(get(physics, "hydrology", DensityBucketHydrology), grid),
+        new_snow_density   = instantiate(get(physics, "new_snow_density", ElevationFreshSnowDensity), grid),
+        layering           = instantiate(get(physics, "layering", OriginalLayering), grid),
+        snow_fraction      = instantiate(get(physics, "snow_fraction", PointSnowFraction), grid),
+        reference_height   = instantiate(get(physics, "reference_height", AboveGround), grid),
+        surface_layer      = instantiate(get(physics, "surface_layer", default_surface_layer), grid),
     )
 
     fsm = FSM(grid; schemes...)

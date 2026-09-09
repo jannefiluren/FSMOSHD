@@ -39,28 +39,15 @@ function check_grid(scheme::AbstractParameterization, Nx, Ny)
 end
 
 """
-    build_scheme(Tf, requested, grid, params)
+    instantiate(scheme, grid)
 
-Instantiate a parameterization. `requested` is either a type - constructed at precision `Tf` on
-`grid`, consuming any `params` entry named like one of its fields - or a ready-made instance,
-returned unchanged.
-
-Routing matters: a scheme's parameters live on the scheme, so an entry such as "adm" would
-otherwise be set on `FSM`, where nothing reads it any more.
+Return a physics parameterization ready for the model: a scheme **type** is default-constructed at
+the grid's precision (`Scheme{eltype(grid)}(grid)`), while a ready-made **instance** is returned
+unchanged. Non-default schemes are constructed by the caller, e.g.
+`PrognosticAlbedo{Float32}(grid; adm = 200, adc = my_array)`.
 """
-function build_scheme(Tf, requested, grid, params)
-
-    requested isa Type || return requested
-
-    kwargs = Dict{Symbol, Any}()
-    for name in fieldnames(requested)
-        key = string(name)
-        haskey(params, key) && (kwargs[name] = pop!(params, key))
-    end
-
-    return requested{Tf}(grid; kwargs...)
-
-end
+instantiate(scheme::Type, grid) = scheme{eltype(grid)}(grid)
+instantiate(scheme, grid) = scheme
 
 """
     reconstruct(x; kwargs...)
