@@ -115,7 +115,7 @@ function generate_matrix(path, only_flags = String[])
                 settings["config"][flag] = value
                 print(stderr, "[", done, "/", total, "] ", label, " ", name, "\n")
                 try
-                    results = run_simulations(settings, Float32, Int32)
+                    results = run_simulations(settings, Float32)
                     for var in sort(collect(keys(results)))
                         var == "timestamps" && continue
                         data = Float64.(results[var])
@@ -167,7 +167,7 @@ function generate(path)
             "tile", "variable", "hash", "nonfinite", "min", "max", "mean")
 
         for (name, settings) in TILE_SETTINGS
-            results = run_simulations(settings, Float32, Int32)
+            results = run_simulations(settings, Float32)
             for var in sort(collect(keys(results)))
                 var == "timestamps" && continue
                 data = Float64.(results[var])

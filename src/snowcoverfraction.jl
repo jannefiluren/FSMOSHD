@@ -345,7 +345,7 @@ Snow cover fraction for one grid cell (host convenience wrapper around
 The buffer arguments are accepted but ignored: the history buffers are now
 function-local (they were always pure workspace).
 """
-function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::DateTime, i::Int, j::Int, SWEbuffer::AbstractArray{Tf}, snowdepthbuffer::AbstractArray{Tf}, diffSWEbuffer::AbstractArray{Tf}) where {Tf <: Real, Ti <: Integer}
+function snowcoverfraction!(fsm::FSM{Tf}, snowdepth::Tf, SWEtmp::Tf, t::DateTime, i::Int, j::Int, SWEbuffer::AbstractArray{Tf}, snowdepthbuffer::AbstractArray{Tf}, diffSWEbuffer::AbstractArray{Tf}) where {Tf <: Real}
 
     hfsn = fsm.params.hfsn
 

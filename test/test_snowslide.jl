@@ -33,8 +33,8 @@ function setup_snowslide_case(; forest = false, tiled = false)
 
     Nx, Ny = 12, 10
 
-    fsm = FSM{Float32, Int32}(Nx = Nx, Ny = Ny)
-    w = SnowTransport{Float32, Int32}(Nx = Int32(Nx), Ny = Int32(Ny))
+    fsm = FSM(Grid(Float32; Nx = Nx, Ny = Ny))
+    w = SnowTransport{Float32}(Nx = Int32(Nx), Ny = Int32(Ny))
     w.tiled_trans_run = tiled
 
     state = fsm.state

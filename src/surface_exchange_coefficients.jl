@@ -155,7 +155,7 @@ the canopy and the atmosphere.
 - `fsm::FSM`: Model state structure
 - `meteo::MET`: Current meteorological conditions
 """
-function surface_exchange_coefficients!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
+function surface_exchange_coefficients!(fsm::FSM{Tf}, meteo::MET{Tf}) where {Tf <: Real}
 
     (; reference_height, surface_layer, SNFRAC) = fsm.physics
 

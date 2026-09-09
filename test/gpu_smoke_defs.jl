@@ -4,7 +4,6 @@
 using Dates
 
 const Tf = Float32
-const Ti = Int32
 const Nx, Ny = 256, 256
 const nsteps = 48
 const t0 = DateTime(2026, 1, 15, 0)

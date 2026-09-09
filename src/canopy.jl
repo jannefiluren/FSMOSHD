@@ -34,7 +34,7 @@ Snow interception, sublimation, and unloading from the vegetation canopy.
 # Arguments
 - `fsm::FSM`: Model state structure
 """
-function canopy!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
+function canopy!(fsm::FSM{Tf}) where {Tf <: Real}
 
     (; CANOPY) = fsm.physics
 

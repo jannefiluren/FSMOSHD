@@ -21,10 +21,10 @@ function setup_open_example(SNFRAC)
     settings = Dict("tile" => "open", "config" => Dict("SNFRAC" => SNFRAC))
 
     # create fsm struct
-    fsm = setup(Float32, Int32, lus, 1, 1, settings)
+    fsm = setup(Float32, lus, 1, 1, settings)
 
     # define meteo data struct
-    met = MET{Float32, Int32}()
+    met = MET{Float32}()
 
     # read meteo file
     df_meteo = CSV.read(joinpath(path, "../data/input_SLF_5WJ.txt"), DataFrame)
@@ -65,10 +65,10 @@ function setup_forest_example(SNFRAC)
     )
 
     # create fsm struct
-    fsm = setup(Float32, Int32, lus, 1, 1, settings)
+    fsm = setup(Float32, lus, 1, 1, settings)
 
     # define meteo data struct
-    met = MET{Float32, Int32}()
+    met = MET{Float32}()
 
     # read meteo file
     df_meteo = CSV.read(joinpath(path, "../data/input_SLF_5WJ.txt"), DataFrame)

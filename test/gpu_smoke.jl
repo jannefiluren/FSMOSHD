@@ -56,7 +56,6 @@ println("Host threads:        ", Threads.nthreads())
 # ---------------------------------------------------------------------------
 
 const Tf = Float32
-const Ti = Int32
 const Nx, Ny = 256, 256
 const nsteps = 48
 const t0 = DateTime(2026, 1, 15, 0)
@@ -148,10 +147,10 @@ function apply_forcing!(met, f)
 end
 
 function run_case(arch, landuse, settings, forcing)
-    fsm = setup(FlexibleSnowModelOSHD.CPU(), Tf, Ti, landuse, Nx, Ny, settings)
+    fsm = setup(FlexibleSnowModelOSHD.CPU(), Tf, landuse, Nx, Ny, settings)
     init_snowpack!(fsm)
     fsm = on_architecture(arch, fsm)
-    met = on_architecture(arch, MET{Tf, Ti}(Nx = Nx, Ny = Ny))
+    met = on_architecture(arch, MET{Tf}(Nx = Nx, Ny = Ny))
     # Time only the second half of the steps: the first steps pay the
     # (config-dependent) kernel compilation on both CPU and GPU, which would
     # otherwise dominate the average

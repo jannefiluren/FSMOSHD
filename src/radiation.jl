@@ -246,7 +246,7 @@ longwave radiation for open terrain.
 - `meteo::MET`: Current meteorological conditions
 - `t`: Current simulation time
 """
-function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <: Integer}
+function radiation!(fsm::FSM{Tf}, meteo::MET{Tf}, t) where {Tf <: Real}
 
     (; CANOPY, ALBEDO) = fsm.physics
 

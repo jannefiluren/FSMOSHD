@@ -8,7 +8,7 @@ Snow physics processes including heat conduction, melting, sublimation, hydrauli
 - `meteo::MET`: Current meteorological conditions (read-only)
 - `t`: Current simulation time
 """
-function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <: Integer}
+function snow!(fsm::FSM{Tf}, meteo::MET{Tf}, t) where {Tf <: Real}
 
     (; Nsmax) = fsm.grid
 
@@ -30,11 +30,11 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
 end
 
 @kernel inbounds = true function snow_kernel!(
-        state, diag, surface, grid, params::Parameters{Tf, Ti}, meteo,
+        state, diag, surface, grid, params::Parameters{Tf}, meteo,
         FSNRHO::AbstractFreshSnowDensity{Tf}, COMPACT::AbstractCompaction{Tf},
         HYDROL::AbstractHydrology{Tf}, SNFRAC::AbstractSnowFraction{Tf},
         LAYERING::AbstractLayering{Tf}, update_hist::Bool, ::Val{Nsmax},
-    ) where {Tf, Ti, Nsmax}
+    ) where {Tf, Nsmax}
 
     i, j = @index(Global, NTuple)
 
@@ -190,7 +190,7 @@ end
 
         # Catch to round infinitesimally small new snow amounts
         if (Nsnow[i, j] <= 1 && dSice < Tf(0.001) && Sice[1, i, j] < Tf(0.001))
-            dSice = Tf(trunc(Ti, dSice * Tf(1000) + Tf(0.5))) / Tf(1000)
+            dSice = Tf(trunc(Int, dSice * Tf(1000) + Tf(0.5))) / Tf(1000)
         end
 
         rhonew = fresh_snow_density(FSNRHO, rho0, rhob, rhoc, rhof, rhos_min, Ta[i, j], Uaeff[i, j], dem[i, j])

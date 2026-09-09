@@ -23,12 +23,12 @@ This function encapsulates the standard model execution sequence:
 
 # Example
 ```julia
-fsm = setup(Float32, Int32, surface, Nx, Ny, Dict("tile" => "forest"))
-met = MET{Float32, Int32}(Nx = Nx, Ny = Ny)
+fsm = setup(Float32, surface, Nx, Ny, Dict("tile" => "forest"))
+met = MET{Float32}(Nx = Nx, Ny = Ny)
 step!(fsm, met, DateTime(2023, 12, 1, 12))
 ```
 """
-function step!(fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, t; transport = nothing) where {Tf, Ti}
+function step!(fsm::FSM{Tf}, met::MET{Tf}, t; transport = nothing) where {Tf}
 
     # 1. Meteorological data processing
     drive!(fsm, met)

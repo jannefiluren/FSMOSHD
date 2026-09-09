@@ -29,7 +29,7 @@ mass into the deposit), then relayers the deposit with [`relayer!`](@ref).
 Transport is **CPU-only**; `fsm` must hold host `Array`s. Called from `step!` when a workspace
 is passed; a normal `step!` (no `transport`) does not run it.
 """
-function transport!(fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, w::SnowTransport{Tf, Ti}, t) where {Tf, Ti}
+function transport!(fsm::FSM{Tf}, met::MET{Tf}, w::SnowTransport{Tf}, t) where {Tf}
 
     fsm.state.Ds isa Array ||
         throw(ArgumentError("snow transport is CPU-only; `fsm` must hold host Arrays (got $(typeof(fsm.state.Ds)))"))

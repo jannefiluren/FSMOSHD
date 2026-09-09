@@ -101,7 +101,7 @@ the tile threshold. Reuses the [`snow_layering!`](@ref) point function that `sno
 for new snow; [`transport!`](@ref) calls this to layer in redistributed snow. `update_hist`
 should be `false` here so the 14-day history is rolled only once per step (by `snow!`).
 """
-function relayer!(fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, t; update_hist::Bool = false) where {Tf, Ti}
+function relayer!(fsm::FSM{Tf}, met::MET{Tf}, t; update_hist::Bool = false) where {Tf}
 
     (; Nsmax) = fsm.grid
 
@@ -118,10 +118,10 @@ function relayer!(fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, t; update_hist::Bool = fal
 end
 
 @kernel inbounds = true function relayer_kernel!(
-        state, diag, surface, grid, params::Parameters{Tf, Ti}, meteo,
+        state, diag, surface, grid, params::Parameters{Tf}, meteo,
         LAYERING::AbstractLayering{Tf}, SNFRAC::AbstractSnowFraction{Tf},
         update_hist::Bool, ::Val{Nsmax},
-    ) where {Tf, Ti, Nsmax}
+    ) where {Tf, Nsmax}
 
     i, j = @index(Global, NTuple)
 

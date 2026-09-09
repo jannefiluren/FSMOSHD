@@ -1,11 +1,17 @@
-@kwdef struct Grid{Ti, VF <: AbstractVector}
-    Dzsnow::VF = [0.1, 0.2, 0.4]                     # Maximum snow layer thicknesses (m)
-    Dzsoil::VF = [0.1, 0.2, 0.4, 0.8]                # Maximum soil layer thicknesses (m)
-    Nsmax::Ti = length(Dzsnow)                       # Number of snow layers
-    Nsoil::Ti = length(Dzsoil)                       # Number of soil layers
-    Nx::Ti = 1                                       # First array dimension (rows)
-    Ny::Ti = 1                                       # Second array dimension (columns)
+@kwdef struct Grid{Tf, VF <: AbstractVector{Tf}}
+    Dzsnow::VF = Tf[0.1, 0.2, 0.4]                   # Maximum snow layer thicknesses (m)
+    Dzsoil::VF = Tf[0.1, 0.2, 0.4, 0.8]              # Maximum soil layer thicknesses (m)
+    Nsmax::Int = length(Dzsnow)                      # Number of snow layers
+    Nsoil::Int = length(Dzsoil)                      # Number of soil layers
+    Nx::Int = 1                                      # First array dimension (rows)
+    Ny::Int = 1                                      # Second array dimension (columns)
 end
+
+Base.eltype(::Grid{Tf}) where {Tf} = Tf
+Base.eltype(::Type{<:Grid{Tf}}) where {Tf} = Tf
+
+# Convenience constructor for a grid at a given float precision
+Grid(::Type{Tf}; kwargs...) where {Tf} = Grid{Tf, Vector{Tf}}(; kwargs...)
 
 """
     check_layer_thicknesses(grid)
@@ -25,13 +31,13 @@ function check_layer_thicknesses(grid::Grid)
     return nothing
 end
 
-@kwdef struct Parameters{Tf, Ti}
+@kwdef struct Parameters{Tf}
     dt::Tf = 3600                                    # Time step (s)
     zT::Tf = 10                                      # Temperature measurement height (m)
     zU::Tf = 10                                      # Wind speed measurement height (m)
     zRH::Tf = 10                                     # Relative humidity measurement height (m)
     tthresh::Tf = 0.1                                # Tile threshold
-    Nitr::Ti = 4                                     # Iterations for surface energy balance
+    Nitr::Int = 4                                    # Iterations for surface energy balance
     cvai::Tf = 4.4                                   # Canopy snow capacity per unit vegetation area index (kg/m^2)
     Gcn1::Tf = 0.5                                   # Leaf angle distribution parameter (-)
     Gcn2::Tf = 0                                     # Leaf angle distribution parameter (-)
@@ -69,7 +75,7 @@ end
     Tprof::Tf = 285                                  # Initial soil layer temperatures (K)
 end
 
-@kwdef struct Surface{GT, MF <: AbstractMatrix{<:AbstractFloat}, MF64 <: AbstractMatrix{Float64}}
+@kwdef struct Surface{GT, MF, MF64}
     grid::GT
 
     # Terrain
@@ -112,32 +118,32 @@ end
     Vcrit::MF = zeros(grid.Nx, grid.Ny)             # Volumetric soil moisture at critical point (-)
 end
 
-@kwdef struct State{GT, MF <: AbstractMatrix{<:AbstractFloat}, MI <: AbstractMatrix{<:Integer}, AF <: AbstractArray{<:AbstractFloat, 3}}
+@kwdef struct State{GT, MF, MI, AF}
     grid::GT
     albs::MF = 0.85 * ones(grid.Nx, grid.Ny)                 # Snow albedo (-)
-    Ds::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)                 # Snow layer thicknesses (m)
-    Nsnow::MI = zeros(Int, grid.Nx, grid.Ny)                      # Number of snow layers
-    Qcan::MF = zeros(grid.Nx, grid.Ny)                           # Canopy air space humidity (kg/kg)
-    Sice::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)               # Ice content of snow layers (kg/m^2)
-    Sliq::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)               # Liquid content of snow layers (kg/m^2)
-    Sveg::MF = zeros(grid.Nx, grid.Ny)                           # Snow mass on vegetation (kg/m^2)
+    Ds::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)             # Snow layer thicknesses (m)
+    Nsnow::MI = zeros(Int, grid.Nx, grid.Ny)                 # Number of snow layers
+    Qcan::MF = zeros(grid.Nx, grid.Ny)                       # Canopy air space humidity (kg/kg)
+    Sice::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)           # Ice content of snow layers (kg/m^2)
+    Sliq::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)           # Liquid content of snow layers (kg/m^2)
+    Sveg::MF = zeros(grid.Nx, grid.Ny)                       # Snow mass on vegetation (kg/m^2)
     Tcan::MF = 285 * ones(grid.Nx, grid.Ny)                  # Canopy air space temperature (K)
-    theta::AF = zeros(grid.Nsoil, grid.Nx, grid.Ny)              # Volumetric moisture content of soil layers (-)
+    theta::AF = zeros(grid.Nsoil, grid.Nx, grid.Ny)          # Volumetric moisture content of soil layers (-)
     Tsnow::AF = 273.15 * ones(grid.Nsmax, grid.Nx, grid.Ny)  # Snow layer temperatures (K)
     Tsoil::AF = 285 * ones(grid.Nsoil, grid.Nx, grid.Ny)     # Soil layer temperatures (K)
     Tsrf::MF = 285 * ones(grid.Nx, grid.Ny)                  # Surface skin temperature (K)
-    fsnow::MF = zeros(grid.Nx, grid.Ny)                          # Snow cover fraction (-)
+    fsnow::MF = zeros(grid.Nx, grid.Ny)                      # Snow cover fraction (-)
     Tveg::MF = 285 * ones(grid.Nx, grid.Ny)                  # Vegetation temperature (K)
-    snowdepthmin::MF = zeros(grid.Nx, grid.Ny)                   # Min snow depth at time of swemin (m)
-    snowdepthmax::MF = zeros(grid.Nx, grid.Ny)                   # Max snow depth at time of swemax (m)
-    snowdepthhist::AF = zeros(14, grid.Nx, grid.Ny)              # Snow depth over last 14 days (m)
-    swemin::MF = zeros(grid.Nx, grid.Ny)                         # Minimum SWE during the season (kg/m^2)
-    swemax::MF = zeros(grid.Nx, grid.Ny)                         # Maximum SWE during the season (kg/m^2)
-    swehist::AF = zeros(14, grid.Nx, grid.Ny)                    # SWE over last 14 days (kg/m^2)
-    histowet::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)           # Historical past wetting of a layer (-)
+    snowdepthmin::MF = zeros(grid.Nx, grid.Ny)               # Min snow depth at time of swemin (m)
+    snowdepthmax::MF = zeros(grid.Nx, grid.Ny)               # Max snow depth at time of swemax (m)
+    snowdepthhist::AF = zeros(14, grid.Nx, grid.Ny)          # Snow depth over last 14 days (m)
+    swemin::MF = zeros(grid.Nx, grid.Ny)                     # Minimum SWE during the season (kg/m^2)
+    swemax::MF = zeros(grid.Nx, grid.Ny)                     # Maximum SWE during the season (kg/m^2)
+    swehist::AF = zeros(14, grid.Nx, grid.Ny)                # SWE over last 14 days (kg/m^2)
+    histowet::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)       # Historical past wetting of a layer (-)
 end
 
-@kwdef struct Diagnostics{GT, MF <: AbstractMatrix{<:AbstractFloat}, AF <: AbstractArray{<:AbstractFloat, 3}}
+@kwdef struct Diagnostics{GT, MF, AF}
     grid::GT
     # drive
     es::MF = zeros(grid.Nx, grid.Ny)                 # Saturation vapour pressure (Pa)
@@ -202,7 +208,7 @@ end
 # type positionally with the converted fields. Tf is the declared type of no field -
 # it appears only in the bounds on MF/MI/AF - so Julia generates no such constructor.
 # Spell them out, taking each parameter from a representative field.
-mutable struct FSM{Tf, Ti, G, P, L, S, D, PH}
+mutable struct FSM{Tf, G, P, L, S, D, PH}
     grid::G
     params::P
     surface::L
@@ -213,11 +219,11 @@ end
 
 # Positional constructor used by on_architecture
 function FSM(
-        grid::Grid, params::Parameters{Tf, Ti}, surface::Surface, state::State,
+        grid::Grid, params::Parameters{Tf}, surface::Surface, state::State,
         diag::Diagnostics, physics
-    ) where {Tf, Ti}
+    ) where {Tf}
     return FSM{
-        Tf, Ti, typeof(grid), typeof(params), typeof(surface), typeof(state),
+        Tf, typeof(grid), typeof(params), typeof(surface), typeof(state),
         typeof(diag), typeof(physics),
     }(grid, params, surface, state, diag, physics)
 end
@@ -227,10 +233,10 @@ end
 # sub-struct is its own namespace, so a field name may repeat across them without
 # ambiguity.
 
-# FSM{Tf, Ti}(; Nx, Ny, schemes...) builds the model on plain CPU Arrays
-function (::Type{FSM{Tf, Ti}})(;
-        Nx = 1, Ny = 1,
-        grid = Grid{Ti, Vector{Tf}}(; Nx = Nx, Ny = Ny),
+# FSM(grid; schemes...) builds the model on plain CPU Arrays. The float precision Tf is taken
+# from the grid (`eltype(grid)`), so the grid is the single source of truth for size and
+# precision; integer counts/indices are plain `Int`.
+function FSM(grid::Grid{Tf};
         ALBEDO = PrognosticAlbedo{Tf}(grid),
         CANOPY = NoCanopy{Tf}(),
         SUBSTR = SoilSubstrate{Tf}(),
@@ -242,18 +248,25 @@ function (::Type{FSM{Tf, Ti}})(;
         HYDROL = DensityBucketHydrology{Tf}(),
         LAYERING = OriginalLayering{Tf}(),
         SNFRAC = PointSnowFraction{Tf}()
-    ) where {Tf, Ti}
+    ) where {Tf}
 
     check_layer_thicknesses(grid)
     GT = typeof(grid)
-    params = Parameters{Tf, Ti}()
+    params = Parameters{Tf}()
     surface = Surface{GT, Matrix{Tf}, Matrix{Float64}}(; grid = grid)
-    state = State{GT, Matrix{Tf}, Matrix{Ti}, Array{Tf, 3}}(; grid = grid)
+    state = State{GT, Matrix{Tf}, Matrix{Int}, Array{Tf, 3}}(; grid = grid)
     diag = Diagnostics{GT, Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
     physics = (
-        ALBEDO = ALBEDO, CANOPY = CANOPY, SUBSTR = SUBSTR, CONDCT = CONDCT,
-        reference_height = reference_height, surface_layer = surface_layer,
-        FSNRHO = FSNRHO, COMPACT = COMPACT, HYDROL = HYDROL, LAYERING = LAYERING,
+        ALBEDO = ALBEDO,
+        CANOPY = CANOPY,
+        SUBSTR = SUBSTR,
+        CONDCT = CONDCT,
+        reference_height = reference_height,
+        surface_layer = surface_layer,
+        FSNRHO = FSNRHO,
+        COMPACT = COMPACT,
+        HYDROL = HYDROL,
+        LAYERING = LAYERING,
         SNFRAC = SNFRAC,
     )
 
@@ -268,15 +281,15 @@ end
 # reassigns a whole field - the forcing is written in place with `.=`/`copyto!` - so
 # immutability costs nothing.
 @kwdef struct MET{
-        Tf, Ti,
+        Tf,
         MF <: AbstractMatrix{Tf}, MF64 <: AbstractMatrix{Float64},
         AF64_3 <: AbstractArray{Float64, 3},
     }
 
     # Domain size
 
-    Nx::Ti = 1                                     # Size of first array dimension (rows)
-    Ny::Ti = 1                                     # Size of second array dimension (columns)
+    Nx::Int = 1                                    # Size of first array dimension (rows)
+    Ny::Int = 1                                    # Size of second array dimension (columns)
 
     # Meteorological variables
 
@@ -301,8 +314,8 @@ end
 
 end
 
-function (::Type{MET{Tf, Ti}})(; kwargs...) where {Tf, Ti}
-    return MET{Tf, Ti, Matrix{Tf}, Matrix{Float64}, Array{Float64, 3}}(; kwargs...)
+function (::Type{MET{Tf}})(; kwargs...) where {Tf}
+    return MET{Tf, Matrix{Tf}, Matrix{Float64}, Array{Float64, 3}}(; kwargs...)
 end
 
 # Let the array-holding structs cross into a kernel: Adapt rewrites each array

@@ -1,5 +1,5 @@
 """
-    setup([arch], Tf, Ti, landuse, Nx, Ny, settings)
+    setup([arch], Tf, landuse, Nx, Ny, settings)
 
 Initialize the FSM snow model with specified configuration and domain properties.
 
@@ -11,7 +11,6 @@ configuration-specific settings for different surface types and model behaviors.
 - `arch::AbstractArchitecture`: Architecture the model arrays live on
   (optional, default `CPU()`); pass e.g. `GPU(CUDABackend())` for GPU runs
 - `Tf`: Floating-point precision type (typically Float32 or Float64)
-- `Ti`: Integer type for array indices (typically Int32 or Int64)
 - `landuse::Dict`: Landuse data dictionary with topographic and surface properties
 - `Nx::Int, Ny::Int`: Model domain dimensions
 - `settings::Dict`: Configuration dictionary containing:
@@ -24,8 +23,8 @@ configuration-specific settings for different surface types and model behaviors.
 """
 function setup end
 
-function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
-    return setup(CPU(), Tf, Ti, landuse, Nx, Ny, settings)
+function setup(Tf, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
+    return setup(CPU(), Tf, landuse, Nx, Ny, settings)
 end
 
 """
@@ -101,14 +100,14 @@ function build_scheme_from_flag(process, requested, Tf, grid, params)
 
 end
 
-function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
+function setup(arch::AbstractArchitecture, Tf, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
 
     @unpack_constants(Tf)
 
     config = copy(get(settings, "config", Dict()))
     params = copy(get(settings, "params", Dict()))
 
-    grid = Grid{Ti, Vector{Tf}}(; Nx = Nx, Ny = Ny)
+    grid = Grid(Tf; Nx = Nx, Ny = Ny)
 
     tile = settings["tile"]
     tile in ("open", "forest", "glacier") || error("tile requires open, forest or glacier (got tile = $tile)")
@@ -159,7 +158,7 @@ function setup(arch::AbstractArchitecture, Tf, Ti, landuse::Dict, Nx::Int, Ny::I
         LAYERING         = build_scheme_from_flag("SNOLAY", SNOLAY, Tf, grid, params),
     )
 
-    fsm = FSM{Tf, Ti}(; grid = grid, schemes...)
+    fsm = FSM(grid; schemes...)
 
     for scheme in schemes
         check_grid(scheme, Nx, Ny)

@@ -23,10 +23,10 @@ constants in deps/MODULES.F90.
 - `dSWE_subl::Matrix`: SWE change due to sublimation (kg/m²) - output
 """
 function snowtran3d!(
-        fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, w::SnowTransport{Tf, Ti}, snowdepth0::Matrix{Tf}, Sice0::Matrix{Tf},
+        fsm::FSM{Tf}, met::MET{Tf}, w::SnowTransport{Tf}, snowdepth0::Matrix{Tf}, Sice0::Matrix{Tf},
         dSWE_salt::Matrix{Tf}, dSWE_susp::Matrix{Tf},
         dSWE_subl::Matrix{Tf}
-    ) where {Tf <: Real, Ti <: Integer}
+    ) where {Tf <: Real}
 
     (; Nx, Ny, Nsmax) = fsm.grid
     (; dt, zRH, zU, Ds_min) = fsm.params
@@ -38,35 +38,42 @@ function snowtran3d!(
     (; fsnow, Ds, Sice, Sliq, Tsnow, histowet, Nsnow) = fsm.state
     (; dSWE_tot_subl, dSWE_tot_salt, dSWE_tot_susp) = w
 
+    # The Fortran wrapper is compiled for 4-byte integers, so the (in-out) snow-layer count
+    # crosses the boundary as an Int32 copy that is read back afterwards. Integer scalars
+    # convert through their `Ref{Int32}` slots automatically.
+    Nsnow32 = Int32.(Nsnow)
+
     # Call the standalone Fortran wrapper
     ccall(
         (:snowtran3d_wrapper_, LIBSNOWTRAN3D),
         Cvoid,
         (
-            Ref{Ti}, Ref{Ti}, Ref{Ti}, Ref{Tf},            # Nx, Ny, Nsmax, Ds_min
+            Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Tf},   # Nx, Ny, Nsmax, Ds_min
             Ref{Tf}, Ref{Tf}, Ref{Tf},                     # dt, zU, zRH
-            Ref{Tf}, Ref{Tf}, Ref{Ti},                     # rhos_min, rhos_max, tiled_trans_run
+            Ref{Tf}, Ref{Tf}, Ref{Int32},                  # rhos_min, rhos_max, tiled_trans_run
             Ptr{Tf}, Ptr{Tf},                              # snowdepth0, Sice0
             Ptr{Tf}, Ptr{Tf}, Ptr{Tf},                     # dSWE_salt, dSWE_susp, dSWE_subl
             Ptr{Tf}, Ptr{Tf}, Ptr{Tf}, Ptr{Tf},            # Ua, Udir, Ta, RH
             Ptr{Tf}, Ptr{Tf},                              # veg_shd, z0_snow
             Ptr{Tf}, Ptr{Tf}, Ptr{Tf}, Ptr{Tf},            # fsnow, Ds, Sice, Sliq
-            Ptr{Tf}, Ptr{Tf}, Ptr{Ti},                     # Tsnow, histowet, Nsnow
+            Ptr{Tf}, Ptr{Tf}, Ptr{Int32},                  # Tsnow, histowet, Nsnow
             Ptr{Tf}, Ptr{Tf}, Ptr{Tf},                     # dSWE_tot_subl, dSWE_tot_salt, dSWE_tot_susp
             Ptr{Tf}, Ptr{Tf}, Ptr{Tf},                     # cellsize, dem, forestfrac
         ),
         Nx, Ny, Nsmax, Ds_min,
         dt, zU, zRH,
-        rhos_min, rhos_max, Ti(tiled_trans_run),
+        rhos_min, rhos_max, Int32(tiled_trans_run),
         snowdepth0, Sice0,
         dSWE_salt, dSWE_susp, dSWE_subl,
         Ua_eff, Udir, Ta, RH,
         vegsnowd_xy, z0_snow,
         fsnow, Ds, Sice, Sliq,
-        Tsnow, histowet, Nsnow,
+        Tsnow, histowet, Nsnow32,
         dSWE_tot_subl, dSWE_tot_salt, dSWE_tot_susp,
         Ld, dem, forestfrac
     )
+
+    Nsnow .= Nsnow32
 
     return nothing
 end

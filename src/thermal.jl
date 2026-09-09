@@ -83,7 +83,7 @@ Thermal property calculations for snow and soil layers.
 # Arguments
 - `fsm::FSM`: Model state structure (modified in-place)
 """
-function thermal!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
+function thermal!(fsm::FSM{Tf}) where {Tf <: Real}
 
     (; CONDCT, SUBSTR) = fsm.physics
 

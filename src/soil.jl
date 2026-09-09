@@ -158,7 +158,7 @@ Soil thermal processes: the temperature of the soil or glacier ice column.
 # Arguments
 - `fsm::FSM`: Model state structure
 """
-function soil!(fsm::FSM{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
+function soil!(fsm::FSM{Tf}) where {Tf <: Real}
 
     (; SUBSTR) = fsm.physics
     (; Nsoil) = fsm.grid

@@ -4,17 +4,14 @@ using FlexibleSnowModelOSHD
 using Test
 
 """
-    create_minimal_fsm(Tf, Ti)
+    create_minimal_fsm(Tf)
 
 Create a minimal FSM structure with only the fields needed for soil!()
 """
-function create_minimal_fsm(Tf::Type, Ti::Type)
+function create_minimal_fsm(Tf::Type)
 
     # Initialize model with minimal configuration
-    fsm = FSM{Tf, Ti}(
-        Nx = 1,
-        Ny = 1,
-    )
+    fsm = FSM(Grid(Tf; Nx = 1, Ny = 1))
 
     # Set tile fraction
     fsm.surface.tilefrac[1, 1] = Tf(1.0)
@@ -58,11 +55,10 @@ end
 
     # Common parameters
     Tf = Float32
-    Ti = Int32
 
     # Test 1: Uniform temperature, positive heat flux (warming from above)
     @testset "Warming from above" begin
-        fsm = create_minimal_fsm(Tf, Ti)
+        fsm = create_minimal_fsm(Tf)
 
         # Set uniform initial temperature
         T_init = 280.0  # K
@@ -95,7 +91,7 @@ end
 
     # Test 2: Uniform temperature, negative heat flux (cooling from above)
     @testset "Cooling from above" begin
-        fsm = create_minimal_fsm(Tf, Ti)
+        fsm = create_minimal_fsm(Tf)
 
         # Set uniform initial temperature
         T_init = 290.0  # K
@@ -127,7 +123,7 @@ end
 
     # Test 3: Zero heat flux at top, uniform temperature (should be stable)
     @testset "Isothermal stability" begin
-        fsm = create_minimal_fsm(Tf, Ti)
+        fsm = create_minimal_fsm(Tf)
 
         # Set uniform temperature at absolute reference (Tm = 273.15 K)
         # This minimizes the bottom boundary flux effect
@@ -149,7 +145,7 @@ end
 
     # Test 4: Non-uniform thermal properties
     @testset "Non-uniform thermal properties" begin
-        fsm = create_minimal_fsm(Tf, Ti)
+        fsm = create_minimal_fsm(Tf)
 
         # Set varying thermal properties by layer (areal heat capacity)
         fsm.diag.csoil[1, 1, 1] = 1.5e5  # J/m²/K
@@ -192,7 +188,7 @@ end
 
     # Test 5: Multiple timesteps with cumulative energy tracking
     @testset "Multiple timesteps" begin
-        fsm = create_minimal_fsm(Tf, Ti)
+        fsm = create_minimal_fsm(Tf)
 
         # Set initial conditions
         fsm.state.Tsoil[:, 1, 1] .= 275.0
@@ -221,7 +217,7 @@ end
 
     # Test 6: Physics sanity checks
     @testset "Physics sanity checks" begin
-        fsm = create_minimal_fsm(Tf, Ti)
+        fsm = create_minimal_fsm(Tf)
 
         # Set cold top, warm bottom (inverted gradient)
         fsm.state.Tsoil[1, 1, 1] = 270.0
@@ -247,7 +243,7 @@ end
 
     # Test 7: Set zero conductivity and only warm the top soil layer
     @testset "Warming of top layer" begin
-        fsm = create_minimal_fsm(Tf, Ti)
+        fsm = create_minimal_fsm(Tf)
 
         # Set uniform initial temperature
         T_init = 280.0  # K

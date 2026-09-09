@@ -5,7 +5,7 @@ LU decomposition solver for linear systems with partial pivoting.
 """
 # @inline so that kernel-local MMatrix/MVector arguments do not escape
 # (escaping would force them onto the heap, allocating once per grid cell)
-@inline function ludcmp!(N::Integer, A::AbstractMatrix{Tf}, Acp::AbstractMatrix{Tf}, b::AbstractVector{Tf}, x::AbstractVector{Tf}, vv::AbstractVector{Tf}, indx::AbstractVector{Ti}) where {Tf <: Real, Ti <: Integer}
+@inline function ludcmp!(N::Integer, A::AbstractMatrix{Tf}, Acp::AbstractMatrix{Tf}, b::AbstractVector{Tf}, x::AbstractVector{Tf}, vv::AbstractVector{Tf}, indx::AbstractVector{<:Integer}) where {Tf <: Real}
 
     # @inbounds (callers guarantee N <= size of all system arrays): without
     # it, the bounds-check error paths would capture the kernel-local

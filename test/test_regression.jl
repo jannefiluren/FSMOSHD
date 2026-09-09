@@ -81,7 +81,7 @@ function interpolate_meteo(Tf, landuse)
 
 end
 
-function run_simulations(settings, Tf = Float32, Ti = Int32)
+function run_simulations(settings, Tf = Float32)
 
     # Read landuse data
     landuse = load_domain_data()
@@ -97,8 +97,8 @@ function run_simulations(settings, Tf = Float32, Ti = Int32)
     Ny = size(landuse["elevation"]["data"], 2)
     Nt = length(times)
 
-    fsm = setup(Tf, Ti, landuse, Nx, Ny, settings)
-    met = MET{Tf, Ti}(Nx = Nx, Ny = Ny)
+    fsm = setup(Tf, landuse, Nx, Ny, settings)
+    met = MET{Tf}(Nx = Nx, Ny = Ny)
 
     # Preallocate arrays to store simulation results
     simulation_results = Dict{String, Any}()

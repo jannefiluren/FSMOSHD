@@ -7,8 +7,8 @@ snowpack at pixel (i, j).
 Pure Julia translation of the Fortran routine `HS_FROM_SWE` (deps/HS_FROM_SWE.F90).
 """
 function hs_from_swe(
-        fsm::FSM{Tf, Ti}, w::SnowTransport{Tf, Ti}, swe::Tf, i::Integer, j::Integer
-    ) where {Tf <: Real, Ti <: Integer}
+        fsm::FSM{Tf}, w::SnowTransport{Tf}, swe::Tf, i::Integer, j::Integer
+    ) where {Tf <: Real}
 
     (; Nsnow, fsnow, Sice, Sliq, Ds) = fsm.state
     (; rhos_min, rhos_max, rho_snow) = w
@@ -85,8 +85,8 @@ never been wet (`histowet < 0.5`).
 Translation of the Fortran subroutine `compute_soft_snow` (deps/SNOWTRAN3D.F90).
 """
 function compute_soft_snow!(
-        fsm::FSM{Tf, Ti}, w::SnowTransport{Tf, Ti}
-    ) where {Tf <: Real, Ti <: Integer}
+        fsm::FSM{Tf}, w::SnowTransport{Tf}
+    ) where {Tf <: Real}
 
     (; Nx, Ny) = fsm.grid
     (; Ds, Nsnow, histowet, Sliq) = fsm.state
@@ -112,8 +112,8 @@ friction velocity `w.Utau`.
 Translation of the Fortran subroutine `update_soft_snow` (deps/SNOWTRAN3D.F90).
 """
 function update_soft_snow!(
-        fsm::FSM{Tf, Ti}, w::SnowTransport{Tf, Ti}
-    ) where {Tf <: Real, Ti <: Integer}
+        fsm::FSM{Tf}, w::SnowTransport{Tf}
+    ) where {Tf <: Real}
 
     (; Nx, Ny) = fsm.grid
     (; Ds, Nsnow, fsnow, Sice, Sliq) = fsm.state
@@ -162,8 +162,8 @@ snow layer.
 Translation of the Fortran subroutine `surface_snow` (deps/SNOWTRAN3D.F90).
 """
 function surface_snow!(
-        fsm::FSM{Tf, Ti}, w::SnowTransport{Tf, Ti}
-    ) where {Tf <: Real, Ti <: Integer}
+        fsm::FSM{Tf}, w::SnowTransport{Tf}
+    ) where {Tf <: Real}
 
     (; Nx, Ny) = fsm.grid
     (; Nsnow, fsnow, Sice, Sliq, Ds) = fsm.state
@@ -198,7 +198,7 @@ indices of run k.
 
 Translation of the Fortran subroutine `getdirection` (deps/SNOWTRAN3D.F90).
 """
-function getdirection!(w::SnowTransport{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
+function getdirection!(w::SnowTransport{Tf}) where {Tf <: Real}
 
     (; Nx, Ny, index_ue, index_uw, index_vn, index_vs, uwind, vwind) = w
 
@@ -378,8 +378,8 @@ saltating anywhere in the domain, 0 otherwise).
 Translation of the Fortran subroutine `solveUtau` (deps/SNOWTRAN3D.F90).
 """
 function solve_utau!(
-        fsm::FSM{Tf, Ti}, w::SnowTransport{Tf, Ti}, met::MET{Tf, Ti}
-    ) where {Tf <: Real, Ti <: Integer}
+        fsm::FSM{Tf}, w::SnowTransport{Tf}, met::MET{Tf}
+    ) where {Tf <: Real}
 
     (; Nx, Ny) = fsm.grid
     (; zU) = fsm.params
@@ -545,8 +545,8 @@ snow concentration following Kind, 1992) and the sublimation flux `w.Qsubl`.
 Translation of the Fortran subroutine `suspension` (deps/SNOWTRAN3D.F90).
 """
 function suspension!(
-        fsm::FSM{Tf, Ti}, w::SnowTransport{Tf, Ti}, met::MET{Tf, Ti}
-    ) where {Tf <: Real, Ti <: Integer}
+        fsm::FSM{Tf}, w::SnowTransport{Tf}, met::MET{Tf}
+    ) where {Tf <: Real}
 
     (; Nx, Ny) = fsm.grid
     (; zRH) = fsm.params
@@ -648,8 +648,8 @@ following Liston and Sturm (1998) eq. 9.
 Translation of the Fortran subroutine `saltation` (deps/SNOWTRAN3D.F90).
 """
 function saltation!(
-        fsm::FSM{Tf, Ti}, w::SnowTransport{Tf, Ti}, delta_WE::Tf, delta_SN::Tf
-    ) where {Tf <: Real, Ti <: Integer}
+        fsm::FSM{Tf}, w::SnowTransport{Tf}, delta_WE::Tf, delta_SN::Tf
+    ) where {Tf <: Real}
 
     (; Nx, Ny) = fsm.grid
     (; vegsnowd_xy, forestfrac) = w
@@ -862,11 +862,11 @@ upwind neighbour (iu, ju), including the adjustment for the case where there is
 not enough erodible snow on the ground.
 """
 @inline function getnewdepth_point!(
-        fsm::FSM{Tf, Ti}, w::SnowTransport{Tf, Ti},
+        fsm::FSM{Tf}, w::SnowTransport{Tf},
         Qs::Matrix{Tf}, dSWE_c::Matrix{Tf}, dSWE_c_loss::Matrix{Tf},
         dSWE_c_gain::Matrix{Tf}, dh_c::Matrix{Tf}, dh_c_loss::Matrix{Tf},
         i::Integer, j::Integer, iu::Integer, ju::Integer, delta::Tf
-    ) where {Tf <: Real, Ti <: Integer}
+    ) where {Tf <: Real}
 
     (; dt) = fsm.params
     (; fsnow, Sice, Sliq) = fsm.state
@@ -952,11 +952,11 @@ SWE and depth changes per pixel: erode snow from the snowpack (via
 Translation of the Fortran subroutine `getnewdepth` (deps/SNOWTRAN3D.F90).
 """
 function getnewdepth!(
-        fsm::FSM{Tf, Ti}, w::SnowTransport{Tf, Ti},
+        fsm::FSM{Tf}, w::SnowTransport{Tf},
         Qs_u::Matrix{Tf}, Qs_v::Matrix{Tf}, dSWE_s::Matrix{Tf},
         snowdepth0::Matrix{Tf}, Sice0::Matrix{Tf},
         delta_WE::Tf, delta_SN::Tf, Tm::Tf
-    ) where {Tf <: Real, Ti <: Integer}
+    ) where {Tf <: Real}
 
     (; Nx, Ny) = fsm.grid
     (; Ds) = fsm.state
@@ -1091,11 +1091,11 @@ arrays `dSWE_tot_*` in `fsm`.
 Translation of the Fortran subroutine `accum` (deps/SNOWTRAN3D.F90).
 """
 function accum!(
-        fsm::FSM{Tf, Ti}, w::SnowTransport{Tf, Ti},
+        fsm::FSM{Tf}, w::SnowTransport{Tf},
         snowdepth0::Matrix{Tf}, Sice0::Matrix{Tf},
         dSWE_salt::Matrix{Tf}, dSWE_susp::Matrix{Tf}, dSWE_subl::Matrix{Tf},
         bs_flag::Tf, delta_WE::Tf, delta_SN::Tf, Tm::Tf
-    ) where {Tf <: Real, Ti <: Integer}
+    ) where {Tf <: Real}
 
     (; Nx, Ny) = fsm.grid
     (; dt) = fsm.params
@@ -1223,10 +1223,10 @@ the S->N axis, i.e. South of (i,j) is (i-1,j) and West of (i,j) is (i,j-1).
 - `dSWE_subl::Matrix`: SWE change due to sublimation (kg/m²) - output
 """
 function snowtran3d_julia!(
-        fsm::FSM{Tf, Ti}, met::MET{Tf, Ti}, w::SnowTransport{Tf, Ti}, snowdepth0::Matrix{Tf}, Sice0::Matrix{Tf},
+        fsm::FSM{Tf}, met::MET{Tf}, w::SnowTransport{Tf}, snowdepth0::Matrix{Tf}, Sice0::Matrix{Tf},
         dSWE_salt::Matrix{Tf}, dSWE_susp::Matrix{Tf},
         dSWE_subl::Matrix{Tf}
-    ) where {Tf <: Real, Ti <: Integer}
+    ) where {Tf <: Real}
 
     (; Nx, Ny) = fsm.grid
     (; Ds) = fsm.state

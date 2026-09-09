@@ -31,8 +31,8 @@ function setup_immutability_example(tile)
         settings = Dict("tile" => tile)
     end
 
-    fsm = setup(Float32, Int32, lus, 1, 1, settings)
-    met = MET{Float32, Int32}()
+    fsm = setup(Float32, lus, 1, 1, settings)
+    met = MET{Float32}()
 
     # Wind speed below the 0.1 m/s minimum to exercise the clamping in drive!,
     # snowfall with Sf24h above Sfmin to exercise the albedo refresh in radiation!

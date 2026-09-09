@@ -11,7 +11,7 @@ stores them in the model state structure.
 - `fsm::FSM`: Model state structure (modified in-place)
 - `meteo::MET`: Current meteorological conditions (read-only)
 """
-function drive!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf <: Real, Ti <: Integer}
+function drive!(fsm::FSM{Tf}, meteo::MET{Tf}) where {Tf <: Real}
 
     @unpack_constants(Tf)
 

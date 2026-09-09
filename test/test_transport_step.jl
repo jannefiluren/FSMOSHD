@@ -33,7 +33,7 @@ function make_transport_step_case(; wind = false, slide = false)
     )
 
     settings = Dict("tile" => "open", "config" => Dict("SNFRAC" => 0))
-    fsm = setup(Float32, Int32, lus, Nx, Ny, settings)
+    fsm = setup(Float32, lus, Nx, Ny, settings)
     w = setup_transport(fsm, lus; wind = wind, slide = slide, use_fortran = false)
 
     # Seed a snowpack (0-2 layers per cell, densities within [rhos_min, rhos_max])
@@ -53,7 +53,7 @@ function make_transport_step_case(; wind = false, slide = false)
     end
 
     # Full, benign forcing so step! runs cleanly; strong cold wind so transport fires
-    met = MET{Float32, Int32}(Nx = Nx, Ny = Ny)
+    met = MET{Float32}(Nx = Nx, Ny = Ny)
     met.Sdir .= 0.0f0
     met.Sdif .= 0.0f0
     met.Sdird .= 0.0f0

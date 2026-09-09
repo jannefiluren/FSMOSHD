@@ -20,14 +20,14 @@ Fortran ccall path over the Julia port; `tiled` sets the tiled-transport flag. T
 CPU-only, so `fsm` must hold host arrays.
 """
 function setup_transport(
-        fsm::FSM{Tf, Ti}, landuse::Dict;
+        fsm::FSM{Tf}, landuse::Dict;
         wind::Bool = false, slide::Bool = false, use_fortran::Bool = false, tiled::Bool = false,
-    ) where {Tf, Ti}
+    ) where {Tf}
 
     Nx = Int(fsm.grid.Nx)
     Ny = Int(fsm.grid.Ny)
 
-    w = SnowTransport{Tf, Ti}(Nx = Ti(Nx), Ny = Ti(Ny))
+    w = SnowTransport{Tf}(Nx = Int(Nx), Ny = Int(Ny))
     w.wind = wind
     w.slide = slide
     w.use_fortran = use_fortran
@@ -65,15 +65,15 @@ Sort DEM indices from highest to lowest elevation for the SnowSlide processing o
 `index_sorted_dem`, an `(Nx*Ny, 2)` array whose rows are `(i, j)` pairs ordered by decreasing
 `dem`.
 """
-function sort_dem_indices!(index_sorted_dem::Matrix{Ti}, dem::AbstractMatrix{Tf}) where {Tf <: Real, Ti <: Integer}
+function sort_dem_indices!(index_sorted_dem::Matrix{Int}, dem::AbstractMatrix{Tf}) where {Tf <: Real}
     ind = sortperm(vec(dem), rev = true)
 
     rows, cols = size(dem)
     rows2D = repeat((1:rows), outer = (1, cols))
     cols2D = repeat((1:cols)', outer = (rows, 1))
 
-    index_sorted_dem[:, 1] = Ti.(rows2D[ind])
-    index_sorted_dem[:, 2] = Ti.(cols2D[ind])
+    index_sorted_dem[:, 1] = Int.(rows2D[ind])
+    index_sorted_dem[:, 2] = Int.(cols2D[ind])
 
     return nothing
 end

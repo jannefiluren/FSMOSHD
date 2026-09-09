@@ -21,9 +21,9 @@ Reference: Quéno et al. (2024)
 - `dSWE_slide::Matrix`: SWE change due to snow slides (kg/m²) - output
 """
 function snowslide!(
-        fsm::FSM{Tf, Ti}, w::SnowTransport{Tf, Ti}, snowdepth0::Matrix{Tf},
+        fsm::FSM{Tf}, w::SnowTransport{Tf}, snowdepth0::Matrix{Tf},
         Sice0::Matrix{Tf}, dSWE_slide::Matrix{Tf}
-    ) where {Tf <: Real, Ti <: Integer}
+    ) where {Tf <: Real}
 
     (; Nx, Ny, Nsmax) = fsm.grid
     (; Ds_min) = fsm.params
@@ -32,27 +32,35 @@ function snowslide!(
     (; dSWE_tot_slide, index_sorted_dem, slope, Shd, forestfrac) = w
     (; dem) = fsm.surface
 
+    # The Fortran wrapper is compiled for 4-byte integers. Nsnow is in-out (staged as an Int32
+    # copy and read back); index_sorted_dem is read-only (a throwaway Int32 copy). Integer
+    # scalars convert through their `Ref{Int32}` slots automatically.
+    Nsnow32 = Int32.(Nsnow)
+    index_sorted_dem32 = Int32.(index_sorted_dem)
+
     # Call the standalone Fortran wrapper
     ccall(
         (:snowslide_wrapper_, LIBSNOWSLIDE),
         Cvoid,
         (
-            Ref{Ti}, Ref{Ti}, Ref{Ti}, Ref{Tf},           # Nx, Ny, Nsmax, Ds_min
-            Ref{Tf}, Ref{Tf}, Ref{Ti},                    # rhos_min, rhos_max, tiled_trans_run
+            Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Tf},  # Nx, Ny, Nsmax, Ds_min
+            Ref{Tf}, Ref{Tf}, Ref{Int32},                 # rhos_min, rhos_max, tiled_trans_run
             Ptr{Tf}, Ptr{Tf}, Ptr{Tf},                    # snowdepth0, Sice0, dSWE_slide
             Ptr{Tf}, Ptr{Tf}, Ptr{Tf}, Ptr{Tf},           # fsnow, Ds, Sice, Sliq
-            Ptr{Tf}, Ptr{Tf}, Ptr{Ti},                    # Tsnow, histowet, Nsnow
-            Ptr{Tf}, Ptr{Ti},                             # dSWE_tot_slide, index_sorted_dem
+            Ptr{Tf}, Ptr{Tf}, Ptr{Int32},                 # Tsnow, histowet, Nsnow
+            Ptr{Tf}, Ptr{Int32},                          # dSWE_tot_slide, index_sorted_dem
             Ptr{Tf}, Ptr{Tf}, Ptr{Tf}, Ptr{Tf},           # dem, slope, Shd, forestfrac
         ),
         Nx, Ny, Nsmax, Ds_min,
-        rhos_min, rhos_max, Ti(tiled_trans_run),
+        rhos_min, rhos_max, Int32(tiled_trans_run),
         snowdepth0, Sice0, dSWE_slide,
         fsnow, Ds, Sice, Sliq,
-        Tsnow, histowet, Nsnow,
-        dSWE_tot_slide, index_sorted_dem,
+        Tsnow, histowet, Nsnow32,
+        dSWE_tot_slide, index_sorted_dem32,
         dem, slope, Shd, forestfrac
     )
+
+    Nsnow .= Nsnow32
 
     return nothing
 end

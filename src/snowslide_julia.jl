@@ -27,8 +27,8 @@ Pure Julia translation of the Fortran routine `SWE_FROM_HS` (deps/SWE_FROM_HS.F9
 - `i::Integer`, `j::Integer`: Grid indices
 """
 function swe_from_hs(
-        fsm::FSM{Tf, Ti}, w::SnowTransport{Tf, Ti}, hs::Tf, i::Integer, j::Integer
-    ) where {Tf <: Real, Ti <: Integer}
+        fsm::FSM{Tf}, w::SnowTransport{Tf}, hs::Tf, i::Integer, j::Integer
+    ) where {Tf <: Real}
 
     (; Nsnow, fsnow, Sice, Sliq, Ds) = fsm.state
     (; rhos_min, rhos_max, rho_snow) = w
@@ -116,8 +116,8 @@ Mutates `Sice`, `Sliq`, `Ds`, `histowet`, `Tsnow` and `Nsnow` in `fsm`.
 - `Tm::Real`: Melting temperature (K), assigned to emptied layers
 """
 function snow_ablation!(
-        fsm::FSM{Tf, Ti}, dhs::Tf, dswe::Tf, i::Integer, j::Integer, Tm::Tf
-    ) where {Tf <: Real, Ti <: Integer}
+        fsm::FSM{Tf}, dhs::Tf, dswe::Tf, i::Integer, j::Integer, Tm::Tf
+    ) where {Tf <: Real}
 
     (; Nsmax) = fsm.grid
     (; Ds_min) = fsm.params
@@ -224,9 +224,9 @@ coming from fresh avalanche deposit" block of the Fortran routine `SNOWSLIDE`
 (deps/SNOWSLIDE.F90).
 """
 function remove_slide_snow!(
-        fsm::FSM{Tf, Ti}, w::SnowTransport{Tf, Ti}, snowdepth0::Matrix{Tf}, Sice0::Matrix{Tf},
+        fsm::FSM{Tf}, w::SnowTransport{Tf}, snowdepth0::Matrix{Tf}, Sice0::Matrix{Tf},
         snowdepth_available::Tf, i::Integer, j::Integer, Tm::Tf
-    ) where {Tf <: Real, Ti <: Integer}
+    ) where {Tf <: Real}
 
     @inbounds if snowdepth0[i, j] - snowdepth_available > eps(Tf)
 
@@ -280,9 +280,9 @@ the S->N axis, i.e. South of (i,j) is (i-1,j) and West of (i,j) is (i,j-1).
 - `dSWE_slide::Matrix`: SWE change due to snow slides (kg/m²) - output
 """
 function snowslide_julia!(
-        fsm::FSM{Tf, Ti}, w::SnowTransport{Tf, Ti}, snowdepth0::Matrix{Tf},
+        fsm::FSM{Tf}, w::SnowTransport{Tf}, snowdepth0::Matrix{Tf},
         Sice0::Matrix{Tf}, dSWE_slide::Matrix{Tf}
-    ) where {Tf <: Real, Ti <: Integer}
+    ) where {Tf <: Real}
 
     (; Nx, Ny) = fsm.grid
     (; fsnow, Ds) = fsm.state

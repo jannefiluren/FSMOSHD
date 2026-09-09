@@ -15,8 +15,8 @@ Adapt.adapt_storage(::DeviceAdaptor, a::Array) = DeviceArray(a)
 
 @testset "on_architecture round trip" begin
 
-    fsm = FSM{Float32, Int32}(; Nx = 3, Ny = 2)
-    met = MET{Float32, Int32}(Nx = 3, Ny = 2)
+    fsm = FSM(Grid(Float32; Nx = 3, Ny = 2))
+    met = MET{Float32}(Nx = 3, Ny = 2)
 
     moved = on_architecture(FlexibleSnowModelOSHD.CPU(), fsm)
     @test typeof(moved) === typeof(fsm)
@@ -35,8 +35,8 @@ end
 
 @testset "adapt rebuilds sub-structs on a device array type" begin
 
-    fsm = FSM{Float32, Int32}(; Nx = 3, Ny = 2)
-    met = MET{Float32, Int32}(Nx = 3, Ny = 2)
+    fsm = FSM(Grid(Float32; Nx = 3, Ny = 2))
+    met = MET{Float32}(Nx = 3, Ny = 2)
     to = DeviceAdaptor()
 
     grid = Adapt.adapt(to, fsm.grid)
@@ -53,7 +53,7 @@ end
     state = Adapt.adapt(to, fsm.state)
     @test state isa FlexibleSnowModelOSHD.State
     @test state.albs isa DeviceArray{Float32, 2}
-    @test state.Nsnow isa DeviceArray{Int32, 2}
+    @test state.Nsnow isa DeviceArray{Int, 2}
     @test state.Ds isa DeviceArray{Float32, 3}
 
     diag = Adapt.adapt(to, fsm.diag)
@@ -62,7 +62,7 @@ end
     @test diag.ksnow isa DeviceArray{Float32, 3}
 
     m = Adapt.adapt(to, met)
-    @test m isa MET{Float32, Int32}
+    @test m isa MET{Float32}
     @test m.Sdir isa DeviceArray{Float32, 2}
     @test m.Sf24h_f64 isa DeviceArray{Float64, 2}
     @test m.Sf_history_f64 isa DeviceArray{Float64, 3}

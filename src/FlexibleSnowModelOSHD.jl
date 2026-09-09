@@ -67,7 +67,7 @@ include("snowtran3d.jl")
 include("snowtran3d_julia.jl")
 include("transport.jl")
 
-export FSM, MET
+export FSM, MET, Grid
 export AbstractParameterization, grid_array, check_grid, build_scheme
 export AbstractConductivity, FixedConductivity, DensityConductivity, snow_conductivity!
 export AbstractAlbedo, DiagnosticAlbedo, DecayAlbedo, PrognosticAlbedo, snow_albedo!

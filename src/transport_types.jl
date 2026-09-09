@@ -12,11 +12,11 @@
 # Build one with `setup_transport(fsm, landuse)` (see transport_setup.jl); the transport
 # operators take it as an explicit argument alongside `fsm`/`met`.
 
-@kwdef mutable struct SnowTransport{Tf, Ti}
+@kwdef mutable struct SnowTransport{Tf}
 
     # Domain size
-    Nx::Ti = 1                                               # Size of first array dimension (rows)
-    Ny::Ti = 1                                               # Size of second array dimension (columns)
+    Nx::Int = 1                                               # Size of first array dimension (rows)
+    Ny::Int = 1                                               # Size of second array dimension (columns)
 
     # Which processes run, and which implementation, when transport! is called from step!
     wind::Bool = false                                      # Run wind transport (SnowTran3D)
@@ -39,7 +39,7 @@
     Shd::Matrix{Tf} = fill(Tf(NaN), Nx, Ny)                 # Snow holding depth for gravitational transport (m)
     vegsnowd_xy::Matrix{Tf} = fill(Tf(0.1), Nx, Ny)         # Vegetation snow holding capacity (m)
     forestfrac::Matrix{Tf} = zeros(Tf, Nx, Ny)              # Forest fraction (-)
-    index_sorted_dem::Matrix{Ti} = zeros(Ti, Nx * Ny, 2)    # DEM indices sorted by decreasing elevation
+    index_sorted_dem::Matrix{Int} = zeros(Int, Nx * Ny, 2)    # DEM indices sorted by decreasing elevation
 
     # Cumulative SWE-change accumulators (kg/m^2)
     dSWE_tot_slide::Matrix{Tf} = zeros(Tf, Nx, Ny)          # ... due to slides
@@ -92,9 +92,9 @@
     dSWE_s_v_gain::Matrix{Tf} = zeros(Tf, Nx, Ny)         # y component of SWE gain (kg/m^2)
 
     # Wind direction index arrays
-    index_ue::Matrix{Ti} = zeros(Ti, Nx, 2 * Ny + 1)        # Wind index array E
-    index_uw::Matrix{Ti} = zeros(Ti, Nx, 2 * Ny + 1)        # Wind index array W
-    index_vn::Matrix{Ti} = zeros(Ti, Ny, 2 * Nx + 1)        # Wind index array N
-    index_vs::Matrix{Ti} = zeros(Ti, Ny, 2 * Nx + 1)        # Wind index array S
+    index_ue::Matrix{Int} = zeros(Int, Nx, 2 * Ny + 1)        # Wind index array E
+    index_uw::Matrix{Int} = zeros(Int, Nx, 2 * Ny + 1)        # Wind index array W
+    index_vn::Matrix{Int} = zeros(Int, Ny, 2 * Nx + 1)        # Wind index array N
+    index_vs::Matrix{Int} = zeros(Int, Ny, 2 * Nx + 1)        # Wind index array S
 
 end
