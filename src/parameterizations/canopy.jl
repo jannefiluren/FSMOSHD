@@ -12,6 +12,8 @@ struct NoCanopy{Tf} <: AbstractCanopy{Tf} end
     avgs::Tf = 0.4                       # Snow-covered vegetation albedo (-)
     psf::Tf = 1                          # Solid precipitation multiplier at min canopy cover (-)
     psr::Tf = 0.1                        # Solid precipitation multiplier range (-)
+    tcnc::Tf = 3600 * 240                # Canopy unloading time scale for cold snow (s)
+    tcnm::Tf = 3600 * 48                 # Canopy unloading time scale for melting snow (s)
 end
 
 NoCanopy{Tf}(grid::Grid; kwargs...) where {Tf} = NoCanopy{Tf}()
@@ -36,7 +38,8 @@ function canopy_snow! end
 
     @unpack_constants(Tf)
 
-    (; dt, tcnc, tcnm) = params
+    (; dt) = params
+    (; tcnc, tcnm) = canopy
     (; scap, fveg, pmultf) = surface
     (; Sveg, Tveg) = state
     (; unload, intcpt, Sbveg, Sfeff, Eveg) = diag

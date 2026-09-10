@@ -1,14 +1,28 @@
-# Snow compaction parameterizations. Fieldless dispatch schemes: the compaction
-# parameters are shared with the fresh-snow-density routine, so they stay on
-# Parameters and are passed in.
+# Snow compaction parameterizations.
 
-struct AgeCompaction{Tf} <: AbstractCompaction{Tf} end
-struct OverburdenCompaction{Tf} <: AbstractCompaction{Tf} end
-struct CrocusCompaction{Tf} <: AbstractCompaction{Tf} end
+@kwdef struct AgeCompaction{Tf} <: AbstractCompaction{Tf}
+    rmlt::Tf = 500              # Maximum density for melting snow (kg/m^3)
+    rcld::Tf = 300              # Maximum density for cold snow (kg/m^3)
+    trho::Tf = 3600 * 200       # Snow compaction time scale (s)
+end
 
-AgeCompaction{Tf}(grid::Grid; kwargs...) where {Tf} = AgeCompaction{Tf}()
-OverburdenCompaction{Tf}(grid::Grid; kwargs...) where {Tf} = OverburdenCompaction{Tf}()
-CrocusCompaction{Tf}(grid::Grid; kwargs...) where {Tf} = CrocusCompaction{Tf}()
+@kwdef struct OverburdenCompaction{Tf} <: AbstractCompaction{Tf}
+    eta0::Tf = 3.7e7            # Reference snow viscosity (Pa s)
+    snda::Tf = 2.8e-6           # Thermal metamorphism parameter (1/s)
+    rhos_max::Tf = 750          # Maximum snow density (kg/m^3)
+end
+
+@kwdef struct CrocusCompaction{Tf} <: AbstractCompaction{Tf}
+    eta1::Tf = 7.62237e6        # Reference snow viscosity for Crocus B92 compaction (Pa s)
+    a_eta::Tf = 0.1             # Temperature factor for Crocus B92 compaction (K^-1)
+    b_eta::Tf = 0.023           # First density factor for Crocus B92 compaction (m^3/kg)
+    c_eta::Tf = 250             # Second density factor for Crocus B92 compaction (kg/m^3)
+    rhos_max::Tf = 750          # Maximum snow density (kg/m^3)
+end
+
+AgeCompaction{Tf}(grid::Grid; kwargs...) where {Tf} = AgeCompaction{Tf}(; kwargs...)
+OverburdenCompaction{Tf}(grid::Grid; kwargs...) where {Tf} = OverburdenCompaction{Tf}(; kwargs...)
+CrocusCompaction{Tf}(grid::Grid; kwargs...) where {Tf} = CrocusCompaction{Tf}(; kwargs...)
 
 """
     compact_snow!(scheme, i, j, state, params)
@@ -16,16 +30,16 @@ CrocusCompaction{Tf}(grid::Grid; kwargs...) where {Tf} = CrocusCompaction{Tf}()
 Compact the snow column at cell `(i, j)`: rescale the layer thicknesses `Ds` in
 place to the compacted density, for every layer. A kernel point function (see
 `.claude/rules/kernel-point-functions.md`); every `AbstractCompaction`
-implements it. The compaction parameters are shared with fresh snow density, so
-they stay on `Parameters` and are passed in rather than held on the scheme.
+implements it. Each scheme holds its own compaction constants.
 """
 function compact_snow! end
 
 # Snow compaction with age
-@inline function compact_snow!(::AgeCompaction{Tf}, i, j, state, params) where {Tf}
+@inline function compact_snow!(c::AgeCompaction{Tf}, i, j, state, params) where {Tf}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, fsnow, Nsnow, Tsnow) = state
-    (; dt, rmlt, rcld, trho) = params
+    (; dt) = params
+    (; rmlt, rcld, trho) = c
     for k in 1:Nsnow[i, j]
         if (Ds[k, i, j] > eps(Tf))
             rhos = (Sice[k, i, j] + Sliq[k, i, j]) / Ds[k, i, j] / fsnow[i, j]
@@ -45,10 +59,11 @@ function compact_snow! end
 end
 
 # Snow compaction by overburden
-@inline function compact_snow!(::OverburdenCompaction{Tf}, i, j, state, params) where {Tf}
+@inline function compact_snow!(c::OverburdenCompaction{Tf}, i, j, state, params) where {Tf}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, fsnow, Nsnow, Tsnow) = state
-    (; dt, eta0, snda, rhos_max) = params
+    (; dt) = params
+    (; eta0, snda, rhos_max) = c
     mass = Tf(0.0)
     for k in 1:Nsnow[i, j]
         mass = mass + Tf(0.5) * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]
@@ -64,10 +79,11 @@ end
 end
 
 # Snow compaction by overburden, dependent on liquid water content (Crocus B92)
-@inline function compact_snow!(::CrocusCompaction{Tf}, i, j, state, params) where {Tf}
+@inline function compact_snow!(c::CrocusCompaction{Tf}, i, j, state, params) where {Tf}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, fsnow, Nsnow, Tsnow) = state
-    (; dt, eta1, a_eta, b_eta, c_eta, rhos_max) = params
+    (; dt) = params
+    (; eta1, a_eta, b_eta, c_eta, rhos_max) = c
     mass = Tf(0.0)
     for k in 1:Nsnow[i, j]
         mass = mass + Tf(0.5) * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]

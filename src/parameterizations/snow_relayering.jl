@@ -1,10 +1,13 @@
 # Snow relayering parameterizations
 
 struct OriginalLayering{Tf} <: AbstractLayering{Tf} end
-struct DensityLayering{Tf} <: AbstractLayering{Tf} end
+
+@kwdef struct DensityLayering{Tf} <: AbstractLayering{Tf}
+    Ds_surflay::Tf = 0.5        # Maximum thickness of surface fine snow layering (m)
+end
 
 OriginalLayering{Tf}(grid::Grid; kwargs...) where {Tf} = OriginalLayering{Tf}()
-DensityLayering{Tf}(grid::Grid; kwargs...) where {Tf} = DensityLayering{Tf}()
+DensityLayering{Tf}(grid::Grid; kwargs...) where {Tf} = DensityLayering{Tf}(; kwargs...)
 
 """
     relayer_snow!(scheme, i, j, state, diag, grid, params, snowdepth, Tsnow0, ::Val{Nsmax})
@@ -138,11 +141,12 @@ Base.@propagate_inbounds function relayer_snow!(::OriginalLayering{Tf}, i, j, st
 end
 
 # Density dependent snowpack layering
-Base.@propagate_inbounds function relayer_snow!(::DensityLayering{Tf}, i, j, state, diag, grid, params, snowdepth, Tsnow0, ::Val{Nsmax}) where {Tf, Nsmax}
+Base.@propagate_inbounds function relayer_snow!(s::DensityLayering{Tf}, i, j, state, diag, grid, params, snowdepth, Tsnow0, ::Val{Nsmax}) where {Tf, Nsmax}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, Tsnow, histowet, Nsnow, fsnow) = state
     (; Ds0, Sice0) = diag
-    (; rho0, Ds_surflay, Ds_min) = params
+    (; rho0, Ds_min) = params
+    (; Ds_surflay) = s
 
     # Kernel-local scratch
     rho = zero(MVector{Nsmax + 1, Tf})
@@ -619,7 +623,7 @@ Base.@propagate_inbounds function snow_layering!(
 
     @unpack_constants(Tf)
 
-    (; hfsn, Tsnow_min) = params
+    (; Tsnow_min) = params
     (; Ds, Sice, Sliq, Tsnow, histowet, Nsnow, fsnow) = state
     (; Ds0, Sice0, snowdepth0) = diag
     (; Ta) = meteo
@@ -659,7 +663,7 @@ Base.@propagate_inbounds function snow_layering!(
     end
 
     snowcoverfraction_point!(
-        snow_fraction, state, surface, snowdepth, SWEtmp, hfsn, i, j, update_hist
+        snow_fraction, state, surface, snowdepth, SWEtmp, i, j, update_hist
     )
 
     # Rescale Ds with new snow cover fraction

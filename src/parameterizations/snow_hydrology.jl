@@ -1,17 +1,19 @@
-# Snow hydraulics parameterizations. Fieldless dispatch schemes; the only tuned
-# parameter (Wirr) is shared with the rest of the snow routine, so it stays on
-# Parameters and is passed in.
+# Snow hydraulics parameterizations.
 #
 # The `csnow` heat capacity that branches 1/2 compute after adjusting Sliq/Sice
 # is a per-layer temporary that never leaves its loop iteration, so it is a plain
 # scalar local here rather than the kernel's shared `MVector` scratch.
 
 struct FreeDrainingHydrology{Tf} <: AbstractHydrology{Tf} end
-struct BucketHydrology{Tf} <: AbstractHydrology{Tf} end
+
+@kwdef struct BucketHydrology{Tf} <: AbstractHydrology{Tf}
+    Wirr::Tf = 0.03             # Irreducible liquid water content of snow (-)
+end
+
 struct DensityBucketHydrology{Tf} <: AbstractHydrology{Tf} end
 
 FreeDrainingHydrology{Tf}(grid::Grid; kwargs...) where {Tf} = FreeDrainingHydrology{Tf}()
-BucketHydrology{Tf}(grid::Grid; kwargs...) where {Tf} = BucketHydrology{Tf}()
+BucketHydrology{Tf}(grid::Grid; kwargs...) where {Tf} = BucketHydrology{Tf}(; kwargs...)
 DensityBucketHydrology{Tf}(grid::Grid; kwargs...) where {Tf} = DensityBucketHydrology{Tf}()
 
 """
@@ -39,11 +41,11 @@ function snow_hydrology! end
 end
 
 # Bucket storage
-@inline function snow_hydrology!(::BucketHydrology{Tf}, i, j, state, diag, params) where {Tf}
+@inline function snow_hydrology!(c::BucketHydrology{Tf}, i, j, state, diag, params) where {Tf}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, Tsnow, histowet, fsnow, Nsnow) = state
     (; Roff_snow, meltflux_out) = diag
-    (; Wirr) = params
+    (; Wirr) = c
     for k in 1:Nsnow[i, j]
         phi = Tf(0.0)
         if (Ds[k, i, j] > eps(Tf))

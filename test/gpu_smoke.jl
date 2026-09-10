@@ -87,8 +87,8 @@ const configs = [
     (
         "forest", Dict(
             "tile" => "forest",
-            "physics" => Dict("canopy" => OneLayerCanopy, "snow_fraction" => TanhSnowFraction, "reference_height" => AboveCanopy),
-            "params" => Dict("hfsn" => 0.3, "z0_snow" => 0.01),
+            "physics" => Dict("canopy" => OneLayerCanopy, "snow_fraction" => TanhSnowFraction{Float32}(; hfsn = 0.3), "reference_height" => AboveCanopy),
+            "params" => Dict("z0_snow" => 0.01),
         ),
     ),
     ("glacier", Dict("tile" => "glacier", "physics" => Dict("snow_fraction" => SeasonalSnowFraction))),

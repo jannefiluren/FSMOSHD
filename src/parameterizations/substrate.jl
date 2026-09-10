@@ -1,10 +1,15 @@
 # Substrate (soil / glacier ice) parameterizations
 
-struct SoilSubstrate{Tf} <: AbstractSubstrate{Tf} end
-struct IceSubstrate{Tf} <: AbstractSubstrate{Tf} end
+@kwdef struct SoilSubstrate{Tf} <: AbstractSubstrate{Tf}
+    gsat::Tf = 0.01             # Surface conductance for saturated soil (m/s)
+end
 
-SoilSubstrate{Tf}(grid::Grid; kwargs...) where {Tf} = SoilSubstrate{Tf}()
-IceSubstrate{Tf}(grid::Grid; kwargs...) where {Tf} = IceSubstrate{Tf}()
+@kwdef struct IceSubstrate{Tf} <: AbstractSubstrate{Tf}
+    gsat::Tf = 0.01             # Surface conductance for saturated soil (m/s)
+end
+
+SoilSubstrate{Tf}(grid::Grid; kwargs...) where {Tf} = SoilSubstrate{Tf}(; kwargs...)
+IceSubstrate{Tf}(grid::Grid; kwargs...) where {Tf} = IceSubstrate{Tf}(; kwargs...)
 
 """
     soil_properties!(substrate, i, j, state, diag, surface, grid, params)
@@ -15,10 +20,10 @@ Fill the soil heat capacity `diag.csoil[1:Nsoil, i, j]`, thermal conductivity
 """
 function soil_properties! end
 
-@inline function soil_properties!(::IceSubstrate{Tf}, i, j, state, diag, surface, grid, params) where {Tf}
+@inline function soil_properties!(s::IceSubstrate{Tf}, i, j, state, diag, surface, grid, params) where {Tf}
     @unpack_constants(Tf)
     (; Dzsoil, Nsoil) = grid
-    (; gsat) = params
+    (; gsat) = s
     (; csoil, ksoil, gs1) = diag
 
     for k in 1:Nsoil
@@ -31,10 +36,10 @@ function soil_properties! end
     return nothing
 end
 
-@inline function soil_properties!(::SoilSubstrate{Tf}, i, j, state, diag, surface, grid, params) where {Tf}
+@inline function soil_properties!(s::SoilSubstrate{Tf}, i, j, state, diag, surface, grid, params) where {Tf}
     @unpack_constants(Tf)
     (; Dzsoil, Nsoil) = grid
-    (; gsat) = params
+    (; gsat) = s
     (; b, hcap_soil, hcon_soil, sathh, Vcrit, Vsat) = surface
     (; theta, Tsoil) = state
     (; csoil, ksoil, gs1) = diag

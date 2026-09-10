@@ -15,6 +15,8 @@ OpenSurfaceLayer{Tf}(Nx, Ny; stability = NoStabilityCorrection{Tf}()) where {Tf}
     wcan::Tf = 2.5                       # Parameter of exponential wind profile (-)
     khcf::Tf = 3                         # Diffusivity adjustment for canopy effects (-)
     cveg::Tf = 20                        # Vegetation turbulent transfer coefficient ((s/m)^0.5)
+    gsnf::Tf = 0                         # Snow-free vegetation moisture conductance (m/s)
+    zsub::Tf = 2                         # Sub-canopy reference height (m)
 end
 ForestSurfaceLayer{Tf}(grid::Grid; kwargs...) where {Tf} = ForestSurfaceLayer{Tf}(; kwargs...)
 
@@ -58,7 +60,8 @@ end
 # Forest terrain
 @inline function exchange_coefficients!(sl::ForestSurfaceLayer{Tf}, i, j, state, diag, surface, params, meteo, zU1, zT1, z0g) where {Tf}
     @unpack_constants(Tf)
-    (; zU, zsub, gsnf) = params
+    (; zU) = params
+    (; zsub, gsnf) = sl
     (; fveg, fves, VAI, hcan) = surface
     (; Sveg, Tsrf, Tveg, Qcan) = state
     (; KHa, KHg, KHv, KWg, KWv, Usc, gs1, Uaeff) = diag
