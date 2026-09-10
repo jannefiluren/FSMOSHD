@@ -22,7 +22,7 @@ using KernelAbstractions: @kernel, @index, get_backend
 using StaticArrays: MVector, MMatrix
 import Libdl
 
-# Core functionality such as model and state structs, constants and model setup
+# Core functionality such as state and parameter structs, constants and model setup
 include("parameters.jl")
 include("types.jl")
 include("architectures.jl")
@@ -59,7 +59,7 @@ include("processes/snow.jl")
 include("processes/soil.jl")
 include("step.jl")
 
-# Snow transport
+# Snow transport routines
 include("transport/transport_types.jl")
 include("transport/transport_setup.jl")
 include("transport/snowslide.jl")

@@ -11,8 +11,7 @@ KernelAbstractions GPU backend, e.g. with CUDA.jl loaded:
     met = on_architecture(arch, MET{Float32}(Nx = Nx, Ny = Ny))
 
 Physics routines pick their compute backend from the arrays themselves (via
-`KernelAbstractions.get_backend`), so no architecture object needs to be
-threaded through the time stepping.
+`KernelAbstractions.get_backend`).
 """
 abstract type AbstractArchitecture end
 
@@ -41,7 +40,7 @@ backend(arch::GPU) = arch.backend
     on_architecture(arch, x)
 
 Move `x` to the architecture `arch`: arrays are converted to the
-architecture's array type (a no-op for `Array`s on `CPU()`), `FSM`/`MET`
+architecture's array type (a no-op for `Array`s on `CPU()`), all
 structures are rebuilt with all their array fields converted, and everything
 else is passed through unchanged. Note that unconverted fields (and arrays
 already on the right architecture) are aliased, not copied.
@@ -57,18 +56,12 @@ function on_architecture(arch::GPU, a::AbstractArray)
     return out
 end
 
-# Parameterizations are moved generically: a scheme holding only scalars is
-# isbits and needs nothing, and one holding arrays is rebuilt with each field
-# moved. This works because array-valued scheme fields are type parameters, so
-# the rebuilt struct can hold the target architecture's array type.
 function on_architecture(arch::AbstractArchitecture, s::AbstractParameterization)
     isbitstype(typeof(s)) && return s
     T = typeof(s).name.wrapper
     return T(map(f -> on_architecture(arch, getfield(s, f)), fieldnames(typeof(s)))...)
 end
 
-# Parameters is scalar-only (isbits), so it moves unchanged; the other sub-structs
-# and the physics NamedTuple are rebuilt with each array field moved.
 on_architecture(::AbstractArchitecture, p::Parameters) = p
 
 function on_architecture(arch::AbstractArchitecture, x::Union{Grid, Surface, State, Diagnostics, MET})
