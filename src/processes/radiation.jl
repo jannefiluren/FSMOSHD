@@ -1,4 +1,4 @@
-# Radiation process: snow-albedo application, canopy shortwave transmission, terrain longwave
+# Radiation process: snow-albedo, canopy shortwave transmission, terrain longwave
 
 """
     radiation!(fsm, meteo, t)

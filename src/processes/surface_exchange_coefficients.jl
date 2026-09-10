@@ -1,4 +1,4 @@
-# Surface-exchange process: turbulent eddy diffusivities for heat and moisture
+# Computation of turbulent eddy diffusivities for heat and moisture
 
 """
     surface_exchange_coefficients!(fsm, meteo)

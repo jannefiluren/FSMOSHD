@@ -14,10 +14,9 @@ sub/main/super-diagonals `a`/`b`/`c` and right-hand side `r`, writing the result
 """
 # Base.@propagate_inbounds (not @inline): carries the caller kernel's `inbounds = true` into this
 # function so the internally-allocated `gamma` MVector stays on the stack rather than heap-allocating
-# once per grid cell. Callers guarantee Nvec <= length(x); the @inbounds block relies on it.
+# once per grid cell.
 Base.@propagate_inbounds function tridiag!(x::AbstractVector{Tf}, Nvec, a, b, c, r) where {Tf <: Real}
 
-    # Elimination-coefficient workspace, sized from x (a stack MVector when x is one).
     gamma = similar(x)
 
     @inbounds begin

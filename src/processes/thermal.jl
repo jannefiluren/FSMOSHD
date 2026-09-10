@@ -1,4 +1,4 @@
-# Thermal process: snow/soil conductivity and the composite surface layer
+# Thermal property calculations for snow and soil layers
 
 """
     thermal!(fsm)

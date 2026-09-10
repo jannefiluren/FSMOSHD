@@ -1,10 +1,10 @@
-# Snow cover fraction parameterizations
+# Snow cover fraction parameterizations.
 
-struct SeasonalSnowFraction{Tf} <: AbstractSnowFraction{Tf} end   # OSHD seasonal model
-struct HelbigSnowFraction{Tf} <: AbstractSnowFraction{Tf} end     # HelbigHS
-struct HelbigMaxSnowFraction{Tf} <: AbstractSnowFraction{Tf} end  # HelbigHS0 (running max)
-struct PointSnowFraction{Tf} <: AbstractSnowFraction{Tf} end      # point model (0/1)
-@kwdef struct TanhSnowFraction{Tf} <: AbstractSnowFraction{Tf}    # tanh model / original FSM
+struct SeasonalSnowFraction{Tf} <: AbstractSnowFraction{Tf} end
+struct HelbigSnowFraction{Tf} <: AbstractSnowFraction{Tf} end
+struct HelbigMaxSnowFraction{Tf} <: AbstractSnowFraction{Tf} end
+struct PointSnowFraction{Tf} <: AbstractSnowFraction{Tf} end
+@kwdef struct TanhSnowFraction{Tf} <: AbstractSnowFraction{Tf}
     hfsn::Tf = 0.1             # Snow-cover fraction depth scale (m)
 end
 
@@ -26,7 +26,6 @@ function ground_roughness end
 @inline function ground_roughness(::PointSnowFraction{Tf}, i, j, state, surface) where {Tf}
     (; Ds) = state
     (; z0_snow, z0sf) = surface
-    # 0.05 m snow-depth threshold stabilises tuning-point runs (vs fsnow)
     return column_sum(Ds, i, j) <= Tf(0.05) ? z0sf[i, j] : z0_snow[i, j]
 end
 
@@ -39,10 +38,9 @@ end
 """
     melt_snow_fraction(scheme, i, j, state)
 
-Snow cover fraction used to scale melt and sublimation at cell `(i, j)`. Away from the
-point model it is inflated over `state.fsnow` so that thin cover does not slow depletion
-into long SWE tails. Implemented for every `AbstractSnowFraction`; called from the `snow!`
-kernel.
+Snow cover fraction used to scale melt and sublimation at cell `(i, j)`. Apart from the point
+model, `state.fsnow` is inflated to prevent that a thin snow cover deplets unrealistically
+slow. Implemented for every `AbstractSnowFraction`; called from the `snow!`.
 """
 function melt_snow_fraction end
 
@@ -59,15 +57,7 @@ end
 """
     snowcoverfraction_point!(scheme, state, surface, snowdepth, SWEtmp, hfsn, i, j, update_hist)
 
-Snow cover fraction for one grid cell: dispatch to the `scheme`'s SCF model
-(`snow_covered_fraction!`), then apply the shared final clamp. A kernel point
-function (see `.claude/rules/kernel-point-functions.md`); called from the
-`snow_layering!` kernel and the [`snowcoverfraction!`](@ref) host wrapper.
-
-`snowdepth` (m) and `SWEtmp` (kg/m^2) are the current depth and SWE;
-`update_hist` refreshes the 14-day history state
-(true at 6:00 am - the caller resolves the test, since `Dates` cannot run in a
-kernel).
+Snow cover fraction parameterizations for one grid cell.
 """
 @inline function snowcoverfraction_point!(
         scheme::AbstractSnowFraction, state, surface,

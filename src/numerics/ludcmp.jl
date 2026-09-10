@@ -5,19 +5,15 @@ Solve the `N`-by-`N` linear system `A x = b` by LU decomposition with partial pi
 the solution into `x`. `A` is left unchanged; the decomposition and pivoting workspace is
 allocated internally.
 """
-# Base.@propagate_inbounds (not @inline): carries the caller kernel's `inbounds = true` into this
-# function so the internally-allocated Acp/vv/indx scratch stays on the stack rather than
-# heap-allocating once per grid cell. Callers guarantee N <= size of the system arrays.
+# Base.@propagate_inbounds (not @inline): carries the caller kernel's `inbounds = true` 
+# into this function so the internally-allocated scratch stays on the stack rather than
+# heap-allocating once per grid cell.
 Base.@propagate_inbounds function ludcmp!(N::Integer, A::AbstractMatrix{Tf}, b::AbstractVector{Tf}, x::AbstractVector{Tf}) where {Tf <: Real}
 
-    # Working copy of A and the pivoting workspace, sized from the inputs (stack MMatrix/MVector
-    # when the inputs are static).
     Acp = similar(A)
     vv = similar(x)
-    indx = similar(x, Int32)
+    indx = similar(x, Int32)    # TODO check if this should be Int...
 
-    # @inbounds (callers guarantee N <= size of all system arrays): without it, the bounds-check
-    # error paths would capture the scratch and force it onto the heap
     @inbounds begin
 
     Acp .= A
@@ -104,19 +100,7 @@ Base.@propagate_inbounds function ludcmp!(N::Integer, A::AbstractMatrix{Tf}, b::
         x[i] = sum / Acp[i, i]
     end
 
-    end # @inbounds
+    end
 
     return nothing
 end
-
-
-# A = rand(4,4)
-# x = rand(4)
-# b = A*x
-
-# x_sol = similar(x)
-
-# ludcmp(4, A, b, x_sol)
-# @time ludcmp(4, A, b, x_sol)
-
-# x_sol .- x

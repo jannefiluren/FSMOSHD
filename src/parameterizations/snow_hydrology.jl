@@ -53,10 +53,10 @@ end
             Sliq[k, i, j] = SliqMax
             histowet[k, i, j] = Tf(1.0)
         end
-        # csnow needs to be updated after changing Sliq and Sice
+        # Rescale areal heat capacity of snow after mass updates
         csnow = (Sice[k, i, j] * hcap_ice + Sliq[k, i, j] * hcap_wat) / fsnow[i, j]
         coldcont = csnow * (Tm - Tsnow[k, i, j])
-        if (coldcont > Tf(0))       # Liquid can freeze
+        if (coldcont > Tf(0))          # Liquid water can freeze
             dSice = min(Sliq[k, i, j], fsnow[i, j] * coldcont / Lf)
             Sliq[k, i, j] = Sliq[k, i, j] - dSice
             Sice[k, i, j] = Sice[k, i, j] + dSice
@@ -91,14 +91,14 @@ end
             Sliq[k, i, j] = SliqMax
             histowet[k, i, j] = Tf(1.0)
         end
-        # csnow needs to be updated after changing Sliq and Sice
+        # Rescale areal heat capacity of snow after mass updates
         csnow = (Sice[k, i, j] * hcap_ice + Sliq[k, i, j] * hcap_wat) / fsnow[i, j]
         coldcont = csnow * (Tm - Tsnow[k, i, j])
-        if (coldcont > eps(Tf))       # Liquid can freeze
+        if (coldcont > eps(Tf))        # Liquid water can freeze
             dSice = min(Sliq[k, i, j], fsnow[i, j] * coldcont / Lf)
             Sliq[k, i, j] = Sliq[k, i, j] - dSice
             Sice[k, i, j] = Sice[k, i, j] + dSice
-            # to account for refreezing of melt
+            # Account for refreezing for melt and snow temperature
             meltflux_out[i, j] = meltflux_out[i, j] - dSice
             Tsnow[k, i, j] = Tsnow[k, i, j] + Lf * dSice / csnow / fsnow[i, j]
         end

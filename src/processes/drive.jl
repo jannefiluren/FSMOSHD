@@ -24,7 +24,6 @@ function drive!(fsm::FSM{Tf}, meteo::MET{Tf}) where {Tf <: Real}
     es .= e0 .* exp.(Tf(17.5043) .* (Ta .- Tm) ./ (Tf(241.3) .+ (Ta .- Tm)))
     Qa .= (RH ./ 100) .* eps_fsm .* es ./ Ps
 
-    # Snowfall reaching the surface; further adjusted by canopy! for forest tiles
     Sfeff .= Sf
 
     return nothing
