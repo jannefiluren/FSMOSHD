@@ -48,7 +48,7 @@ end
         SliqMax = fsnow[i, j] * rho_wat * Ds[k, i, j] * phi * Wirr
         Sliq[k, i, j] = Sliq[k, i, j] + Roff_snow[i, j]
         Roff_snow[i, j] = Tf(0)
-        if (Sliq[k, i, j] > SliqMax)       # Liquid capacity exceeded and drain to next layer
+        if (Sliq[k, i, j] > SliqMax)   # Liquid capacity exceeded and drain to next layer
             Roff_snow[i, j] = Sliq[k, i, j] - SliqMax
             Sliq[k, i, j] = SliqMax
             histowet[k, i, j] = Tf(1.0)
@@ -86,8 +86,8 @@ end
         SliqMax = SliqCap * Sice[k, i, j]
         Sliq[k, i, j] = Sliq[k, i, j] + Roff_snow[i, j]
         Roff_snow[i, j] = Tf(0)
-        if (Sliq[k, i, j] > SliqMax)       # Liquid capacity exceeded
-            Roff_snow[i, j] = Sliq[k, i, j] - SliqMax   # so drainage to next layer
+        if (Sliq[k, i, j] > SliqMax)   # Liquid capacity exceeded and drain to next layer
+            Roff_snow[i, j] = Sliq[k, i, j] - SliqMax
             Sliq[k, i, j] = SliqMax
             histowet[k, i, j] = Tf(1.0)
         end

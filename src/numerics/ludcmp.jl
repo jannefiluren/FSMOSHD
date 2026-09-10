@@ -1,15 +1,23 @@
 """
-    ludcmp!(N, A, Acp, b, x, vv, indx)
+    ludcmp!(N, A, b, x)
 
-LU decomposition solver for linear systems with partial pivoting.
+Solve the `N`-by-`N` linear system `A x = b` by LU decomposition with partial pivoting, writing
+the solution into `x`. `A` is left unchanged; the decomposition and pivoting workspace is
+allocated internally.
 """
-# @inline so that kernel-local MMatrix/MVector arguments do not escape
-# (escaping would force them onto the heap, allocating once per grid cell)
-@inline function ludcmp!(N::Integer, A::AbstractMatrix{Tf}, Acp::AbstractMatrix{Tf}, b::AbstractVector{Tf}, x::AbstractVector{Tf}, vv::AbstractVector{Tf}, indx::AbstractVector{<:Integer}) where {Tf <: Real}
+# Base.@propagate_inbounds (not @inline): carries the caller kernel's `inbounds = true` into this
+# function so the internally-allocated Acp/vv/indx scratch stays on the stack rather than
+# heap-allocating once per grid cell. Callers guarantee N <= size of the system arrays.
+Base.@propagate_inbounds function ludcmp!(N::Integer, A::AbstractMatrix{Tf}, b::AbstractVector{Tf}, x::AbstractVector{Tf}) where {Tf <: Real}
 
-    # @inbounds (callers guarantee N <= size of all system arrays): without
-    # it, the bounds-check error paths would capture the kernel-local
-    # MMatrix/MVector arguments and force them onto the heap
+    # Working copy of A and the pivoting workspace, sized from the inputs (stack MMatrix/MVector
+    # when the inputs are static).
+    Acp = similar(A)
+    vv = similar(x)
+    indx = similar(x, Int32)
+
+    # @inbounds (callers guarantee N <= size of all system arrays): without it, the bounds-check
+    # error paths would capture the scratch and force it onto the heap
     @inbounds begin
 
     Acp .= A

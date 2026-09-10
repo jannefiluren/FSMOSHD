@@ -178,11 +178,8 @@ end
 
     # Kernel-local scratch variables
     A = zero(MMatrix{4, 4, Tf})
-    Acp = zero(MMatrix{4, 4, Tf})
     b = zero(MVector{4, Tf})
     x = zero(MVector{4, Tf})
-    vv = zero(MVector{4, Tf})
-    indx = zero(MVector{4, Int32})
 
     # Saturation humidity and density of air
     Qsrf = qsat(Ps[i, j], Tsrf[i, j])
@@ -233,7 +230,7 @@ end
     A[4, 3] = -Tf(4) * (Tf(1) - trcn[i, j]) * sb * Tsrf[i, j]^Tf(3)
     A[4, 4] = canh[i, j] / dt + rho * (cp * KHv[i, j] + Lveg * Dveg * KWv[i, j]) + Tf(8) * (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(3)
     b[4] = Rveg - Hveg - Lveg * Eveg[i, j] - canh[i, j] * (Tveg[i, j] - Tveg0[i, j]) / dt
-    ludcmp!(4, A, Acp, b, x, vv, indx)
+    ludcmp!(4, A, b, x)
     dQc = x[1]
     dTc = x[2]
     dTs = x[3]
@@ -248,7 +245,7 @@ end
     if (Tsrf[i, j] + dTs > Tm && Sice[1, i, j] > eps(Sice[1, i, j]))
         Melt[i, j] = column_sum(Sice, i, j) / dt
         b[3] = Rsrf[i, j] - Hsrf[i, j] - Lsrf * Esrf[i, j] - G[i, j] - Lf * Melt[i, j]
-        ludcmp!(4, A, Acp, b, x, vv, indx)
+        ludcmp!(4, A, b, x)
         dQc = x[1]
         dTc = x[2]
         dTs = x[3]
@@ -273,7 +270,7 @@ end
             b[3] = Rsrf[i, j] - Hsrf[i, j] - Lsrf * Esrf[i, j] - G[i, j]
             A[4, 3] = Tf(0)
             b[4] = Rveg - Hveg - Lveg * Eveg[i, j] - canh[i, j] * (Tveg[i, j] - Tveg0[i, j]) / dt
-            ludcmp!(4, A, Acp, b, x, vv, indx)
+            ludcmp!(4, A, b, x)
             dQc = x[1]
             dTc = x[2]
             Melt[i, j] = x[3] / Lf

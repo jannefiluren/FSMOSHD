@@ -58,7 +58,6 @@ end
         c = zero(MVector{Nsmax, Tf})
         rhs = zero(MVector{Nsmax, Tf})
         dTs = zero(MVector{Nsmax, Tf})
-        gamma = zero(MVector{Nsmax, Tf})
 
         # Accumulators for this step
         Sbsrf[i, j] = Tf(0)
@@ -109,7 +108,7 @@ end
                 b[k] = csnow[k] + (Gs[k - 1] + Gs[k]) * dt
                 c[k] = Tf(0)
                 rhs[k] = Gs[k - 1] * (Tsnow[k - 1, i, j] - Tsnow[k, i, j]) * dt + Gs[k] * (Tsoil[1, i, j] - Tsnow[k, i, j]) * dt
-                tridiag!(dTs, Nsnow[i, j], gamma, Nsmax, a, b, c, rhs)
+                tridiag!(dTs, Nsnow[i, j], a, b, c, rhs)
             end
             for k in 1:Nsnow[i, j]
                 Tsnow[k, i, j] = Tsnow[k, i, j] + dTs[k]

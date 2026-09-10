@@ -64,7 +64,6 @@ step, solving the tridiagonal heat conduction system driven by `diag.Gsoil`.
     dTs = zero(MVector{Nsoil, Tf})
     Gs = zero(MVector{Nsoil, Tf})
     rhs = zero(MVector{Nsoil, Tf})
-    gamma = zero(MVector{Nsoil, Tf})
 
     for k in 1:(Nsoil - 1)
         Gs[k] = Tf(2) / (Dzsoil[k] / ksoil[k, i, j] + Dzsoil[k + 1] / ksoil[k + 1, i, j])
@@ -85,7 +84,7 @@ step, solving the tridiagonal heat conduction system driven by `diag.Gsoil`.
     b[k] = csoil[k, i, j] + (Gs[k - 1] + Gs[k]) * dt
     c[k] = Tf(0)
     rhs[k] = Gs[k - 1] * (Tsoil[k - 1, i, j] - Tsoil[k, i, j]) * dt
-    tridiag!(dTs, Nsoil, gamma, Nsoil, a, b, c, rhs)
+    tridiag!(dTs, Nsoil, a, b, c, rhs)
     for k in 1:Nsoil
         Tsoil[k, i, j] = Tsoil[k, i, j] + dTs[k]
     end
