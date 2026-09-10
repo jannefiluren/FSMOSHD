@@ -141,7 +141,7 @@ function setup(
     # Load terrain properties from landuse data
     sf.fsky_terr .= Tf.(landuse["skyvf"]["data"])
     sf.dem .= Tf.(landuse["elevation"]["data"])
-    sf.prec_multi .= landuse["prec_multi"]["data"]   # TODO hack float64
+    sf.prec_multi .= landuse["prec_multi"]["data"]
 
     # Set tile fractions non open tiles
     if tile != "open"
@@ -162,18 +162,16 @@ function setup(
         sf.vfhp .= Tf.(landuse["vfhp"]["data"])
         sf.fves .= Tf.(landuse["fves"]["data"])
 
-        sf.pmultf .= Tf.((1 .- (1 .- landuse["prec_multi"]["data"]) .* (1 .- landuse["forest"]["data"] * fsm.params.pmultf_for)) ./ landuse["prec_multi"]["data"])   # TODO if this works, integrate with prec_multi instead...
+        sf.pmultf .= Tf.((1 .- (1 .- landuse["prec_multi"]["data"]) .* (1 .- landuse["forest"]["data"] * fsm.params.pmultf_for)) ./ landuse["prec_multi"]["data"])
 
         sf.VAI[:, :] = sf.lai[:, :]
         sf.trcn[:, :] = Tf(1) .- Tf(0.9) .* sf.fveg[:, :]
         sf.fsky .= sf.vfhp ./ sf.trcn
-        # Handle values where fsky > 1
+        # Clamp fsky to 1, moving the excess into trcn
         mask = sf.fsky .> Tf(1)
         sf.trcn[mask] .= sf.vfhp[mask]
         sf.fsky[mask] .= Tf(1)
     end
-
-    # TODO fix this piece of the code with Guilia...
 
     # Narrow the tile mask by the configuration's data requirement (canopy tile: fveg > 0), then
     # validate the remaining forest inputs.
@@ -185,11 +183,7 @@ function setup(
             sf.tilefrac[canopy_free] .= Tf(0)
         end
 
-        # Every forest input (and trcn, derived from fveg) must be strictly positive on each active
-        # cell: the canopy physics divides by lai-derived quantities (VAI, scap) and by trcn, so a
-        # non-positive or NaN value silently produces Inf/NaN. Providing valid landuse is the user's
-        # responsibility, so fail loudly. Runs after the drop above, so fveg == 0 cells are already
-        # excluded.
+        # Forest inputs must be > 0 on active cells: the canopy physics divides by VAI/scap/trcn, so bad input silently gives Inf/NaN.
         active = sf.tilefrac .>= fsm.params.tthresh
         for (name, field) in (
                 ("fveg", sf.fveg), ("hcan", sf.hcan), ("lai", sf.lai),
@@ -202,8 +196,6 @@ function setup(
 
     sf.canh[:, :] = Tf(12500) * sf.VAI[:, :]
     sf.scap[:, :] = fsm.params.cvai * sf.VAI[:, :]
-
-    # TODO end todo...
 
     if !(arch isa CPU)
         fsm = on_architecture(arch, fsm)

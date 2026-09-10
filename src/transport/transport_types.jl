@@ -1,16 +1,12 @@
 # Snow-transport workspace.
 #
-# Transport (SnowSlide + SnowTran3D) is a neighbour-coupled, grid-global operator that was
-# excised from FSM in the type-domain refactor (commit fe38469) and is re-integrated here as a
-# standalone operator, not a `step!` stage. To keep the decomposed, GPU-adaptable FSM
-# untouched, ALL transport-specific state lives here instead of on the model: the static
-# per-cell setup arrays, the cumulative-change accumulators, the transport tuning constants
-# (defaults match deps/MODULES.F90 so the Julia and Fortran paths agree), and the SnowTran3D
-# working arrays. The struct is CPU-only (concrete `Matrix`) by design — transport does
-# neighbour-coupled scalar indexing and is not ported to the GPU.
-#
-# Build one with `setup_transport(fsm, landuse)` (see transport_setup.jl); the transport
-# operators take it as an explicit argument alongside `fsm`/`met`.
+# Transport (SnowSlide + SnowTran3D) is a neighbour-coupled, grid-global operator, run as a
+# standalone step rather than a per-cell `step!` stage. ALL transport-specific state lives here
+# instead of on the model, keeping the decomposed, GPU-adaptable FSM untouched: the static
+# per-cell setup arrays, the cumulative-change accumulators, the tuning constants (defaults match
+# deps/MODULES.F90 so the Julia and Fortran paths agree), and the SnowTran3D working arrays.
+# CPU-only (concrete `Matrix`): transport does neighbour-coupled scalar indexing, not ported to
+# the GPU. Build one with `setup_transport(fsm, landuse)`.
 
 @kwdef mutable struct SnowTransport{Tf}
 

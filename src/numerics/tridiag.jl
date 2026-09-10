@@ -12,9 +12,7 @@ sub/main/super-diagonals `a`/`b`/`c` and right-hand side `r`, writing the result
 - `c`: Super-diagonal coefficients
 - `r`: Right-hand side vector
 """
-# Base.@propagate_inbounds (not @inline): carries the caller kernel's `inbounds = true` into this
-# function so the internally-allocated `gamma` MVector stays on the stack rather than heap-allocating
-# once per grid cell.
+# @propagate_inbounds (not @inline): the kernel's inbounds context reaches the internal gamma MVector, keeping it off the heap.
 Base.@propagate_inbounds function tridiag!(x::AbstractVector{Tf}, Nvec, a, b, c, r) where {Tf <: Real}
 
     gamma = similar(x)

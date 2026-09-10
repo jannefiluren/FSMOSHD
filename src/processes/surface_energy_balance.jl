@@ -25,9 +25,7 @@ function surface_energy_balance!(fsm::FSM{Tf}, meteo::MET{Tf}) where {Tf <: Real
     return nothing
 end
 
-# inbounds = true keeps the kernel-local scratch of the forest solver
-# off the heap; raw @inbounds block inside a @kernel body corrupts the
-# KernelAbstractions CPU transformation
+# inbounds = true (not a raw @inbounds block, which miscompiles the KA CPU kernel) keeps the forest solver's scratch off the heap
 @kernel inbounds = true function surface_energy_balance_kernel!(
         state, diag, surface, params::Parameters{Tf}, meteo,
         canopy::AbstractCanopy{Tf}, substrate::AbstractSubstrate{Tf},
@@ -119,9 +117,7 @@ function energy_balance! end
         end
     end
 
-    # Handle energy fluxes on bare glacier ice assuming glaciers are an
-    # infinite heat reservoir. The capping of surface temperature at melting
-    # point is not energy conserving
+    # Bare glacier ice as an infinite heat reservoir: capping Tsrf at melting point is not energy-conserving
     if substrate isa IceSubstrate
         if (Tsrf[i, j] + dTs > Tm && Sice[1, i, j] <= eps(Tf))
             Qs = qsat(Ps[i, j], Tm)
@@ -158,7 +154,7 @@ function energy_balance! end
     LEsrf[i, j] = LE[i, j]
     Rsrf[i, j] = Rnet[i, j]
 
-    # Ensure LWsci and LWveg exist as variable even in open runs
+    # Define LWsci/LWveg even in open runs
     LWsci[i, j] = LWeff[i, j]
     LWveg[i, j] = Tf(0.0)
 

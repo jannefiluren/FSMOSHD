@@ -20,9 +20,7 @@ caller. Every `AbstractLayering` implements it.
 """
 function relayer_snow! end
 
-# Both methods are @propagate_inbounds, not @inline: without the kernel's inbounds
-# context the bounds-check paths capture their MVector scratch onto the heap, once
-# per grid cell
+# @propagate_inbounds (not @inline): inherits the kernel's inbounds context so MVector scratch stays off the heap
 
 # Original layering routine
 Base.@propagate_inbounds function relayer_snow!(::OriginalLayering{Tf}, i, j, state, diag, grid, params, snowdepth, Tsnow0, ::Val{Nsmax}) where {Tf, Nsmax}
@@ -614,8 +612,7 @@ after the melt, sublimation and compaction of the same step. The snow cover frac
 update is [`snowcoverfraction_point!`](@ref); `update_hist` refreshes the 14-day
 history state and is resolved by the caller, since `Dates` cannot run in a kernel.
 """
-# @propagate_inbounds: this is the link that carries the kernel's inbounds context
-# down to relayer_snow!, whose MVector scratch would otherwise go to the heap
+# @propagate_inbounds: carries the kernel's inbounds context down to relayer_snow!, keeping its MVector scratch off the heap
 Base.@propagate_inbounds function snow_layering!(
         layering::AbstractLayering{Tf}, snow_fraction::AbstractSnowFraction{Tf},
         i, j, state, diag, surface, grid, params, meteo, update_hist::Bool, ::Val{Nsmax},

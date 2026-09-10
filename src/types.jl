@@ -75,11 +75,11 @@ end
     hcan::MF = zeros(grid.Nx, grid.Ny)              # Canopy height (m)
     canh::MF = fill(NaN, grid.Nx, grid.Ny)          # Canopy heat capacity (J/K/m^2)
     scap::MF = fill(NaN, grid.Nx, grid.Ny)          # Canopy snow capacity (kg/m^2)
-    trcn::MF = ones(grid.Nx, grid.Ny)               # Canopy transmissivity (-)  = exp(-kdif*VAI), VAI=0
+    trcn::MF = ones(grid.Nx, grid.Ny)               # Canopy transmissivity (-)
 
     # Precipitation
     pmultf::MF = fill(NaN, grid.Nx, grid.Ny)        # Precipitation multiplier reverting open-area correction (-)
-    prec_multi::MF64 = fill(NaN, grid.Nx, grid.Ny)  # Precipitation multiplier (-)  TODO float64 legacy
+    prec_multi::MF64 = fill(NaN, grid.Nx, grid.Ny)  # Precipitation multiplier (-); Float64 legacy
 
     # Soil
     fcly::MF = 0.3 * ones(grid.Nx, grid.Ny)         # Soil clay fraction (-)
@@ -195,7 +195,7 @@ mutable struct FSM{Tf, G, P, L, S, D, PH}
     physics::PH
 end
 
-# Positional constructor used by on_architecture
+# Positional constructor from already-built sub-structs
 function FSM(
         grid::Grid, params::Parameters{Tf}, surface::Surface, state::State,
         diag::Diagnostics, physics
@@ -271,8 +271,8 @@ end
     Udir::MF = fill(NaN, Nx, Ny)                   # Wind direction (degrees, clockwise from North) — read only by snow transport
 
     # Snowfall tracking variables
-    Sf24h_f64::MF64 = zeros(Nx, Ny)                # Total snowfall over 24h (kg/m^2)  TODO intermediate variable using Float64 to match matlab/fortran code - remove later
-    Sf_history_f64::AF64_3 = zeros(Nx, Ny, 24)     # History of snowfall over the last 24h (kg/m^2)  TODO using Float64 to match matlab/fortran code - change precision later
+    Sf24h_f64::MF64 = zeros(Nx, Ny)                # Total snowfall over 24h (kg/m^2); Float64 to match the legacy matlab/fortran
+    Sf_history_f64::AF64_3 = zeros(Nx, Ny, 24)     # Snowfall over the last 24h (kg/m^2); Float64 to match the legacy matlab/fortran
 
 end
 

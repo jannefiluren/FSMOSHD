@@ -73,7 +73,7 @@ end
         if (Ta[i, j] >= Tm)
             # Unloading on bare ground fraction is added to runoff
             Roff_bare[i, j] = Roff_bare[i, j] + unload[i, j] * (Tf(1) - fsnow[i, j])
-            # Unloading on snow covered fraction is later added to snow liquid water (see hydraulics)
+            # Unloading on snow-covered fraction is added to snow liquid water later
             Roff_snow[i, j] = Roff_snow[i, j] + unload[i, j] * fsnow[i, j]
         end
 
@@ -162,21 +162,18 @@ end
                 end
             end
 
-            # Snow hydraulics
             snow_hydrology!(hydrology, i, j, state, diag, params)
 
-            # Snow compaction
             compact_snow!(compaction, i, j, state, params)
 
         end  # Existing snowpack
 
-        # Limit runoff contribution from snowmelt as meltflux_out does not track
-        # liquid water retention during percolation
+        # Cap meltflux_out at snow runoff: it ignores liquid retention during percolation
         if (meltflux_out[i, j] > Roff_snow[i, j])
             meltflux_out[i, j] = Roff_snow[i, j]
         end
 
-        # Add bare soil runoff to snowmelt runoff for total runoff
+        # Total runoff
         Roff[i, j] = Roff_snow[i, j] + Roff_bare[i, j]
 
         # Add snowfall and frost to new snow with fresh snow density

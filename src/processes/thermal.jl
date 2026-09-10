@@ -65,9 +65,7 @@ leaves `Ts1` blended with `Tsoil` even under a deep snowpack.
     Ds1[i, j] = max(Dzsoil[1], Ds[1, i, j])
     Ts1[i, j] = Tsoil[1, i, j] + (Tsnow[1, i, j] - Tsoil[1, i, j]) * Ds[1, i, j] / Dzsoil[1]
 
-    # Series resistance of the composite layer with (a) a guard against zero division for
-    # cells that never held snow and (b) a soil resistance that turns negative once snow
-    # fills over half the layer, where ks1 is overridden below
+    # Series resistance: guard zero-snow division; soil_R goes negative once snow fills >½ the layer (ks1 overridden below)
     snow_R = Ds[1, i, j] > zero(Tf) ? Tf(2) * Ds[1, i, j] / ksnow[1, i, j] : zero(Tf)
     soil_R = (Dzsoil[1] - Tf(2) * Ds[1, i, j]) / ksoil[1, i, j]
 

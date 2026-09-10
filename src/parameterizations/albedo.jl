@@ -140,7 +140,6 @@ end
         a = a + (afs_loc - a) * Sf[i, j] * dt / c.Sfmin
     end
 
-    ## End Adjustments
     if (a > afs_loc)
         a = afs_loc
     end

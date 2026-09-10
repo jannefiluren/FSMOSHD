@@ -43,7 +43,6 @@ end
 
     if (tilefrac[i, j] >= tthresh)
 
-        # Snow albedo
         snow_albedo!(snow_albedo, i, j, state, surface, meteo, params, summer_decay)
 
         # Bare ground shows through once the snow has gone

@@ -1,4 +1,3 @@
-# Global constant for library path
 const LIBSNOWTRAN3D = joinpath(@__DIR__, "..", "..", "deps", "libsnowtran3d")
 
 """
@@ -43,7 +42,6 @@ function snowtran3d!(
     # convert through their `Ref{Int32}` slots automatically.
     Nsnow32 = Int32.(Nsnow)
 
-    # Call the standalone Fortran wrapper
     ccall(
         (:snowtran3d_wrapper_, LIBSNOWTRAN3D),
         Cvoid,

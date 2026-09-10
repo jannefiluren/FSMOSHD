@@ -4,10 +4,11 @@
 Solve the `N`-by-`N` linear system `A x = b` by LU decomposition with partial pivoting, writing
 the solution into `x`. `A` is left unchanged; the decomposition and pivoting workspace is
 allocated internally.
+
+Numerical Recipes' `ludcmp`/`lubksb`: Crout ordering with implicit (scaled) partial pivoting; the
+factors are Doolittle-form (unit-diagonal `L`, `U` carries the diagonal).
 """
-# Base.@propagate_inbounds (not @inline): carries the caller kernel's `inbounds = true` 
-# into this function so the internally-allocated scratch stays on the stack rather than
-# heap-allocating once per grid cell.
+# @propagate_inbounds (not @inline): the kernel's inbounds context reaches the internal scratch, keeping it off the heap.
 Base.@propagate_inbounds function ludcmp!(N::Integer, A::AbstractMatrix{Tf}, b::AbstractVector{Tf}, x::AbstractVector{Tf}) where {Tf <: Real}
 
     Acp = similar(A)

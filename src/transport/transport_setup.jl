@@ -1,8 +1,7 @@
 # One-time setup for the snow-transport operators: build a SnowTransport workspace from the
-# model grid + a landuse dictionary. Mirrors the transport setup block that used to live in
-# setup.jl on origin/jan-cpu_gpu_refactor, but writes into the standalone workspace rather than
-# onto FSM. Both the Julia and Fortran transport paths consume this same workspace, so any
-# array computed here is shared and cannot make the two paths disagree.
+# model grid + a landuse dictionary, writing into the standalone workspace rather than onto FSM.
+# Both the Julia and Fortran transport paths consume this same workspace, so any array computed
+# here is shared and cannot make the two paths disagree.
 
 """
     setup_transport(fsm, landuse; wind = false, slide = false, use_fortran = false, tiled = false) -> SnowTransport

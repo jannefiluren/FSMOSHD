@@ -1,9 +1,5 @@
-# Canopy mass-balance parameterizations
-#
-# Canopy also affects other parts of the model code: the radiation and surface-energy-balance
-# processes add further AbstractCanopy-dispatched methods (solar_radiation!/thermal_radiation!,
-# energy_balance!) in their own files, since those compute radiation/energy-balance quantities
-# that merely branch on canopy presence.
+# Canopy mass-balance parameterizations. radiation.jl and surface_energy_balance.jl add further
+# AbstractCanopy-dispatched methods (solar_radiation!/thermal_radiation!, energy_balance!).
 
 struct NoCanopy{Tf} <: AbstractCanopy{Tf} end
 

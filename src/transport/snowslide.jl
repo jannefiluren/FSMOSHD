@@ -1,4 +1,3 @@
-# Global constant for library path
 const LIBSNOWSLIDE = joinpath(@__DIR__, "..", "..", "deps", "libsnowslide")
 
 """
@@ -38,7 +37,6 @@ function snowslide!(
     Nsnow32 = Int32.(Nsnow)
     index_sorted_dem32 = Int32.(index_sorted_dem)
 
-    # Call the standalone Fortran wrapper
     ccall(
         (:snowslide_wrapper_, LIBSNOWSLIDE),
         Cvoid,
