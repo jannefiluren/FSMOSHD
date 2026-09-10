@@ -1,4 +1,4 @@
-# Snow albedo parameterizations
+# Snow albedo parameterizations.
 
 @kwdef struct DiagnosticAlbedo{Tf} <: AbstractAlbedo{Tf}
     amin::Tf = 0.6                            # Minimum albedo for melting snow (-)
@@ -13,7 +13,7 @@ end
     tmlt::Tf = 3600 * 100                     # Melting snow albedo decay time scale (s)
     adfs::Tf = 3                              # Albedo adjustment, shortwave (-)
     adfl::Tf = 2                              # Albedo adjustment, longwave (-)
-    Sfmin::Tf = 10                            # Min 24h snowfall to refresh albedo (kg/m^2)
+    Sfmin::Tf = 10                            # Minimum snowfall over 24h to refresh albedo (kg/m^2)
     afs::MF = 0.86 * ones(grid.Nx, grid.Ny)   # Maximum albedo for fresh snow (-)
 end
 
@@ -22,7 +22,7 @@ end
     ALRADT::Bool = true                       # Aspect-dependent decay tuning
     adm::Tf = 100                             # Melting snow albedo decay time (h)
     amin::Tf = 0.6                            # Minimum albedo for melting snow (-)
-    Sfmin::Tf = 10                            # Min 24h snowfall to refresh albedo (kg/m^2)
+    Sfmin::Tf = 10                            # Minimum snowfall over 24h to refresh albedo (kg/m^2)
     afs::MF = 0.86 * ones(grid.Nx, grid.Ny)   # Maximum albedo for fresh snow (-)
     adc::MF = 1000 * ones(grid.Nx, grid.Ny)   # Cold snow albedo decay time (h)
 end

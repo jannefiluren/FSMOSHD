@@ -173,7 +173,8 @@ function setup(
         sf.fsky[mask] .= Tf(1)
     end
 
-    # Narrow the tile mask by the configuration's data requirement (canopy tile: fveg > 0).
+    # Narrow the tile mask by the configuration's data requirement (canopy tile: fveg > 0), then
+    # validate the remaining forest inputs.
     if tile == "forest"
         canopy_free = (sf.tilefrac .>= fsm.params.tthresh) .& (sf.fveg .<= 0)
         dropped = count(canopy_free)
@@ -181,13 +182,25 @@ function setup(
             @warn "forest tile: $dropped active cell(s) have fveg == 0 and are excluded from the tile"
             sf.tilefrac[canopy_free] .= Tf(0)
         end
+
+        # Every forest input (and trcn, derived from fveg) must be strictly positive on each active
+        # cell: the canopy physics divides by lai-derived quantities (VAI, scap) and by trcn, so a
+        # non-positive or NaN value silently produces Inf/NaN. Providing valid landuse is the user's
+        # responsibility, so fail loudly. Runs after the drop above, so fveg == 0 cells are already
+        # excluded.
+        active = sf.tilefrac .>= fsm.params.tthresh
+        for (name, field) in (
+                ("fveg", sf.fveg), ("hcan", sf.hcan), ("lai", sf.lai),
+                ("vfhp", sf.vfhp), ("fves", sf.fves), ("trcn", sf.trcn),
+            )
+            bad = count(active .& .!(field .> Tf(0)))
+            bad == 0 || error("forest tile: $bad active cell(s) have non-positive $name; forest landuse inputs (fveg, hcan, lai, vfhp, fves) must be strictly positive")
+        end
     end
 
     sf.canh[:, :] = Tf(12500) * sf.VAI[:, :]
     sf.scap[:, :] = fsm.params.cvai * sf.VAI[:, :]
 
-    # The whole setup above runs on the CPU (it uses scalar indexing); the
-    # finished structure is moved to the target architecture in one step.
     if !(arch isa CPU)
         fsm = on_architecture(arch, fsm)
     end
