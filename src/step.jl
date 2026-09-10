@@ -10,16 +10,16 @@ This function encapsulates the standard model execution sequence:
 4. Iterative energy balance
 5. Canopy processes
 6. Snow processes
-7. Horizontal snow transport
-8. Soil thermal processes
+7. Soil thermal processes
+8. Horizontal snow transport
 
 # Arguments
 - `fsm::FSM`: Model state structure
 - `met::MET`: Current meteorological conditions
 - `t::DateTime`: Current simulation time
 - `transport::Union{SnowTransport, Nothing}` (keyword): when a workspace is passed, run the
-  horizontal snow-transport step ([`transport!`](@ref)) after `snow!`; when `nothing` (default),
-  the step is identical to a run without transport. Transport is CPU-only.
+  horizontal snow-transport step ([`transport!`](@ref)) at the end of the step; when `nothing`
+  (default), the step is identical to a run without transport. Transport is CPU-only.
 
 # Example
 ```julia
@@ -51,11 +51,13 @@ function step!(fsm::FSM{Tf}, met::MET{Tf}, t; transport = nothing) where {Tf}
     # 6. Snow processes
     snow!(fsm, met, t)
 
-    # 7 Horizontal snow transport
-    transport === nothing || transport!(fsm, met, transport, t)
-
-    # 8. Soil thermal processes
+    # 7. Soil thermal processes
     soil!(fsm)
+
+    # 8. Horizontal snow transport. A grid-global, CPU-only operator, run last: it redistributes
+    # snow mass but touches none of the fields soil! reads (Gsoil/csoil/ksoil/Tsoil), so its
+    # position relative to soil! does not change either result.
+    transport === nothing || transport!(fsm, met, transport, t)
 
     return nothing
 end
