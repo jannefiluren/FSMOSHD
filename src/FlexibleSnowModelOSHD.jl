@@ -46,7 +46,7 @@ include("parameterizations/fresh_snow_density.jl")
 include("parameterizations/snow_compaction.jl")
 include("parameterizations/snow_hydrology.jl")
 include("parameterizations/snowcoverfraction.jl")
-include("parameterizations/snow_relayering.jl")
+include("parameterizations/layering.jl")
 
 # Processes entry points with a launcher and its kernel function called from step!
 include("processes/drive.jl")
