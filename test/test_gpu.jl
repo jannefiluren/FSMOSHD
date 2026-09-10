@@ -1,6 +1,6 @@
 # GPU test: run the full physics step! on the CPU and on the GPU with identical synthetic
 # forcing and compare every model-state and diagnostic field. CUDA is not a dependency of this
-# package, so this is skipped unless CUDA is functional in the (stacked) default environment.
+# package, so this is skipped unless CUDA is functional in the default (shared) environment.
 # To enable it locally, add CUDA to your default environment once and rerun the suite:
 #
 #     julia -e 'using Pkg; Pkg.add("CUDA")'
@@ -119,8 +119,13 @@ function run_gpu_smoke(device_arch)
     return nothing
 end
 
-# Load CUDA from the stacked default environment if it is there; @eval so the `using` can sit
-# inside the try (a bare `using` is not allowed in a control-flow block).
+# CUDA is not a dependency of this package. `Pkg.test` runs in an isolated environment that does
+# not stack the default (shared) `@v#.#` env, so add it to LOAD_PATH to make an already-installed
+# CUDA loadable (this restores the load path a standalone `julia --project=.` would have). On a
+# machine without CUDA the `using` fails and the test is skipped.
+"@v#.#" in LOAD_PATH || push!(LOAD_PATH, "@v#.#")
+
+# @eval so the `using` can sit inside the try (a bare `using` is not allowed in a control-flow block).
 _cuda_functional = try
     @eval using CUDA
     CUDA.functional()
