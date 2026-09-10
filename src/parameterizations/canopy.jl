@@ -29,7 +29,6 @@ canopy_avgs(c::OneLayerCanopy) = c.avgs
 
 Snow on the canopy at cell `(i, j)`: interception from the throughfall `diag.Sfeff`,
 sublimation and unloading, updating `state.Sveg` and `diag.intcpt`/`Sbveg`/`unload`.
-Implemented for every `AbstractCanopy`; a no-op without canopy.
 """
 function canopy_snow! end
 
@@ -52,7 +51,7 @@ function canopy_snow! end
     # Remove precipitation scaling applied to forcing data
     Sfeff[i, j] = pmultf[i, j] * Sfeff[i, j]
 
-    # Interception
+    # Interception of snow on canopies
     intcpt[i, j] = (scap[i, j] - Sveg[i, j]) * (Tf(1) - exp(-fveg[i, j] * Sfeff[i, j] * dt / scap[i, j]))
     Sveg[i, j] = Sveg[i, j] + intcpt[i, j]
     Sfeff[i, j] = Sfeff[i, j] - intcpt[i, j] / dt
@@ -60,7 +59,7 @@ function canopy_snow! end
     # Preferential deposition of snowfall in canopy gaps (not mass conserving)
     Sfeff[i, j] = (canopy.psf - canopy.psr * fveg[i, j]) * Sfeff[i, j]
 
-    # Sublimation
+    # Sublimation of intercepted snow
     Evegs = Tf(0)
     if (Sveg[i, j] > eps(Tf) || Tveg[i, j] < Tm)
         Evegs = Eveg[i, j]
@@ -72,7 +71,7 @@ function canopy_snow! end
     end
     Sveg[i, j] = max(Sveg[i, j], Tf(0))
 
-    # Unloading
+    # Unloading of intercepted snow
     tunl = tcnc
     if (Tveg[i, j] >= Tm)
         tunl = tcnm

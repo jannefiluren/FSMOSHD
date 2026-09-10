@@ -212,7 +212,7 @@ function FSM(grid::Grid{Tf};
         substrate = SoilSubstrate{Tf}(),
         conductivity = DensityConductivity{Tf}(),
         reference_height = AboveGround{Tf}(),
-        surface_layer = OpenSurfaceLayer{Tf}(; stability = LouisStabilityCorrection{Tf}()),
+        surface_layer = OpenSurfaceLayer{Tf}(),
         new_snow_density = ElevationFreshSnowDensity{Tf}(),
         compaction = CrocusCompaction{Tf}(),
         hydrology = DensityBucketHydrology{Tf}(),

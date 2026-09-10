@@ -28,9 +28,7 @@ CrocusCompaction{Tf}(grid::Grid; kwargs...) where {Tf} = CrocusCompaction{Tf}(; 
     compact_snow!(scheme, i, j, state, params)
 
 Compact the snow column at cell `(i, j)`: rescale the layer thicknesses `Ds` in
-place to the compacted density, for every layer. A kernel point function (see
-`.claude/rules/kernel-point-functions.md`); every `AbstractCompaction`
-implements it. Each scheme holds its own compaction constants.
+place to the compacted density, for every layer.
 """
 function compact_snow! end
 

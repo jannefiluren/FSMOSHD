@@ -1,8 +1,4 @@
 # Snow hydraulics parameterizations.
-#
-# The `csnow` heat capacity that branches 1/2 compute after adjusting Sliq/Sice
-# is a per-layer temporary that never leaves its loop iteration, so it is a plain
-# scalar local here rather than the kernel's shared `MVector` scratch.
 
 struct FreeDrainingHydrology{Tf} <: AbstractHydrology{Tf} end
 
@@ -21,9 +17,7 @@ DensityBucketHydrology{Tf}(grid::Grid; kwargs...) where {Tf} = DensityBucketHydr
 
 Route liquid water through the snow column at cell `(i, j)`: update `Sliq`,
 `Sice`, `Tsnow`, `histowet` and the runoff/meltflux diagnostics in place, for
-every layer. A kernel point function (see
-`.claude/rules/kernel-point-functions.md`); every `AbstractHydrology`
-implements it.
+every layer.
 """
 function snow_hydrology! end
 
@@ -54,8 +48,8 @@ end
         SliqMax = fsnow[i, j] * rho_wat * Ds[k, i, j] * phi * Wirr
         Sliq[k, i, j] = Sliq[k, i, j] + Roff_snow[i, j]
         Roff_snow[i, j] = Tf(0)
-        if (Sliq[k, i, j] > SliqMax)       # Liquid capacity exceeded
-            Roff_snow[i, j] = Sliq[k, i, j] - SliqMax   # so drainage to next layer
+        if (Sliq[k, i, j] > SliqMax)       # Liquid capacity exceeded and drain to next layer
+            Roff_snow[i, j] = Sliq[k, i, j] - SliqMax
             Sliq[k, i, j] = SliqMax
             histowet[k, i, j] = Tf(1.0)
         end

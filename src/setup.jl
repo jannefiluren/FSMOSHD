@@ -79,7 +79,7 @@ function setup(
         default_surface_layer = ForestSurfaceLayer
         default_substrate = SoilSubstrate
     else
-        default_surface_layer = OpenSurfaceLayer{Tf}(; stability = LouisStabilityCorrection{Tf}())
+        default_surface_layer = OpenSurfaceLayer{Tf}()
         default_substrate = tile == "open" ? SoilSubstrate : IceSubstrate
     end
 
@@ -173,6 +173,8 @@ function setup(
         sf.fsky[mask] .= Tf(1)
     end
 
+    # TODO fix this piece of the code with Guilia...
+
     # Narrow the tile mask by the configuration's data requirement (canopy tile: fveg > 0), then
     # validate the remaining forest inputs.
     if tile == "forest"
@@ -201,6 +203,8 @@ function setup(
     sf.canh[:, :] = Tf(12500) * sf.VAI[:, :]
     sf.scap[:, :] = fsm.params.cvai * sf.VAI[:, :]
 
+    # TODO end todo...
+
     if !(arch isa CPU)
         fsm = on_architecture(arch, fsm)
     end
@@ -208,9 +212,6 @@ function setup(
     return fsm
 
 end
-
-# --------------------------------------------------------------------------------------------
-# Construction helpers used by setup: scheme instantiation, grid checks, parameter overrides.
 
 """
     grid_array(Tf, x, Nx, Ny)

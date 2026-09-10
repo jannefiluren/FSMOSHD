@@ -1,17 +1,19 @@
-# Stability correction for open/glacier surfaces
+# Stability correction for open/glacier surfaces.
+
 struct NoStabilityCorrection{Tf} <: AbstractStabilityCorrection{Tf} end
-NoStabilityCorrection{Tf}(grid::Grid; kwargs...) where {Tf} = NoStabilityCorrection{Tf}()
 
 @kwdef struct LouisStabilityCorrection{Tf} <: AbstractStabilityCorrection{Tf}
     bstb::Tf = 5                         # Atmospheric stability parameter (-)
 end
+
+NoStabilityCorrection{Tf}(grid::Grid; kwargs...) where {Tf} = NoStabilityCorrection{Tf}()
 LouisStabilityCorrection{Tf}(grid::Grid; kwargs...) where {Tf} = LouisStabilityCorrection{Tf}(; kwargs...)
 
 """
     stability_factor(scheme, CD, z0, Ta, Tsrf, Ua, zU1, zT1)
 
 Atmospheric stability correction applied to the open-terrain eddy diffusivity, following
-Louis et al. (1982). Implemented for every `AbstractStabilityCorrection`.
+Louis et al. (1982).
 """
 function stability_factor end
 

@@ -1,6 +1,4 @@
-# Fresh snow density parameterizations. Fieldless dispatch schemes: the density
-# parameters (rho0/rhof/rhob/rhoc/rhos_min) are shared with the snow compaction
-# routine, so they stay on Parameters and are passed in.
+# Fresh snow density parameterizations.
 
 struct FixedFreshSnowDensity{Tf} <: AbstractFreshSnowDensity{Tf} end
 struct ClimateFreshSnowDensity{Tf} <: AbstractFreshSnowDensity{Tf} end
@@ -14,10 +12,7 @@ ElevationFreshSnowDensity{Tf}(grid::Grid; kwargs...) where {Tf} = ElevationFresh
     fresh_snow_density(scheme, rho0, rhob, rhoc, rhof, rhos_min, Ta, Ua, dem)
 
 Density of fresh snow (kg/m^3) for one cell (air temperature `Ta`, wind `Ua`,
-elevation `dem`). A scalar-transformation function (see
-`.claude/rules/kernel-point-functions.md`); every `AbstractFreshSnowDensity`
-implements it. The density parameters are shared with snow compaction, so they
-stay on `Parameters` and are passed in rather than held on the scheme.
+elevation `dem`).
 """
 function fresh_snow_density end
 

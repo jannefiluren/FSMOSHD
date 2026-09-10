@@ -1,11 +1,10 @@
-# Surface-layer structure
+# Surface-layer structure.
+
 struct OpenSurfaceLayer{Tf, S <: AbstractStabilityCorrection{Tf}} <: AbstractSurfaceLayer{Tf}
+    # Atmospheric stability correction for the open-terrain eddy diffusivity. A type parameter
+    # (so the scheme stays isbits); its default is on the constructor, since S follows the value.
     stability::S
 end
-OpenSurfaceLayer{Tf}(; stability = NoStabilityCorrection{Tf}()) where {Tf} =
-    OpenSurfaceLayer{Tf, typeof(stability)}(stability)
-OpenSurfaceLayer{Tf}(Nx, Ny; stability = NoStabilityCorrection{Tf}()) where {Tf} =
-    OpenSurfaceLayer{Tf}(; stability = stability)
 
 @kwdef struct ForestSurfaceLayer{Tf} <: AbstractSurfaceLayer{Tf}
     rchd::Tf = 0.67                      # Ratio of displacement height to canopy height (-)
@@ -18,6 +17,12 @@ OpenSurfaceLayer{Tf}(Nx, Ny; stability = NoStabilityCorrection{Tf}()) where {Tf}
     gsnf::Tf = 0                         # Snow-free vegetation moisture conductance (m/s)
     zsub::Tf = 2                         # Sub-canopy reference height (m)
 end
+
+# Default to the Louis (1982) correction, the realistic choice used across the model; pass
+# stability = NoStabilityCorrection{Tf}() for a neutral surface layer.
+OpenSurfaceLayer{Tf}(; stability = LouisStabilityCorrection{Tf}()) where {Tf} =
+    OpenSurfaceLayer{Tf, typeof(stability)}(stability)
+OpenSurfaceLayer{Tf}(grid::Grid; kwargs...) where {Tf} = OpenSurfaceLayer{Tf}(; kwargs...)
 ForestSurfaceLayer{Tf}(grid::Grid; kwargs...) where {Tf} = ForestSurfaceLayer{Tf}(; kwargs...)
 
 """

@@ -1,11 +1,11 @@
-# Substrate (soil / glacier ice) parameterizations
+# Substrate (soil / glacier ice) parameterizations.
 
 @kwdef struct SoilSubstrate{Tf} <: AbstractSubstrate{Tf}
     gsat::Tf = 0.01             # Surface conductance for saturated soil (m/s)
 end
 
 @kwdef struct IceSubstrate{Tf} <: AbstractSubstrate{Tf}
-    gsat::Tf = 0.01             # Surface conductance for saturated soil (m/s)
+    gsat::Tf = 0.01             # Surface conductance for glacier ice (m/s)
 end
 
 SoilSubstrate{Tf}(grid::Grid; kwargs...) where {Tf} = SoilSubstrate{Tf}(; kwargs...)
@@ -16,7 +16,7 @@ IceSubstrate{Tf}(grid::Grid; kwargs...) where {Tf} = IceSubstrate{Tf}(; kwargs..
 
 Fill the soil heat capacity `diag.csoil[1:Nsoil, i, j]`, thermal conductivity
 `diag.ksoil[1:Nsoil, i, j]` and surface moisture conductance `diag.gs1[i, j]` for cell
-`(i, j)`, implemented for every `AbstractSubstrate`. Called from the `thermal!` kernel.
+`(i, j)`. Called from the `thermal!` kernel.
 """
 function soil_properties! end
 
@@ -27,7 +27,7 @@ function soil_properties! end
     (; csoil, ksoil, gs1) = diag
 
     for k in 1:Nsoil
-        # hcap_ice is a specific heat capacity and needs converting to a volumetric one
+        # hcap_ice is a specific heat capacity and needs converting to a volumetric value
         csoil[k, i, j] = hcap_ice * rho_ice * Dzsoil[k]
         ksoil[k, i, j] = hcon_ice
         # An ice surface behaves like saturated soil for surface moisture conductance
@@ -89,9 +89,8 @@ end
 """
     cap_soil_temperature!(substrate, i, j, state, grid)
 
-Cap the substrate temperature at cell `(i, j)`, implemented for every
-`AbstractSubstrate`. Glacier ice cannot exceed the melting point, so `IceSubstrate`
-clamps it there and discards the excess energy; `SoilSubstrate` is a no-op.
+Cap the substrate temperature at cell `(i, j)` such that glacier ice cannot exceed
+ the melting point, so `IceSubstrate` clamps it there and discards the excess energy.
 """
 function cap_soil_temperature! end
 
