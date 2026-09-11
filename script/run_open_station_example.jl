@@ -20,10 +20,10 @@ function setup_example()
     settings = Dict("tile" => "open")
 
     # create fsm struct
-    fsm = setup(Float32, Int32, lus, 1, 1, settings)
+    fsm = setup(Grid(Float32; Nx = 1, Ny = 1), lus, settings)
 
     # define meteo data struct
-    met = MET{Float32, Int32}()
+    met = MET{Float32}()
 
     # read meteo file
     df_meteo = CSV.read(joinpath(path, "../data/input_SLF_5WJ.txt"), DataFrame)
@@ -46,8 +46,8 @@ function run_fsm(fsm, met, df_meteo)
         met.Sdif .= row["Sdif"]
         met.Sdird .= row["Sdir"]
         met.LW .= row["LW"]
-        met.Sf .= row["Sf"] / fsm.dt  # Convert accumulation (kg/m^2) to rate (kg/m^2/s)
-        met.Rf .= row["Rf"] / fsm.dt  # Convert accumulation (kg/m^2) to rate (kg/m^2/s)
+        met.Sf .= row["Sf"] / fsm.params.dt  # Convert accumulation (kg/m^2) to rate (kg/m^2/s)
+        met.Rf .= row["Rf"] / fsm.params.dt  # Convert accumulation (kg/m^2) to rate (kg/m^2/s)
         met.Ta .= row["Ta"]
         met.RH .= row["RH"]
         met.Ua .= row["Ua"]
@@ -61,7 +61,7 @@ function run_fsm(fsm, met, df_meteo)
         step!(fsm, met, t)
 
         # write output
-        hs[i] = dropdims(sum(fsm.Ds, dims = 1), dims = 1)[1, 1]
+        hs[i] = dropdims(sum(fsm.state.Ds, dims = 1), dims = 1)[1, 1]
 
     end
 

@@ -81,7 +81,7 @@ function interpolate_meteo(Tf, landuse)
 
 end
 
-function run_simulations(settings, Tf = Float32, Ti = Int32)
+function run_simulations(settings, Tf = Float32)
 
     # Read landuse data
     landuse = load_domain_data()
@@ -97,8 +97,8 @@ function run_simulations(settings, Tf = Float32, Ti = Int32)
     Ny = size(landuse["elevation"]["data"], 2)
     Nt = length(times)
 
-    fsm = setup(Tf, Ti, landuse, Nx, Ny, settings)
-    met = MET{Tf, Ti}(Nx = Nx, Ny = Ny)
+    fsm = setup(Grid(Tf; Nx = Nx, Ny = Ny), landuse, settings)
+    met = MET{Tf}(Nx = Nx, Ny = Ny)
 
     # Preallocate arrays to store simulation results
     simulation_results = Dict{String, Any}()
@@ -120,8 +120,8 @@ function run_simulations(settings, Tf = Float32, Ti = Int32)
         met.Sdif[:, :] = data_meteo["Sdif"][:, :, timestep]
         met.Sdird[:, :] = data_meteo["Sdird"][:, :, timestep]
         met.LW[:, :] = data_meteo["LW"][:, :, timestep]
-        met.Sf[:, :] = data_meteo["Sf"][:, :, timestep] ./ fsm.dt  # Convert accumulation to rate (kg/m^2/s)
-        met.Rf[:, :] = data_meteo["Rf"][:, :, timestep] ./ fsm.dt  # Convert accumulation to rate (kg/m^2/s)
+        met.Sf[:, :] = data_meteo["Sf"][:, :, timestep] ./ fsm.params.dt  # Convert accumulation to rate (kg/m^2/s)
+        met.Rf[:, :] = data_meteo["Rf"][:, :, timestep] ./ fsm.params.dt  # Convert accumulation to rate (kg/m^2/s)
         met.Ta[:, :] = data_meteo["Ta"][:, :, timestep]
         met.RH[:, :] = data_meteo["RH"][:, :, timestep]
         met.Ua[:, :] = data_meteo["Ua"][:, :, timestep]
@@ -132,9 +132,9 @@ function run_simulations(settings, Tf = Float32, Ti = Int32)
 
         # Update snowfall tracking
         curr_hour = Dates.value(Hour(t)) + 1
-        met.Sf24h_f64 .+= met.Sf .* fsm.dt  # Convert rate back to accumulation for 24h sum
+        met.Sf24h_f64 .+= met.Sf .* fsm.params.dt  # Convert rate back to accumulation for 24h sum
         met.Sf24h_f64 .-= met.Sf_history_f64[:, :, curr_hour]
-        met.Sf_history_f64[:, :, curr_hour] .= met.Sf .* fsm.dt
+        met.Sf_history_f64[:, :, curr_hour] .= met.Sf .* fsm.params.dt
         met.Sf24h[:, :] .= met.Sf24h_f64
 
         # Run model
@@ -144,28 +144,28 @@ function run_simulations(settings, Tf = Float32, Ti = Int32)
         simulation_results["timestamps"][timestep] = string(t)
 
         # Store state variables
-        simulation_results["Tsrf"][:, :, timestep] .= fsm.Tsrf
-        simulation_results["Tsnow"][:, :, timestep] .= fsm.Tsnow[1, :, :]  # First snow layer
-        simulation_results["Sice"][:, :, timestep] .= dropdims(sum(fsm.Sice, dims = 1), dims = 1)  # Total snow ice
-        simulation_results["Sliq"][:, :, timestep] .= dropdims(sum(fsm.Sliq, dims = 1), dims = 1)  # Total snow liquid
-        simulation_results["fsnow"][:, :, timestep] .= fsm.fsnow
-        simulation_results["albs"][:, :, timestep] .= fsm.albs
-        simulation_results["Sveg"][:, :, timestep] .= fsm.Sveg
-        simulation_results["Tveg"][:, :, timestep] .= fsm.Tveg
-        simulation_results["Tcan"][:, :, timestep] .= fsm.Tcan
+        simulation_results["Tsrf"][:, :, timestep] .= fsm.state.Tsrf
+        simulation_results["Tsnow"][:, :, timestep] .= fsm.state.Tsnow[1, :, :]  # First snow layer
+        simulation_results["Sice"][:, :, timestep] .= dropdims(sum(fsm.state.Sice, dims = 1), dims = 1)  # Total snow ice
+        simulation_results["Sliq"][:, :, timestep] .= dropdims(sum(fsm.state.Sliq, dims = 1), dims = 1)  # Total snow liquid
+        simulation_results["fsnow"][:, :, timestep] .= fsm.state.fsnow
+        simulation_results["albs"][:, :, timestep] .= fsm.state.albs
+        simulation_results["Sveg"][:, :, timestep] .= fsm.state.Sveg
+        simulation_results["Tveg"][:, :, timestep] .= fsm.state.Tveg
+        simulation_results["Tcan"][:, :, timestep] .= fsm.state.Tcan
 
         # Store flux variables
-        simulation_results["SWsrf"][:, :, timestep] .= fsm.SWsrf
-        simulation_results["H"][:, :, timestep] .= fsm.H
-        simulation_results["LE"][:, :, timestep] .= fsm.LE
-        simulation_results["G"][:, :, timestep] .= fsm.G
-        simulation_results["Melt"][:, :, timestep] .= fsm.Melt
-        simulation_results["Esrf"][:, :, timestep] .= fsm.Esrf
-        simulation_results["Eveg"][:, :, timestep] .= fsm.Eveg
-        simulation_results["Rnet"][:, :, timestep] .= fsm.Rnet
+        simulation_results["SWsrf"][:, :, timestep] .= fsm.diag.SWsrf
+        simulation_results["H"][:, :, timestep] .= fsm.diag.H
+        simulation_results["LE"][:, :, timestep] .= fsm.diag.LE
+        simulation_results["G"][:, :, timestep] .= fsm.diag.G
+        simulation_results["Melt"][:, :, timestep] .= fsm.diag.Melt
+        simulation_results["Esrf"][:, :, timestep] .= fsm.diag.Esrf
+        simulation_results["Eveg"][:, :, timestep] .= fsm.diag.Eveg
+        simulation_results["Rnet"][:, :, timestep] .= fsm.diag.Rnet
 
         # Store diagnostic variables
-        simulation_results["Ds"][:, :, timestep] .= dropdims(sum(fsm.Ds, dims = 1), dims = 1)  # Total snow depth
+        simulation_results["Ds"][:, :, timestep] .= dropdims(sum(fsm.state.Ds, dims = 1), dims = 1)  # Total snow depth
         simulation_results["snowdepth"][:, :, timestep] .= simulation_results["Ds"][:, :, timestep] .* simulation_results["fsnow"][:, :, timestep]
 
     end
@@ -182,16 +182,16 @@ ref_file = joinpath(projdir, "test", "simulation_results.jls")
 settings = [
     Dict(
         "tile" => "open",
-        "config" => Dict("SNFRAC" => 0),
+        "physics" => Dict("snow_fraction" => SeasonalSnowFraction),
     ),
     Dict(
         "tile" => "forest",
-        "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
-        "params" => Dict("hfsn" => 0.3, "z0_snow" => 0.01)
+        "physics" => Dict("canopy" => OneLayerCanopy, "snow_fraction" => TanhSnowFraction{Float32}(; hfsn = 0.3), "reference_height" => AboveCanopy),
+        "params" => Dict("z0_snow" => 0.01)
     ),
     Dict(
         "tile" => "glacier",
-        "config" => Dict("SNFRAC" => 0),
+        "physics" => Dict("snow_fraction" => SeasonalSnowFraction),
     ),
 ]
 

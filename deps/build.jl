@@ -1,19 +1,24 @@
 using Libdl
 
-# Build standalone SnowSlide routines
+# Build SnowSlide routines (upstream files kept verbatim; the wrapper
+# provides a standalone entry point for the ccall from Julia)
 snowslide_routines = [
+    "MODULES.F90",
     "SNOWSLIDE.F90",
     "SNOW_ABLATION.F90",
     "SWE_FROM_HS.F90",
+    "SNOWSLIDE_WRAPPER.F90",
 ]
 
-# Build standalone SnowTran3D routines
+# Build SnowTran3D routines (upstream files kept verbatim; the wrapper
+# provides a standalone entry point for the ccall from Julia)
 snowtran3d_routines = [
     "MODULES.F90",
     "SNOWTRAN3D.F90",
     "HS_FROM_SWE.F90",
     "SNOW_ABLATION.F90",
     "SWE_FROM_HS.F90",
+    "SNOWTRAN3D_WRAPPER.F90",
 ]
 
 if Sys.iswindows()

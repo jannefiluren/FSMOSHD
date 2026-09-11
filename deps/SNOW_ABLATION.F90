@@ -1,32 +1,34 @@
 !-----------------------------------------------------------------------
 ! Snow ablation at the top of the snowpack
-! Modified to be standalone - all variables passed as arguments
 !-----------------------------------------------------------------------
-subroutine SNOW_ABLATION(dhs, dswe, i, j, Nsmax, Nx, Ny, &
-                         Sice, Sliq, Ds, histowet, Nsnow, &
-                         fsnow, Tsnow, Ds_min, Tm)
+subroutine SNOW_ABLATION(dhs,dswe,i,j)
 
 ! This subroutine erodes a snow depth dhs corresponding to mass dswe at the top of the snowpack, and reduce the number of layers if necessary.
 
+use CONSTANTS, only: &
+  Tm                  ! Melting point (K)
+
+use GRID, only: &
+  Ds_min,            &! Minimum possible snow layer thickness (m)
+  Nsmax               ! Maximum number of snow layers
+
+use STATE_VARIABLES, only: &
+  Sice,              &! Ice content of snow layers (kg/m^2)
+  Sliq,              &! Liquid content of snow layers (kg/m^2)
+  Ds,                &! Snow layer thicknesses (m)
+  histowet,          &! Historical variable for past wetting of a layer (0-1)
+  Nsnow,             &! Number of snow layers
+  fsnow,             &! Snow cover fraction 
+  Tsnow               ! Snow layer temperatures (K)
+
 implicit none
 
-! Input parameters and dimensions
-integer, intent(in) :: Nsmax, Nx, Ny, i, j
-real, intent(in) :: dhs, dswe, Ds_min, Tm
-
-! Input/output state arrays
-real, intent(inout) :: &
-  Sice(Nsmax,Nx,Ny),   &! Ice content of snow layers (kg/m^2)
-  Sliq(Nsmax,Nx,Ny),   &! Liquid content of snow layers (kg/m^2)
-  Ds(Nsmax,Nx,Ny),     &! Snow layer thicknesses (m)
-  histowet(Nsmax,Nx,Ny), &! Historical variable for past wetting of a layer (0-1)
-  Tsnow(Nsmax,Nx,Ny)    ! Snow layer temperatures (K)
-
-integer, intent(inout) :: &
-  Nsnow(Nx,Ny)          ! Number of snow layers
-
 real, intent(in) :: &
-  fsnow(Nx,Ny)          ! Snow cover fraction
+  dhs,               &! HS decrease (m)
+  dswe                ! SWE decrease (kg/m^2)
+
+integer, intent(in) :: &
+  i,j                 ! Point counters
 
 real :: &
   dDs,               &! Snow thickness on the top of the snowpack (m)

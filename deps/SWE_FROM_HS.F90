@@ -1,31 +1,34 @@
 !-----------------------------------------------------------------------
 ! Equivalent SWE of surface HS
-! Modified to be standalone - all variables passed as arguments
 !-----------------------------------------------------------------------
-subroutine SWE_FROM_HS(hs, swe, i, j, Nsmax, Nx, Ny, &
-                       Nsnow, fsnow, Sice, Sliq, Ds, &
-                       rhos_min, rhos_max, rho_snow)
+subroutine SWE_FROM_HS(hs,swe,i,j)
 
 ! This subroutine calculate the average SWE of a given snow depth at the top of the snowpack (e.g. to be eroded)
 
+use PARAMETERS, only : &
+  rhos_min,          &! Minimum snow density (kg/m^3)
+  rhos_max            ! Maximum snow density (kg/m^3)
+
+use PARAM_SNOWTRAN3D, only: &
+  rho_snow            ! Constant snow density (kg/m^3)
+
+use STATE_VARIABLES, only: &
+  Nsnow,             &! Number of snow layers
+  fsnow,             &! Snow cover fraction 
+  Sice,              &! Ice content of snow layers (kg/m^2)
+  Sliq,              &! Liquid content of snow layers (kg/m^2)
+  Ds                  ! Snow layer thicknesses (m)
+
 implicit none
 
-! Input parameters and dimensions
-integer, intent(in) :: Nsmax, Nx, Ny, i, j
-real, intent(in) :: hs, rhos_min, rhos_max, rho_snow
-
-! Input state arrays
-integer, intent(in) :: &
-  Nsnow(Nx,Ny)          ! Number of snow layers
 real, intent(in) :: &
-  fsnow(Nx,Ny),        &! Snow cover fraction
-  Sice(Nsmax,Nx,Ny),   &! Ice content of snow layers (kg/m^2)
-  Sliq(Nsmax,Nx,Ny),   &! Liquid content of snow layers (kg/m^2)
-  Ds(Nsmax,Nx,Ny)       ! Snow layer thicknesses (m)
+  hs                  ! Snow depth on the top of the snowpack (m)
 
-! Output
 real, intent(out) :: &
-  swe                   ! SWE on the top of the snowpack (kg/m^2)
+  swe                 ! SWE on the top of the snowpack (kg/m^2)
+
+integer, intent(in) :: &
+  i,j                 ! Point counters
 
 real :: &
   dDs,               &! Snow thickness on the top of the snowpack (m)

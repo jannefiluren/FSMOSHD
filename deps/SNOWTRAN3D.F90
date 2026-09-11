@@ -10,107 +10,94 @@
 ! West of (i,j): (i,j-1)
 ! East of (i,j): (i,j+1)
 !-----------------------------------------------------------------------
-subroutine SNOWTRAN3D(Nsmax, Nx, Ny, snowdepth0, Sice0, dSWE_salt, dSWE_susp, dSWE_subl, Ds_min, &
-                       Ua, Udir, dt, Ta, RH, zRH, zU, &
-                       vegsnowd_xy, z0_snow, &
-                       Ds, Nsnow, fsnow, Sice, Sliq, Tsnow, histowet, &
-                       dSWE_tot_subl, dSWE_tot_salt, dSWE_tot_susp, &
-                       Ld, rhos_min, rhos_max, rho_snow)
+subroutine SNOWTRAN3D(snowdepth0,Sice0,dSWE_salt,dSWE_susp,dSWE_subl)
 
 use CONSTANTS, only: &
-  pi                  ! pi
+  pi,                   &! pi
+  rho_wat,              &! Density of water (kg/m^3)
+  Tm                     ! Melting point (K)
+
+use DRIVING, only: &  
+  Ua,                   &! Wind speed (m/s)
+  Udir                   ! Wind direction (degrees, clockwise from N)
+
+use GRID, only: &
+  Nx,Ny                  ! Grid dimensions
+
+use PARAMMAPS, only: &
+  veg_shd                ! Vegetation snow holding depth (m)
+
+use STATE_VARIABLES, only: &
+  Ds,                   &! Snow layer thicknesses (m)
+  Nsnow,                &! Number of snow layers
+  fsnow,                &! Snow cover fraction 
+  Sice,                 &! Ice content of snow layers (kg/m^2)
+  Sliq,                 &! Liquid content of snow layers (kg/m^2)
+  Tsnow                  ! Snow layer temperatures (K)
+
+use LANDUSE, only: &
+  cellsize,          &! Grid cell size (m)
+  dem                 ! Terrain elevation (m)
 
 use PARAM_SNOWTRAN3D, only: &
-  Utau_t_flag,       &! Flag for variable threshold friction velocitiy (1.0) or constant (0.0)
-  Utau_t_const,      &! Constant threshold friction velocity (m/s) used if Utau_t_flag = 0.0
-  twolayer_flag       ! Flag for soft/hard layers distinction
+  flag_variable_Utau_t, &! Flag for variable threshold friction velocitiy (.TRUE.) or constant (.FALSE.)
+  Utau_t_const,         &! Constant threshold friction velocity (m/s) used if flag_variable_Utau_t = .FALSE.
+  rho_snow               ! Constant snow density (kg/m^3)
 
 use CONSTANTS_SNOWTRAN3D, only: &
-  wind_min            ! Minimum wind speed to compute snow transport (m/s)
+  wind_min               ! Minimum wind speed to compute snow transport (m/s)
 
 implicit none
 
-integer, intent(in) :: &
-  Nsmax,             &! Maximum number of snow layers
-  Nx, Ny,            &! Grid dimensions
-  Nsnow(Nx,Ny)        ! Number of snow layers
-
-real, intent(in) :: &
-  Ds_min,            &! Minimum snow layer thickness (m)
-  Ua(Nx,Ny),         &! Wind speed (m/s)
-  Udir(Nx,Ny),       &! Wind direction (degrees, clockwise from N)
-  dt,                &! Timestep (s)
-  Ta(Nx,Ny),         &! Air temperature (K)
-  RH(Nx,Ny),         &! Relative humidity (%)
-  zRH,               &! Relative humidity measurement height (m)
-  zU,                &! Wind speed measurement height (m)
-  vegsnowd_xy(Nx,Ny),&! Vegetation snow holding capacity (m)
-  z0_snow(Nx,Ny),    &! Roughness length of snow (m)
-  fsnow(Nx,Ny),      &! Snow cover fraction
-  Tsnow(Nsmax,Nx,Ny),&! Snow layer temperatures (K)
-  Ld(Nx,Ny),          &! Grid cell size (m)
-  rhos_min,          &! Minimum snow density (kg/m^3)
-  rhos_max,          &! Maximum snow density (kg/m^3)
-  rho_snow            ! Constant snow density (kg/m^3)
-
 real, intent(inout) :: &
-  Ds(Nsmax,Nx,Ny),   &! Snow layer thicknesses (m)
-  Sice(Nsmax,Nx,Ny), &! Ice content of snow layers (kg/m^2)
-  Sliq(Nsmax,Nx,Ny), &! Liquid content of snow layers (kg/m^2)
-  histowet(Nsmax,Nx,Ny) ! Historical variable for past wetting of a layer (0-1)
-
-real, intent(inout) :: &
-  dSWE_tot_subl(Nx,Ny), &! Cumulated SWE change due to sublimation (kg/m^2)
-  dSWE_tot_salt(Nx,Ny), &! Cumulated SWE change due to saltation (kg/m^2)
-  dSWE_tot_susp(Nx,Ny)   ! Cumulated SWE change due to suspension (kg/m^2)
-
-real, intent(inout) :: &
-  snowdepth0(Nx,Ny), &! Snow depth of snowdrift accumulation, averaged over the grid cell (m)
-  Sice0(Nx,Ny),      &! Ice content of snowdrift accumulation(kg/m^2)
-  dSWE_salt(Nx,Ny),  &! SWE change due to saltation (kg/m^2)
-  dSWE_susp(Nx,Ny),  &! SWE change due to suspension (kg/m^2)
-  dSWE_subl(Nx,Ny)    ! SWE change due to sublimation (kg/m^2)
+  snowdepth0(Nx,Ny),    &! Snow depth of snowdrift accumulation, averaged over the grid cell (m)
+  Sice0(Nx,Ny),         &! Ice content of snowdrift accumulation(kg/m^2)
+  dSWE_salt(Nx,Ny),     &! SWE change due to saltation (kg/m^2)
+  dSWE_susp(Nx,Ny),     &! SWE change due to suspension (kg/m^2)
+  dSWE_subl(Nx,Ny)       ! SWE change due to snowdrift sublimation (kg/m^2)
 
 integer :: &
-  i,j                 ! Point counters
+  i,j                    ! Point counters
 
 integer :: &
-  index_ue(Nx,2*Ny+1), &! Wind index array E
-  index_uw(Nx,2*Ny+1), &! Wind index array W
-  index_vn(Ny,2*Nx+1), &! Wind index array N
-  index_vs(Ny,2*Nx+1)   ! Wind index array S
+  index_ue(Nx,2*Ny+1),  &! Wind index array E
+  index_uw(Nx,2*Ny+1),  &! Wind index array W
+  index_vn(Ny,2*Nx+1),  &! Wind index array N
+  index_vs(Ny,2*Nx+1)    ! Wind index array S
+
+logical :: &
+  flag_blowing_snow      ! Blowing snow flag
 
 real :: &
-  bs_flag,           &! Blowing snow flag
-  delta_WE,          &! Grid cell size in WE direction (m)
-  delta_SN,          &! Grid cell size in SN direction (m)
-  windspd_flag        ! Maximum wind speed on the domain (m/s)
+  delta_WE,             &! Grid cell size in WE direction (m)
+  delta_SN,             &! Grid cell size in SN direction (m)
+  Ua_max                 ! Maximum wind speed on the domain (m/s)
 
 real :: &
-  Qsalt(Nx,Ny),             &! Saltation flux (kg/m/s)
-  Qsalt_u(Nx,Ny),           &! x component of saltation flux (kg/m/s)
-  Qsalt_v(Nx,Ny),           &! y component of saltation flux (kg/m/s)
-  conc_salt(Nx,Ny),         &! Saltation-layer reference-level mass concentration (kg/m^3)
-  Qsusp(Nx,Ny),             &! Suspension flux (kg/m/s)
-  Qsusp_u(Nx,Ny),           &! x component of suspension flux (kg/m/s)
-  Qsusp_v(Nx,Ny),           &! y component of suspension flux (kg/m/s)
-  Qsubl(Nx,Ny),             &! Sublimation flux (kg/m^2/s)
-  Ds_soft(Nx,Ny),           &! Soft snow thickness (m)
-  snowthickness(Nx,Ny),     &! Depth of the snowpack in the snow covered part, i.e. not scaled by fsnow (m)
-  uwind(Nx,Ny),             &! x component of wind speed (m/s)
-  vwind(Nx,Ny),             &! y component of wind speed (m/s)
-  Utau(Nx,Ny),              &! Friction velocity (m/s)
-  Utau_t(Nx,Ny),            &! Threshold friction velocity (m/s)
-  h_star(Nx,Ny),            &! Height of the saltation layer (m)
-  veg_z0(Nx,Ny),            &! Vegetation roughness length (m)
-  z_0(Nx,Ny)                 ! Surface roughness length (m)
+  Qsalt(Nx,Ny),         &! Saltation flux (kg/m/s)
+  Qsalt_u(Nx,Ny),       &! x component of saltation flux (kg/m/s)
+  Qsalt_v(Nx,Ny),       &! y component of saltation flux (kg/m/s)
+  conc_salt(Nx,Ny),     &! Saltation-layer reference-level mass concentration (kg/m^3)
+  Qsusp(Nx,Ny),         &! Suspension flux (kg/m/s)
+  Qsusp_u(Nx,Ny),       &! x component of suspension flux (kg/m/s)
+  Qsusp_v(Nx,Ny),       &! y component of suspension flux (kg/m/s)
+  Qsubl(Nx,Ny),         &! Sublimation flux (kg/m^2/s)
+  Ds_soft(Nx,Ny),       &! Soft snow thickness (m)
+  snowthickness(Nx,Ny), &! Depth of the snowpack in the snow covered part, i.e. not scaled by fsnow (m)
+  uwind(Nx,Ny),         &! x component of wind speed (m/s)
+  vwind(Nx,Ny),         &! y component of wind speed (m/s)
+  Utau(Nx,Ny),          &! Friction velocity (m/s)
+  Utau_t(Nx,Ny),        &! Threshold friction velocity (m/s)
+  h_star(Nx,Ny),        &! Height of the saltation layer (m)
+  veg_z0(Nx,Ny),        &! Vegetation roughness length (m)
+  z_0(Nx,Ny)             ! Surface roughness length (m)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 ! Initialization of delta_WE and delta_SN
-delta_WE = Ld(1,1)
-delta_SN = Ld(1,1)
+delta_WE = cellsize(1,1)
+delta_SN = cellsize(1,1)
 
 ! Initialize Ds_soft and snowdepth0
 Ds_soft(:,:) = 0.0
@@ -134,13 +121,12 @@ uwind = Ua * cos(-Udir * pi/180.0 - pi/2.0)
 vwind = Ua * sin(-Udir * pi/180.0 - pi/2.0)
 
 ! Initialization of maximum wind speed on the domain (m/s)
-! Originally in micromet_code.f
 ! Initialization of snowthickness
-windspd_flag = 0.0
+Ua_max = 0.0
 do j = 1, Ny
   do i = 1, Nx
 
-    windspd_flag = max(windspd_flag,Ua(i,j))
+    Ua_max = max(Ua_max,Ua(i,j))
     snowthickness(i,j) = sum(Ds(:,i,j))
 
   end do
@@ -152,57 +138,49 @@ end do
 ! really only used when there is no blowing snow, and thus have
 ! no impact on the simulation except to provide a non-zero value
 ! for any such parts of the domain.
-veg_z0(:,:) = 0.25 * vegsnowd_xy(:,:)
+veg_z0(:,:) = 0.25 * veg_shd(:,:)
 
-! If the two-layer scheme is turned on, update the thicknesses
-! of the hard and soft layers.
-if (twolayer_flag==1.0) then
-  call compute_soft_snow(Nsmax,Nx,Ny,Ds_soft,Ds,Nsnow,histowet,Sliq)
-end if
+! Update the thicknesses of the soft snow layer.
+call compute_soft_snow(Ds_soft)
 
 ! Update the threshold friction velocity.
-if (Utau_t_flag==0.0) then
-
+if (.NOT. flag_variable_Utau_t) then
   Utau_t(:,:) = Utau_t_const
-
-else if (Utau_t_flag==1.0) then
-
-  call surface_snow(Nsmax,Nx,Ny,Ua,dt,zU,z0_snow, &
-                    Nsnow,fsnow,Sice,Sliq,Ds,Tsnow,Utau_t)
-
+else
+  call surface_snow(Utau_t)
 end if
 
-! Set the blowing snow flag to zero until it is clear that we will
+! Set the blowing snow flag to false until it is clear that we will
 ! have blowing snow.
-bs_flag = 0.0
+flag_blowing_snow = .FALSE.
 
 ! If the wind speed is lower that some threshold, then don't
 ! need to to any of the snow transport computations.
-if (windspd_flag >= wind_min) then
+if (Ua_max >= wind_min) then
 
   ! Get the wind direction indexing arrays for this particular
   ! wind event (time step).
-  call getdirection(Nx,Ny,index_ue,index_uw,index_vn,index_vs,uwind,vwind)
+  call getdirection(index_ue,index_uw,index_vn,index_vs,uwind,vwind)
 
   ! Solve for Utau and z_0 if snow is saltating, else solve assuming
   ! z_0 is known from snow depth and/or veg type, and solve for Utau.
-  call solveUtau(Nx,Ny,Ua,zU,vegsnowd_xy,z0_snow,Utau,z_0,h_star,snowthickness,veg_z0,bs_flag,Utau_t,Ds_soft)
+  call solveUtau(Utau,z_0,h_star,snowthickness,veg_z0,flag_blowing_snow,Utau_t,Ds_soft)
 
   ! Update Ds_soft by removing too dense layers compared to U_tau
-  call update_soft_snow(Nsmax,Nx,Ny,Utau,Ds_soft,Ds,Nsnow,fsnow,Sice,Sliq)
+  call update_soft_snow(Utau,Ds_soft)
 
   ! If the blowing snow flag indicates wind transported snow
-  ! somewhere within the domain (bs_flag = 1.0), run the saltation
+  ! somewhere within the domain (flag_blowing_snow = .TRUE.), run the saltation
   ! and suspension models.
-  if (bs_flag == 1.0) then
+  if (flag_blowing_snow) then
 
     ! Solve for the saltation flux.
-    call saltation(Nx,Ny,vegsnowd_xy,delta_WE,Utau,Utau_t,snowthickness,delta_SN, &
+    call saltation(delta_WE,Utau,Utau_t,snowthickness,delta_SN, &
                    index_ue,index_uw,index_vn,index_vs,uwind,vwind,Ds_soft, &
                    Qsalt,Qsalt_u,Qsalt_v)
 
     ! Solve for the suspension flux.
-    call suspension(Nx,Ny,zRH,Ta,RH,Utau,z_0,h_star,Utau_t,uwind,vwind, &
+    call suspension(Utau,z_0,h_star,Utau_t,uwind,vwind, &
                     Qsalt,conc_salt,Qsusp,Qsusp_u,Qsusp_v,Qsubl)
 
   end if
@@ -211,12 +189,10 @@ end if
 
 ! Compute the new snow depth due to accumulation from precipitation,
 ! saltation, and suspension, and the mass loss due to sublimation.
-call accum(Nx,Ny,Nsmax,dt,vegsnowd_xy,Ds,fsnow,Sice,Sliq, &
-           dSWE_tot_subl,dSWE_tot_salt,dSWE_tot_susp, &
-           snowthickness, &
+call accum(snowthickness, &
            delta_WE,delta_SN, &
            index_ue,index_uw,index_vn,index_vs, &
-           bs_flag, &
+           flag_blowing_snow, &
            uwind,vwind,Ds_soft, &
            Qsalt_u,Qsalt_v, &
            dSWE_salt, &
@@ -224,7 +200,7 @@ call accum(Nx,Ny,Nsmax,dt,vegsnowd_xy,Ds,fsnow,Sice,Sliq, &
            dSWE_susp, &
            Qsubl, &
            dSWE_subl, &
-           snowdepth0,Sice0,Nsnow,Tsnow,histowet,Ds_min,rhos_min,rhos_max,rho_snow)
+           snowdepth0,Sice0)
 
 end subroutine SNOWTRAN3D
 
@@ -232,23 +208,24 @@ end subroutine SNOWTRAN3D
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-subroutine compute_soft_snow(Nsmax,Nx,Ny,Ds_soft,Ds,Nsnow,histowet,Sliq)
+subroutine compute_soft_snow(Ds_soft)
+
+use GRID, only: &
+  Nx,Ny               ! Grid dimensions
+
+use STATE_VARIABLES, only: &
+  Ds,                &! Snow layer thicknesses (m)
+  Nsnow,             &! Number of snow layers
+  histowet,          &! Historical variable for past wetting of a layer (0-1)
+  Sliq                ! Liquid content of snow layers (kg/m^2)
+
+use LANDUSE, only: &
+  dem                 ! Terrain elevation (m)
 
 implicit none
 
-integer, intent(in) :: &
-  Nsmax,Nx,Ny               ! Grid dimensions
-
 real, intent(inout) :: &
   Ds_soft(Nx,Ny)      ! Soft snow thickness (m)
-
-real, intent(in) :: &
-  Ds(Nsmax,Nx,Ny),         &! Snow layer thicknesses (m)
-  histowet(Nsmax,Nx,Ny),   &! Historical variable for past wetting of a layer (0-1)
-  Sliq(Nsmax,Nx,Ny)         ! Liquid content of snow layers (kg/m^2)
-
-integer, intent(in) :: &
-  Nsnow(Nx,Ny)        ! Number of snow layers
 
 integer :: &
   i,j,               &! Point counters
@@ -273,22 +250,25 @@ end subroutine compute_soft_snow
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-subroutine update_soft_snow(Nsmax,Nx,Ny,Utau,Ds_soft,Ds,Nsnow,fsnow,Sice,Sliq)
+subroutine update_soft_snow(Utau,Ds_soft)
+
+use GRID, only: &
+  Nx,Ny               ! Grid dimensions
+
+use STATE_VARIABLES, only: &
+  Ds,                &! Snow layer thicknesses (m)
+  Nsnow,             &! Number of snow layers
+  fsnow,             &! Snow cover fraction 
+  Sice,              &! Ice content of snow layers (kg/m^2)
+  Sliq                ! Liquid content of snow layers (kg/m^2)
+
+use LANDUSE, only: &
+  dem                 ! Terrain elevation (m)
 
 implicit none
 
-integer, intent(in) :: &
-  Nsmax,Nx,Ny         ! Grid dimensions
-
 real, intent(in) :: &
-  Utau(Nx,Ny),       &! Friction velocity (m/s)
-  Ds(Nsmax,Nx,Ny),   &! Snow layer thicknesses (m)
-  fsnow(Nx,Ny),      &! Snow cover fraction 
-  Sice(Nsmax,Nx,Ny), &! Ice content of snow layers (kg/m^2)
-  Sliq(Nsmax,Nx,Ny)   ! Liquid content of snow layers (kg/m^2)
-
-integer, intent(in) :: &
-  Nsnow(Nx,Ny)        ! Number of snow layers
+  Utau(Nx,Ny)         ! Friction velocity (m/s)
 
 real, intent(inout) :: &
   Ds_soft(Nx,Ny)      ! Soft snow thickness (m)
@@ -343,12 +323,10 @@ end subroutine update_soft_snow
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-subroutine accum(Nx,Ny,Nsmax,dt,vegsnowd_xy,Ds,fsnow,Sice,Sliq, &
-                 dSWE_tot_subl,dSWE_tot_salt,dSWE_tot_susp, &
-                 snowthickness, &
+subroutine accum(snowthickness, &
                  delta_WE,delta_SN, &
                  index_ue,index_uw,index_vn,index_vs, &
-                 bs_flag, &
+                 flag_blowing_snow, &
                  uwind,vwind,Ds_soft, &
                  Qsalt_u,Qsalt_v, &
                  dSWE_salt, &
@@ -356,43 +334,51 @@ subroutine accum(Nx,Ny,Nsmax,dt,vegsnowd_xy,Ds,fsnow,Sice,Sliq, &
                  dSWE_susp, &
                  Qsubl, &
                  dSWE_subl, &
-                 snowdepth0,Sice0,Nsnow,Tsnow,histowet,Ds_min, &
-                 rhos_min,rhos_max,rho_snow)
+                 snowdepth0,Sice0)
+
+use MODTILE, only: &
+  tiled_trans_run              ! Tiled trans run flag
 
 use CONSTANTS, only: &
-  Tm,                    &! Melting point (K)
   rho_wat                 ! Density of water (kg/m^3)
+
+use DRIVING, only: &
+  dt                      ! Timestep (s)
+
+use GRID, only: &
+  Nx,Ny                   ! Grid dimensions
+
+use PARAMMAPS, only: &
+  veg_shd                 ! Vegetation snow holding depth (m)
+
+use STATE_VARIABLES, only: &
+  Ds,                    &! Snow layer thicknesses (m)
+  fsnow,                 &! Snow cover fraction 
+  Sice,                  &! Ice content of snow layers (kg/m^2)
+  Sliq,                  &! Liquid content of snow layers (kg/m^2)
+  dSWE_tot_subl,         &! Cumulated SWE change due to snowdrift sublimation (kg/m^2)
+  dSWE_tot_salt,         &! Cumulated SWE change due to saltation (kg/m^2)
+  dSWE_tot_susp           ! Cumulated SWE change due to suspension (kg/m^2)
+
+  use LANDUSE, only: &
+  dem,                  &! Terrain elevation (m)
+  forestfrac             ! Forest fraction
+
+use PARAM_SNOWTRAN3D, only: &
+  rho_snow                ! Constant snow density (kg/m^3)
 
 implicit none
 
-integer, intent(in) :: &
-  Nsmax,                 &! Maximum number of snow layers
-  Nx,Ny,                 &! Grid dimensions  
-  Nsnow(Nx,Ny)            ! Number of snow layers
-
 real, intent(in) :: &
-  dt,                    &! Timestep (s)
-  vegsnowd_xy(Nx,Ny),    &! Vegetation snow holding capacity (m)
-  Ds(Nsmax,Nx,Ny),       &! Snow layer thicknesses (m)
-  fsnow(Nx,Ny),          &! Snow cover fraction
-  Sice(Nsmax,Nx,Ny),     &! Ice content of snow layers (kg/m^2)
-  Sliq(Nsmax,Nx,Ny),     &! Liquid content of snow layers (kg/m^2)
-  Tsnow(Nsmax,Nx,Ny),    &! Snow layer temperatures (K)
   uwind(Nx,Ny),          &! WE component of wind speed (m/s)
-  vwind(Nx,Ny),          &! SN component of wind speed (m/s)
-  rhos_min,             &! Minimum snow density (kg/m^3)
-  rhos_max,             &! Maximum snow density (kg/m^3)
-  rho_snow               ! Constant snow density (kg/m^3)
-
-real, intent(inout) :: &
-  dSWE_tot_subl(Nx,Ny),  &! Cumulated SWE change due to sublimation (kg/m^2)
-  dSWE_tot_salt(Nx,Ny),  &! Cumulated SWE change due to saltation (kg/m^2)
-  dSWE_tot_susp(Nx,Ny)    ! Cumulated SWE change due to suspension (kg/m^2)
+  vwind(Nx,Ny)            ! SN component of wind speed (m/s)
 
 real, intent(in) :: &
-  bs_flag,               &! Blowing snow flag
   delta_WE,              &! Grid cell size in WE direction (m)
   delta_SN                ! Grid cell size in SN direction (m)
+
+logical, intent(in) :: &
+  flag_blowing_snow       ! Blowing snow flag
 
 real, intent(inout) :: &
   Qsalt_u(Nx,Ny),        &! x component of saltation flux (kg/m/s)
@@ -402,15 +388,11 @@ real, intent(inout) :: &
   Qsusp_v(Nx,Ny),        &! y component of suspension flux (kg/m/s)
   dSWE_susp(Nx,Ny),      &! SWE change due to suspension (kg/m^2)
   Qsubl(Nx,Ny),          &! Sublimation flux (kg/m^2/s)
-  dSWE_subl(Nx,Ny),      &! SWE change due to sublimation (kg/m^2)
+  dSWE_subl(Nx,Ny),      &! SWE change due to snowdrift sublimation (kg/m^2)
   snowthickness(Nx,Ny),  &! Depth of the snowpack in the snow covered part, i.e. not scaled by fsnow (m)
   Ds_soft(Nx,Ny),        &! Soft snow thickness (m)
   snowdepth0(Nx,Ny),     &! Snow depth of snowdrift accumulation, averaged over the grid cell (m)
-  Sice0(Nx,Ny),          &! Ice content of transported snow (kg/m^2)
-  histowet(Nsmax,Nx,Ny)   ! Historical variable for past wetting of a layer (0-1)
-
-real, intent(in) :: &
-  Ds_min                  ! Minimum snow layer thickness (m)
+  Sice0(Nx,Ny)            ! Ice content of transported snow (kg/m^2)
 
 integer, intent(in) :: &
   index_ue(Nx,2*Ny+1),   &! Wind index array E
@@ -428,21 +410,19 @@ real :: &
   swe_loc,               &! Total snowpack SWE (kg/m^2)
   snowdmin                ! Minimum snow depth to allow transport (m)
 
-if (bs_flag == 1.0) then
+if (flag_blowing_snow) then
 
   ! SALTATION
-  call getnewdepth(Nx,Ny,Nsmax,dt,vegsnowd_xy,Ds,fsnow,Sice,Sliq, &
-                   delta_WE,delta_SN,Qsalt_u, &
+  call getnewdepth(delta_WE,delta_SN,Qsalt_u, &
                    Qsalt_v,dSWE_salt,index_ue,index_uw, &
                    index_vn,index_vs, &
-                   snowthickness,Ds_soft,snowdepth0,Sice0,Nsnow,Tsnow,histowet,Ds_min,rhos_min,rhos_max,rho_snow)
+                   snowthickness,Ds_soft,snowdepth0,Sice0)
 
   ! SUSPENSION
-  call getnewdepth(Nx,Ny,Nsmax,dt,vegsnowd_xy,Ds,fsnow,Sice,Sliq, &
-                   delta_WE,delta_SN,Qsusp_u, &
+  call getnewdepth(delta_WE,delta_SN,Qsusp_u, &
                    Qsusp_v,dSWE_susp,index_ue,index_uw, &
                    index_vn,index_vs, &
-                   snowthickness,Ds_soft,snowdepth0,Sice0,Nsnow,Tsnow,histowet,Ds_min,rhos_min,rhos_max,rho_snow)
+                   snowthickness,Ds_soft,snowdepth0,Sice0)
 
   ! SUBLIMATION
   do j = 1, Ny
@@ -452,28 +432,33 @@ if (bs_flag == 1.0) then
       ! on the ground (or captured within the vegetation) to be
       ! eroded.
       Ds_hard = snowthickness(i,j) - Ds_soft(i,j)
-      snowdmin = max(vegsnowd_xy(i,j),Ds_hard)
+      snowdmin = max(veg_shd(i,j),Ds_hard)
       swe_loc = sum(Sice(:,i,j) + Sliq(:,i,j))
 
       ! Convert Qsubl to sublimated snow depth dh_subl_loss.
       dSWE_subl(i,j) = Qsubl(i,j) * dt * fsnow(i,j)
       dSWE_subl_loss = - dSWE_subl(i,j)
+      ! The following min should actually never be necessary, because handled by the snowdmin check later.
+      ! Kept for clarity and safety.
       dSWE_subl_loss = min(dSWE_subl_loss,swe_loc)
+      dSWE_subl(i,j) = - dSWE_subl_loss
       if (dSWE_subl_loss > epsilon(dSWE_subl_loss)) then
-        call HS_FROM_SWE(Nsmax,Nx,Ny,Nsnow,fsnow,Sice,Sliq,Ds,dSWE_subl_loss,dh_subl_loss,i,j)
+        call HS_FROM_SWE(dSWE_subl_loss,dh_subl_loss,i,j)
       else
         dSWE_subl_loss = 0.0
         dh_subl_loss = 0.0
+        dSWE_subl(i,j) = 0.0
       end if
 
       if (snowthickness(i,j) > snowdmin .and. fsnow(i,j) > epsilon(fsnow)) then
         if (snowthickness(i,j) - dh_subl_loss / fsnow(i,j) <= snowdmin) then
           dh_subl_loss = (snowthickness(i,j) - snowdmin) * fsnow(i,j)
           if (dh_subl_loss > epsilon(dh_subl_loss)) then
-            call SWE_FROM_HS(dh_subl_loss,dSWE_subl_loss,i,j,Nsmax,Nx,Ny,Nsnow,fsnow,Sice,Sliq,Ds,rhos_min,rhos_max,rho_snow)
+            call SWE_FROM_HS(dh_subl_loss,dSWE_subl_loss,i,j)
             dSWE_subl(i,j) = - dSWE_subl_loss
           else
             dh_subl_loss = 0.0
+            dSWE_subl_loss = 0.0
             dSWE_subl(i,j) = 0.0
           end if
         end if
@@ -483,10 +468,24 @@ if (bs_flag == 1.0) then
         dh_subl_loss = 0.0
       end if
 
+      ! The SWE loss due to wind only occurs on the open part of the pixel.
+      ! If it is a tiled run or open run, the transferred SWE is then weighted differently.
+      ! If tiled run, in the open tile, SWE loss stays the same since it will be weighted later when combining the tiles.
+      if (.not. tiled_trans_run) then
+        dSWE_subl(i,j) = dSWE_subl(i,j) * (1.0 - forestfrac(i,j))
+        dSWE_subl_loss = dSWE_subl_loss * (1.0 - forestfrac(i,j))
+        ! Now, we may need to adjust dh_subl_loss.
+        if (dSWE_subl_loss > epsilon(dSWE_subl_loss)) then
+          call HS_FROM_SWE(dSWE_subl_loss,dh_subl_loss,i,j)
+        else
+          dSWE_subl_loss = 0.0
+          dSWE_subl(i,j) = 0.0
+          dh_subl_loss = 0.0
+        end if
+      end if
+
       if (dSWE_subl_loss > epsilon(dSWE_subl_loss) .and. dh_subl_loss > epsilon(dh_subl_loss)) then
-        call SNOW_ABLATION(dh_subl_loss, dSWE_subl_loss, i, j, Nsmax, Nx, Ny, &
-                         Sice, Sliq, Ds, histowet, Nsnow, &
-                         fsnow, Tsnow, Ds_min, Tm)
+        call SNOW_ABLATION(dh_subl_loss,dSWE_subl_loss,i,j)
       end if
 
       ! Update the snow layer thicknesses
@@ -514,11 +513,21 @@ end subroutine accum
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-subroutine suspension(Nx,Ny,zRH,Ta,RH,Utau,z_0,h_star,Utau_t,uwind,vwind, &
+subroutine suspension(Utau,z_0,h_star,Utau_t,uwind,vwind, &
                       Qsalt,conc_salt,Qsusp,Qsusp_u,Qsusp_v,Qsubl)
 
 use CONSTANTS, only: &
   vkman               ! Von Karman constant
+
+use DRIVING, only: &
+  Ta,                &! Air temperature (K)
+  RH                  ! Relative humidity (%)
+
+use GRID, only: &
+  Nx,Ny               ! Grid dimensions
+
+use LANDUSE, only: &
+  dem                 ! Terrain elevation (m)
 
 use CONSTANTS_SNOWTRAN3D, only: &
   Up_const,          &! Constant coefficient for calculation of U_p
@@ -529,13 +538,7 @@ use CONSTANTS_SNOWTRAN3D, only: &
 
 implicit none
 
-integer, intent(in) :: &
-  Nx,Ny               ! Grid dimensions
-
 real, intent(in) :: &
-  zRH,               &! Relative humidity measurement height (m)
-  Ta(Nx,Ny),         &! Air temperature (K)
-  RH(Nx,Ny),         &! Relative humidity (%)
   Qsalt(Nx,Ny),      &! Saltation flux (kg/m/s)
   uwind(Nx,Ny),      &! x component of wind speed (m/s)
   vwind(Nx,Ny),      &! y component of wind speed (m/s)
@@ -558,7 +561,6 @@ integer :: &
 
 real :: &
   conc,              &! Concentration of the suspended snow at height z (kg/m^3)
-  Utau_fallvel,      &! Auxiliary variable Utau/fall_vel
   prd,               &! Auxiliary variable for calculations
   U_p,               &! Horizontal particle velocity within the saltation layer (m/s)
   U_r,               &! Wind speed at height h_star (m/s)
@@ -574,13 +576,12 @@ do j = 1, Ny
   do i = 1, Nx
 
     if (Qsalt(i,j) > epsilon(Qsalt)) then
-      Utau_fallvel = Utau(i,j) / fall_vel
-      ! LQ: the present subroutine (suspension) is only called in the case there is saltation (bs_flag = 1)
+      ! LQ: the present subroutine (suspension) is only called in the case there is saltation (flag_blowing_snow = .TRUE.)
       ! in which case (see third case of solveUtau): h* = (h_const/C_z) z0 = 13.3 z0
       ! So no need to check h*, the following log is always positive
       U_r = Utau(i,j)/vkman * log(h_star(i,j)/z_0(i,j))
       phistar_Cr = Utau(i,j)/U_r * Ur_const
-      prd = phistar_Cr * Utau_fallvel
+      prd = phistar_Cr * Utau(i,j) / fall_vel
       U_p = Up_const * Utau_t(i,j)
 
       ! Compute the concentration in the saltation layer (kg/m^3).
@@ -604,8 +605,8 @@ do j = 1, Ny
         if (conc > epsilon(conc)) then
 
           ! Compute the sublimation due to suspension.
-          call getsublim(zRH,z,RH(i,j),Ta(i,j),Utau(i,j), &
-                         z_0(i,j),V_susp,V_salt,Utau_t(i,j),1.0)
+          call getsublim(z,RH(i,j),Ta(i,j),Utau(i,j), &
+                         z_0(i,j),V_susp,V_salt,Utau_t(i,j),.TRUE.)
 
           ! Perform the quadrature (summation), without the constants.
           if (z == z_0(i,j)) z = 1.2 * z_0(i,j)
@@ -622,8 +623,8 @@ do j = 1, Ny
 
       ! Include the sublimation contribution due to saltation.
       z = h_star(i,j) / 2.0
-      call getsublim(zRH,z,RH(i,j),Ta(i,j),Utau(i,j), &
-                     z_0(i,j),V_susp,V_salt,Utau_t(i,j),0.0)
+      call getsublim(z,RH(i,j),Ta(i,j),Utau(i,j), &
+                     z_0(i,j),V_susp,V_salt,Utau_t(i,j),.FALSE.)
 
       Qsubl(i,j) = Qsubl(i,j) + V_salt * conc_salt(i,j) * h_star(i,j)
 
@@ -654,65 +655,71 @@ end subroutine suspension
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-subroutine saltation(Nx,Ny,vegsnowd_xy,delta_WE,Utau,Utau_t,snowthickness,delta_SN, &
+subroutine saltation(delta_WE,Utau,Utau_t,snowthickness,delta_SN, &
                      index_ue,index_uw,index_vn,index_vs,uwind,vwind,Ds_soft, &
                      Qsalt,Qsalt_u,Qsalt_v)
 
 use CONSTANTS, only: &
-  grav,                 &! Acceleration due to gravity (m/s^2)
-  rho_air                ! Density of air (kg/m^3)
+  grav,                    &! Acceleration due to gravity (m/s^2)
+  rho_air                   ! Density of air (kg/m^3)
+
+use GRID, only: &
+  Nx,Ny                     ! Grid dimensions
+
+use PARAMMAPS, only: &
+  veg_shd                   ! Vegetation snow holding capacity (m)
+
+use LANDUSE, only: &
+  dem,                     &! Terrain elevation (m)
+  forestfrac                ! Forest fraction
 
 use PARAM_SNOWTRAN3D, only: &
-  bc_flag,              &! Boundary condition flag
-  blowby                 ! Fraction of the saltation flux transferred downwind
+  flag_boundary_condition, &! Boundary condition flag
+  blowby                    ! Fraction of the saltation flux transferred downwind
 
 use CONSTANTS_SNOWTRAN3D, only: &
-  fetch,                &! Equilibrium fetch distance (m)
-  xmu                    ! Scaling constant for non-equilibrium saltation transport
+  fetch,                   &! Equilibrium fetch distance (m)
+  xmu                       ! Scaling constant for non-equilibrium saltation transport
 
 implicit none
 
-integer, intent(in) :: &
-  Nx,Ny                  ! Grid dimensions
+real, intent(in) :: &
+  delta_WE,                &! Grid cell size in WE direction (m)
+  delta_SN                  ! Grid cell size in SN direction (m)
 
 real, intent(in) :: &
-  vegsnowd_xy(Nx,Ny),   &! Vegetation snow holding capacity (m)
-  delta_WE,             &! Grid cell size in WE direction (m)
-  delta_SN               ! Grid cell size in SN direction (m)
-
-real, intent(in) :: &
-  snowthickness(Nx,Ny), &! Depth of the snowpack in the snow covered part, i.e. not scaled by fsnow (m)
-  uwind(Nx,Ny),         &! x component of wind speed (m/s)
-  vwind(Nx,Ny),         &! y component of wind speed (m/s)
-  Utau_t(Nx,Ny),        &! Threshold friction velocity (m/s)
-  Utau(Nx,Ny),          &! Friction velocity (m/s)
-  Ds_soft(Nx,Ny)         ! Soft snow thickness (m)
+  snowthickness(Nx,Ny),    &! Depth of the snowpack in the snow covered part, i.e. not scaled by fsnow (m)
+  uwind(Nx,Ny),            &! x component of wind speed (m/s)
+  vwind(Nx,Ny),            &! y component of wind speed (m/s)
+  Utau_t(Nx,Ny),           &! Threshold friction velocity (m/s)
+  Utau(Nx,Ny),             &! Friction velocity (m/s)
+  Ds_soft(Nx,Ny)            ! Soft snow thickness (m)
 
 real, intent(inout) :: &
-  Qsalt(Nx,Ny),         &! Saltation flux (kg/m/s)
-  Qsalt_u(Nx,Ny),       &! x component of saltation flux (kg/m/s)
-  Qsalt_v(Nx,Ny)         ! y component of saltation flux (kg/m/s)
+  Qsalt(Nx,Ny),            &! Saltation flux (kg/m/s)
+  Qsalt_u(Nx,Ny),          &! x component of saltation flux (kg/m/s)
+  Qsalt_v(Nx,Ny)            ! y component of saltation flux (kg/m/s)
 
 integer, intent(in) :: &
-  index_ue(Nx,2*Ny+1),    &! Wind index array E
-  index_uw(Nx,2*Ny+1),    &! Wind index array W
-  index_vn(Ny,2*Nx+1),    &! Wind index array N
-  index_vs(Ny,2*Nx+1)      ! Wind index array S
+  index_ue(Nx,2*Ny+1),     &! Wind index array E
+  index_uw(Nx,2*Ny+1),     &! Wind index array W
+  index_vn(Ny,2*Nx+1),     &! Wind index array N
+  index_vs(Ny,2*Nx+1)       ! Wind index array S
 
 integer :: &
-  i,j,k,                &! Point counters
-  istart,iend,          &! Point counters boundaries
-  jstart,jend            ! Point counters boundaries
+  i,j,k,                   &! Point counters
+  istart,iend,             &! Point counters boundaries
+  jstart,jend               ! Point counters boundaries
 
 real :: &
-  Qsalt_max(Nx,Ny),     &! Maximum possible saltation flux (kg/m/s)
-  Qsalt_maxu(Nx,Ny),    &! x component of Qsalt_max (kg/m/s)
-  Qsalt_maxv(Nx,Ny)      ! y component of Qsalt_max (kg/m/s)
+  Qsalt_max(Nx,Ny),        &! Maximum possible saltation flux (kg/m/s)
+  Qsalt_maxu(Nx,Ny),       &! x component of Qsalt_max (kg/m/s)
+  Qsalt_maxv(Nx,Ny)         ! y component of Qsalt_max (kg/m/s)
 
 real :: &
-  dUtau,                &! Utau difference (m/s)
-  scale_EW,             &! Scaling coefficient for Eqn. 9 in L&S 1998
-  scale_NS               ! Scaling coefficient for Eqn. 9 in L&S 1998
+  dUtau,                   &! Utau difference (m/s)
+  scale_EW,                &! Scaling coefficient for Eqn. 9 in L&S 1998
+  scale_NS                  ! Scaling coefficient for Eqn. 9 in L&S 1998
 
 ! Compute the maximum possible saltation flux, assuming that
 ! an abundance of snow is available at the surface.
@@ -734,14 +741,14 @@ do j = 1, Ny
   end do
 end do
 
-! Define an upwind boundary condition.  If bc_flag = 1.0 then it is
+! Define an upwind boundary condition.  If flag_boundary_condition = .TRUE. then it is
 ! assumed that the inflow saltation flux has reached steady state.
-! If bc_flag = 0.0 then the saltation flux is assumed to be zero.
+! If flag_boundary_condition = .FALSE. then the saltation flux is assumed to be zero.
 ! The boundary condition is implemented by initializing the arrays
 ! to Qsalt_max, and since upwind boundaries are not called in
 ! the Qsalt computation, they stay in effect for the future 
 ! accumulation/erosion computation.
-if (bc_flag == 0.0) then
+if (.NOT. flag_boundary_condition) then
   do j = 1, Ny
     do i = 1, Nx
 
@@ -751,7 +758,7 @@ if (bc_flag == 0.0) then
 
     end do
   end do
-else if (bc_flag == 1.0) then
+else
   do j = 1, Ny
     do i = 1, Nx
 
@@ -789,6 +796,19 @@ do i = 1, Nx
           Qsalt_u(i,j) = max(blowby*Qsalt_u(i,j-1),Qsalt_maxu(i,j))
         end if
       end if
+      ! No flux from fully-forested cells.
+      ! For safety, because very high snow holding depth should anyway prevent it.
+      if (forestfrac(i,j) > 0.9) then
+        Qsalt_u(i,j) = 0.0
+      end if
+      ! Downwind forest cover reduces the flow.
+      if (j+1 <= Ny) then
+        if (forestfrac(i,j+1) > 0.9) then
+          Qsalt_u(i,j) = 0.0
+        else
+          Qsalt_u(i,j) = Qsalt_u(i,j) * (1.0 - forestfrac(i,j+1))
+        end if
+      end if
     end do
   end do
 end do
@@ -809,6 +829,19 @@ do i = 1, Nx
           Qsalt_u(i,j) = Qsalt_u(i,j+1)
         else
           Qsalt_u(i,j) = max(blowby*Qsalt_u(i,j+1),Qsalt_maxu(i,j))
+        end if
+      end if
+      ! No flux from fully-forested cells.
+      ! For safety, because very high snow holding depth should anyway prevent it.
+      if (forestfrac(i,j) > 0.9) then
+        Qsalt_u(i,j) = 0.0
+      end if
+      ! Downwind forest cover reduces the flow.
+      if (j-1 >= 1) then
+        if (forestfrac(i,j-1) > 0.9) then
+          Qsalt_u(i,j) = 0.0
+        else        
+          Qsalt_u(i,j) = Qsalt_u(i,j) * (1.0 - forestfrac(i,j-1))
         end if
       end if
     end do
@@ -833,6 +866,19 @@ do j = 1, Ny
           Qsalt_v(i,j) = max(blowby*Qsalt_v(i-1,j),Qsalt_maxv(i,j))
         end if
       end if
+      ! No flux from fully-forested cells.
+      ! For safety, because very high snow holding depth should anyway prevent it.
+      if (forestfrac(i,j) > 0.9) then
+        Qsalt_v(i,j) = 0.0
+      end if
+      ! Downwind forest cover reduces the flow.
+      if (i+1 <= Nx) then
+        if (forestfrac(i+1,j) > 0.9) then
+          Qsalt_v(i,j) = 0.0
+        else        
+          Qsalt_v(i,j) = Qsalt_v(i,j) * (1.0 - forestfrac(i+1,j))
+        end if
+      end if
     end do
   end do
 end do
@@ -855,6 +901,19 @@ do j = 1, Ny
           Qsalt_v(i,j) = max(blowby*Qsalt_v(i+1,j),Qsalt_maxv(i,j))
         end if
       end if
+      ! No flux from fully-forested cells.
+      ! For safety, because very high snow holding depth should anyway prevent it.
+      if (forestfrac(i,j) > 0.9) then
+        Qsalt_v(i,j) = 0.0
+      end if
+      ! Downwind forest cover reduces the flow.
+      if (i-1 >= 1) then
+        if (forestfrac(i-1,j) > 0.9) then
+          Qsalt_v(i,j) = 0.0
+        else        
+          Qsalt_v(i,j) = Qsalt_v(i,j) * (1.0 - forestfrac(i-1,j))
+        end if
+      end if
     end do
   end do
 end do
@@ -875,11 +934,15 @@ end do
 do j = 1, Ny
   do i = 1, Nx
 
-    if (snowthickness(i,j) <= vegsnowd_xy(i,j)) then
+    if (snowthickness(i,j) <= veg_shd(i,j)) then
       Qsalt(i,j) = 0.0
+      Qsalt_u(i,j) = 0.0
+      Qsalt_v(i,j) = 0.0
     end if
     if (Ds_soft(i,j) <= epsilon(Ds_soft)) then
       Qsalt(i,j) = 0.0
+      Qsalt_u(i,j) = 0.0
+      Qsalt_v(i,j) = 0.0
     end if
 
   end do
@@ -890,11 +953,25 @@ end subroutine saltation
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-subroutine solveUtau(Nx,Ny,Ua,zU,vegsnowd_xy,z0_snow,Utau,z_0,h_star,snowthickness,veg_z0,bs_flag,Utau_t,Ds_soft)
+subroutine solveUtau(Utau,z_0,h_star,snowthickness,veg_z0,flag_blowing_snow,Utau_t,Ds_soft)
 
 use CONSTANTS, only: &
   grav,                 &! Acceleration due to gravity (m/s^2)
   vkman                  ! Von Karman constant
+
+use DRIVING, only: &
+  Ua,                   &! Wind speed (m/s)
+  zU                     ! Wind speed measurement height (m)
+
+use GRID, only: &
+  Nx,Ny                  ! Grid dimensions
+
+use PARAMMAPS, only: &
+  veg_shd,              &! Vegetation snow holding depth (m)
+  z0_snow                ! Roughness length of snow (m)
+
+use LANDUSE, only: &
+  dem                    ! Terrain elevation (m)
 
 use CONSTANTS_SNOWTRAN3D, only: &
   C_z,                  &! Coefficient 0.12 in Liston and Sturm (1998) eq. 5 p. 500
@@ -902,21 +979,14 @@ use CONSTANTS_SNOWTRAN3D, only: &
 
 implicit none
 
-integer, intent(in) :: &
-  Nx,Ny                  ! Grid dimensions
-
 real, intent(in) :: &
-  Ua(Nx,Ny),            &! Wind speed (m/s)
-  zU,                   &! Wind speed measurement height (m)
-  vegsnowd_xy(Nx,Ny),   &! Vegetation snow holding capacity (m)
-  z0_snow(Nx,Ny),       &! Roughness length of snow (m)
   snowthickness(Nx,Ny), &! Depth of the snowpack in the snow covered part, i.e. not scaled by fsnow (m)
   Utau_t(Nx,Ny),        &! Threshold friction velocity (m/s)
   veg_z0(Nx,Ny),        &! Vegetation roughness length (m)
   Ds_soft(Nx,Ny)         ! Soft snow thickness (m)
 
-real, intent(inout) :: &
-  bs_flag                ! Blowing snow flag
+logical, intent(inout) :: &
+  flag_blowing_snow           ! Blowing snow flag
 
 real, intent(inout) :: &
   Utau(Nx,Ny)            ! Friction velocity (m/s)
@@ -928,9 +998,11 @@ real, intent(out) :: &
 integer :: &
   i,j                    ! Point counters
 
+logical :: &
+  threshold_flag         ! Flag if u* is above threshold
+
 real :: &
   threshold,            &! Threshold for u* (m/s)
-  threshold_flag,       &! Flag if u* is above threshold
   guess,                &! Initial guess for Utau
   sfrac,                &! Depth-fraction of vegetation covered by snow
   Utautmp,              &! Temporary Utau variable (m/s)
@@ -938,10 +1010,9 @@ real :: &
   wind_max,             &! Maximum wind speed (m/s)
   z_0_tmp                ! Temporary z_0 variable (m)
 
-! Initially set the blowing snow flag to no blowing snow
-! (bs_flag = 0.0).  Then, if snow is found to blow in any
-! domain grid cell, set the flag to on (bs_flag = 1.0).
-bs_flag = 0.0
+! We are entering the subroutine with the blowing snow flag set to .FALSE.
+! Then, if snow is found to blow in any
+! domain grid cell, we set the flag to (flag_blowing_snow = .TRUE.).
 
 ! Build the Utau array.
 guess = 0.1
@@ -950,10 +1021,10 @@ do j = 1, Ny
 
     ! Determine whether snow is saltating (this influences how Utau
     ! and z_0 are computed).
-    if (snowthickness(i,j) <= vegsnowd_xy(i,j)) then
+    if (snowthickness(i,j) <= veg_shd(i,j)) then
 
       ! Saltation will not occur.
-      sfrac = snowthickness(i,j) / max(vegsnowd_xy(i,j),veg_z0(i,j)) ! Eq. 3, LS 1998
+      sfrac = snowthickness(i,j) / max(veg_shd(i,j),veg_z0(i,j)) ! Eq. 3, LS 1998
       z_0(i,j) = sfrac * z0_snow(i,j) + (1.0 - sfrac) * veg_z0(i,j) ! Eq. 4, LS 1998
       z_0_tmp = min(0.25*zU,z_0(i,j))
       Utau(i,j) = Ua(i,j) * vkman / log(zU/z_0_tmp)
@@ -987,12 +1058,12 @@ do j = 1, Ny
       ! roughness length will start to be higher than the obs height!).
       threshold = 0.6/vkman * log(zU/0.0022)
       if (windtmp <= threshold) then
-        threshold_flag = 1.0
+        threshold_flag = .FALSE.
       else
-        threshold_flag = 2.0
+        threshold_flag = .TRUE.
       end if
 
-      call solve1(zU,Utautmp,guess,windtmp, &
+      call solve1(Utautmp,guess,windtmp, &
                   threshold_flag)
 
       if (Utautmp > Utau_t(i,j)) then
@@ -1001,7 +1072,8 @@ do j = 1, Ny
         Utau(i,j) = Utautmp
         z_0(i,j) = C_z * Utau(i,j)**2 / (2.0 * grav)
         h_star(i,j) = h_const * Utau(i,j)**2 / (2.0 * grav)
-        bs_flag = 1.0
+        ! Set the blowing snow flag to .TRUE.
+        flag_blowing_snow = .TRUE.
 
       else
 
@@ -1024,11 +1096,14 @@ end subroutine solveUtau
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-subroutine solve1(zU,xnew,guess,windtmp,threshold_flag)
+subroutine solve1(xnew,guess,windtmp,threshold_flag)
 
 use CONSTANTS, only: &
   grav,              &! Acceleration due to gravity (m/s^2)
   vkman               ! Von Karman constant
+
+use DRIVING, only: &
+  zU                  ! Wind speed measurement height (m)
 
 use CONSTANTS_SNOWTRAN3D, only: &
   C_z                 ! Coefficient 0.12 in Liston and Sturm (1998) eq. 5 p. 500
@@ -1036,9 +1111,10 @@ use CONSTANTS_SNOWTRAN3D, only: &
 implicit none
 
 real, intent(in) :: &
-  zU,                &! Wind speed measurement height (m)
   guess,             &! Initial guess for Utau (m/s)
-  windtmp,           &! Wind speed (m/s)
+  windtmp             ! Wind speed (m/s)
+
+logical, intent(in) :: &
   threshold_flag      ! Flag if u* is above threshold
 
 real, intent(inout) :: &  
@@ -1058,19 +1134,7 @@ tol = 1.0e-3
 maxiter = 20
 old = guess
 
-if (threshold_flag == 1.0) then
-
-  do i = 1, maxiter
-    fprime = - 1.0 + 2.0 / old * windtmp * vkman * &
-            (log(zU) - log(C_z/(2.0*grav)) - 2.0*log(old))**(-2)
-    funct = - old + windtmp * vkman * &
-           (log(zU) - log(C_z/(2.0*grav)) - 2.0*log(old))**(-1)
-    xnew = old - funct/fprime
-    if (abs(xnew - old) < tol) return
-    old = xnew
-  end do
-
-else if (threshold_flag == 2.0) then
+if (threshold_flag) then
 
   old = 0.6
   do i = 1, maxiter
@@ -1078,6 +1142,18 @@ else if (threshold_flag == 2.0) then
             (log(zU) - log(0.00734 * old - 0.0022))**(-2)
     funct = - old + windtmp * vkman * &
            (log(zU) - log(0.00734 * old - 0.0022))**(-1)
+    xnew = old - funct/fprime
+    if (abs(xnew - old) < tol) return
+    old = xnew
+  end do
+
+else
+
+  do i = 1, maxiter
+    fprime = - 1.0 + 2.0 / old * windtmp * vkman * &
+            (log(zU) - log(C_z/(2.0*grav)) - 2.0*log(old))**(-2)
+    funct = - old + windtmp * vkman * &
+           (log(zU) - log(C_z/(2.0*grav)) - 2.0*log(old))**(-1)
     xnew = old - funct/fprime
     if (abs(xnew - old) < tol) return
     old = xnew
@@ -1092,7 +1168,7 @@ end subroutine solve1
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-subroutine getsublim(zRH,z,RH,Ta,Utau,z_0,V_susp,V_salt,Utau_t,flag)
+subroutine getsublim(z,RH,Ta,Utau,z_0,V_susp,V_salt,Utau_t,flag_susp)
 
 use CONSTANTS, only: &
   hcon_air,          &! Thermal conductivity of air (W/m/K)
@@ -1106,17 +1182,21 @@ use CONSTANTS, only: &
   xM,                &! Molecular weight of water (kg/kmol)
   visc_air            ! Kinematic viscosity of air (m^2/s)
 
+use DRIVING, only: &
+  zRH                 ! Relative humidity measurement height (m)
+
 implicit none
 
 real, intent(in) :: &
-  zRH,               &! Relative humidity measurement height (m)
   z,                 &! Height (m)
   RH,                &! Relative humidity (%)
   Ta,                &! Air temperature (K)
   Utau_t,            &! Threshold friction velocity (m/s)
   Utau,              &! Friction velocity (m/s)
-  flag,              &! 1: sublimation due to suspension, 0: sublimation due to saltation
   z_0                 ! Surface roughness length (m)
+
+logical, intent(in) :: &
+  flag_susp           ! .TRUE.: sublimation due to suspension, .FALSE.: sublimation due to saltation
 
 real, intent(out) :: &
   V_susp,            &! Sublimation loss rate coefficient in the suspension layer (s^-1)
@@ -1163,7 +1243,7 @@ u_z = Utau/vkman * log(z/z_0)
 x_r = 0.005 * u_z**(1.36)
 wbar = 1.1e7 * rbar**(1.8)
 
-if (flag == 1.0) then
+if (flag_susp) then
 
   ! Compute the sublimation loss rate coefficient for the suspension
   ! layer.
@@ -1178,7 +1258,7 @@ if (flag == 1.0) then
   V_susp = (top/bottom)/xmbar
   V_salt = 0.0
 
-else if (flag == 0.0) then
+else
 
   ! Compute the sublimation loss rate coefficient for the saltation
   ! layer.
@@ -1200,12 +1280,15 @@ end subroutine getsublim
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-subroutine getdirection(Nx,Ny,index_ue,index_uw,index_vn,index_vs,uwind,vwind)
+subroutine getdirection(index_ue,index_uw,index_vn,index_vs,uwind,vwind)
+
+use GRID, only: &
+  Nx,Ny               ! Grid dimensions
+
+use LANDUSE, only: &
+  dem                 ! Terrain elevation (m)
 
 implicit none
-
-integer, intent(in) :: &
-  Nx,Ny               ! Grid dimensions
 
 integer, intent(inout) :: &
   index_ue(Nx,2*Ny+1), &! Wind index array E
@@ -1462,43 +1545,47 @@ end subroutine getdirection
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-subroutine getnewdepth(Nx,Ny,Nsmax,dt,vegsnowd_xy,Ds,fsnow,Sice,Sliq, &
-                       delta_WE,delta_SN,Qs_u,Qs_v, &
+subroutine getnewdepth(delta_WE,delta_SN,Qs_u,Qs_v, &
                        dSWE_s, &
                        index_ue,index_uw,index_vn,index_vs, &
-                       snowthickness,Ds_soft,snowdepth0,Sice0,Nsnow,Tsnow,histowet,Ds_min, &
-                       rhos_min,rhos_max,rho_snow)
+                       snowthickness,Ds_soft,snowdepth0,Sice0)
 
-use CONSTANTS, only: &
-  Tm                     ! Melting point (K)
+use MODTILE, only: &
+  tiled_trans_run              ! Tiled run flag
+
+use DRIVING, only: &
+  dt                     ! Timestep (s)
+
+use GRID, only: &
+  Nx,Ny                  ! Grid dimensions
+
+use PARAMMAPS, only: &
+  veg_shd                ! Vegetation snow holding depth (m)
+
+use STATE_VARIABLES, only: &
+  Ds,                   &! Snow layer thicknesses (m)
+  fsnow,                &! Snow cover fraction 
+  Sice,                 &! Ice content of snow layers (kg/m^2)
+  Sliq                   ! Liquid content of snow layers (kg/m^2)
+
+use LANDUSE, only: &
+  dem,                  &! Terrain elevation (m)
+  forestfrac             ! Forest fraction
+
+use PARAM_SNOWTRAN3D, only: &
+  rho_snow               ! Constant snow density (kg/m^3)
 
 implicit none
 
+real, intent(in) :: &
+  delta_WE,             &! Grid cell size in WE direction (m)
+  delta_SN               ! Grid cell size in SN direction (m)
+
 integer, intent(in) :: &
-  Nx,Ny,                &! Grid dimensions
-  Nsmax,                &! Maximum number of snow layers
-  Nsnow(Nx,Ny),         &! Number of snow layers
   index_ue(Nx,2*Ny+1),  &! Wind index array E
   index_uw(Nx,2*Ny+1),  &! Wind index array W
   index_vn(Ny,2*Nx+1),  &! Wind index array N
   index_vs(Ny,2*Nx+1)    ! Wind index array S
-
-real, intent(in) :: &
-  dt,                   &! Timestep (s)
-  Ds_min,               &! Minimum snow layer thickness (m)
-  Tsnow(Nsmax,Nx,Ny),   &! Snow layer temperatures (K)
-  histowet(Nsmax,Nx,Ny),&! Historical variable for past wetting
-  vegsnowd_xy(Nx,Ny),   &! Vegetation snow holding capacity (m)
-  Ds(Nsmax,Nx,Ny),      &! Snow layer thicknesses (m)
-  fsnow(Nx,Ny),         &! Snow cover fraction
-  Sice(Nsmax,Nx,Ny),    &! Ice content of snow layers (kg/m^2)
-  Sliq(Nsmax,Nx,Ny),    &! Liquid content of snow layers (kg/m^2)
-  delta_WE,             &! Grid cell size in WE direction (m)
-  delta_SN,             &! Grid cell size in SN direction (m)
-  rhos_min,             &! Minimum snow density (kg/m^3)
-  rhos_max,             &! Maximum snow density (kg/m^3)
-  rho_snow               ! Constant snow density (kg/m^3)
-
 
 real, intent(inout) :: &
   snowthickness(Nx,Ny), &! Depth of the snowpack in the snow covered part, i.e. not scaled by fsnow (m)
@@ -1567,10 +1654,27 @@ do i = 1, Nx
       swe_loc = sum(Sice(:,i,j) + Sliq(:,i,j))
       dSWE_s_u_loss(i,j) = dt * Qs_u(i,j) * fsnow(i,j) / delta_WE
       dSWE_s_u_gain(i,j) = dt * Qs_u(i,j-1) * fsnow(i,j-1) / delta_WE
+      ! The SWE loss due to wind only occurs on the open part of the pixel.
+      ! The SWE gained by neighbouring is then weighted by the open fraction of the pixel.
+      ! The SWE gain due to wind only occurs on the open part of the pixel.
+      ! If it is a tiled run or open run, the transferred SWE is then weighted differently.
+      if (tiled_trans_run) then
+        ! In the open tile, SWE loss stays the same since it will be weighted later when combining the tiles.
+        ! SWE gain from neighbouring pixel is first weighted by the open fraction of origin pixel, 
+        ! then divided by the open fraction of the target pixel in the open tile, 
+        ! since it will be counter-weighted later when combining the tiles.
+        if (forestfrac(i,j) <= 0.9) then
+          dSWE_s_u_gain(i,j) = dSWE_s_u_gain(i,j) * (1.0 - forestfrac(i,j-1)) / (1.0 - forestfrac(i,j))
+          ! else: the flux is already zero
+        end if
+      else
+        dSWE_s_u_loss(i,j) = dSWE_s_u_loss(i,j) * (1.0 - forestfrac(i,j))
+        dSWE_s_u_gain(i,j) = dSWE_s_u_gain(i,j) * (1.0 - forestfrac(i,j-1))
+      end if
       dSWE_s_u_loss(i,j) = min(dSWE_s_u_loss(i,j),swe_loc) ! No need to adjust Qs_u here because if thresholded, it will be done in the next if loop anyway
       if (dSWE_s_u_loss(i,j) > epsilon(dSWE_s_u_loss)) then
         dSWE_s_u_loss_tmp = dSWE_s_u_loss(i,j)
-        call HS_FROM_SWE(Nsmax,Nx,Ny,Nsnow,fsnow,Sice,Sliq,Ds,dSWE_s_u_loss_tmp,dh_s_u_loss_tmp,i,j)
+        call HS_FROM_SWE(dSWE_s_u_loss_tmp,dh_s_u_loss_tmp,i,j)
         dh_s_u_loss(i,j) = dh_s_u_loss_tmp
       else
         dSWE_s_u_loss(i,j) = 0.0
@@ -1584,14 +1688,18 @@ do i = 1, Nx
       ! on the ground (or captured within the vegetation) to be
       ! eroded.
       Ds_hard = snowthickness(i,j) - Ds_soft(i,j)
-      snowdmin = max(vegsnowd_xy(i,j),Ds_hard)
+      snowdmin = max(veg_shd(i,j),Ds_hard)
       if (snowthickness(i,j) > snowdmin .and. fsnow(i,j) > epsilon(fsnow)) then
         if (snowthickness(i,j) - dh_s_u_loss(i,j) / fsnow(i,j) <= snowdmin) then
           dh_s_u_loss(i,j) = (snowthickness(i,j) - snowdmin) * fsnow(i,j)
           if (dh_s_u_loss(i,j) > epsilon(dh_s_u_loss)) then
             dh_s_u_loss_tmp = dh_s_u_loss(i,j)
-            call SWE_FROM_HS(dh_s_u_loss_tmp,dSWE_s_u_loss_tmp,i,j,Nsmax,Nx,Ny,Nsnow,fsnow,Sice,Sliq,Ds,rhos_min,rhos_max,rho_snow)
+            call SWE_FROM_HS(dh_s_u_loss_tmp,dSWE_s_u_loss_tmp,i,j)
             dSWE_s_u_loss(i,j) = dSWE_s_u_loss_tmp
+            ! Same open tile weighting as before.
+            if (.not. tiled_trans_run) then
+              dSWE_s_u_loss(i,j) = dSWE_s_u_loss(i,j) * (1.0 - forestfrac(i,j))
+            end if
           else
             dh_s_u_loss(i,j) = 0.0
             dSWE_s_u_loss(i,j) = 0.0
@@ -1620,10 +1728,27 @@ do i = 1, Nx
       swe_loc = sum(Sice(:,i,j) + Sliq(:,i,j))
       dSWE_s_u_loss(i,j) = dt * Qs_u(i,j) * fsnow(i,j) / delta_WE
       dSWE_s_u_gain(i,j) = dt * Qs_u(i,j+1) * fsnow(i,j+1) / delta_WE
+      ! The SWE loss due to wind only occurs on the open part of the pixel.
+      ! The SWE gained by neighbouring is then weighted by the open fraction of the pixel.
+      ! The SWE gain due to wind only occurs on the open part of the pixel.
+      ! If it is a tiled run or open run, the transferred SWE is then weighted differently.
+      if (tiled_trans_run) then
+        ! In the open tile, SWE loss stays the same since it will be weighted later when combining the tiles.
+        ! SWE gain from neighbouring pixel is first weighted by the open fraction of origin pixel, 
+        ! then divided by the open fraction of the target pixel in the open tile, 
+        ! since it will be counter-weighted later when combining the tiles.
+        if (forestfrac(i,j) <= 0.9) then
+          dSWE_s_u_gain(i,j) = dSWE_s_u_gain(i,j) * (1.0 - forestfrac(i,j+1)) / (1.0 - forestfrac(i,j))
+          ! else: the flux is already zero
+        end if
+      else
+        dSWE_s_u_loss(i,j) = dSWE_s_u_loss(i,j) * (1.0 - forestfrac(i,j))
+        dSWE_s_u_gain(i,j) = dSWE_s_u_gain(i,j) * (1.0 - forestfrac(i,j+1))
+      end if
       dSWE_s_u_loss(i,j) = min(dSWE_s_u_loss(i,j),swe_loc) ! No need to adjust Qs_u here because if thresholded, it will be done in the next if loop anyway
       if (dSWE_s_u_loss(i,j) > epsilon(dSWE_s_u_loss)) then
         dSWE_s_u_loss_tmp = dSWE_s_u_loss(i,j)
-        call HS_FROM_SWE(Nsmax,Nx,Ny,Nsnow,fsnow,Sice,Sliq,Ds,dSWE_s_u_loss_tmp,dh_s_u_loss_tmp,i,j)
+        call HS_FROM_SWE(dSWE_s_u_loss_tmp,dh_s_u_loss_tmp,i,j)
         dh_s_u_loss(i,j) = dh_s_u_loss_tmp
       else
         dSWE_s_u_loss(i,j) = 0.0
@@ -1637,14 +1762,18 @@ do i = 1, Nx
       ! on the ground (or captured within the vegetation) to be
       ! eroded.
       Ds_hard = snowthickness(i,j) - Ds_soft(i,j)
-      snowdmin = max(vegsnowd_xy(i,j),Ds_hard)
+      snowdmin = max(veg_shd(i,j),Ds_hard)
       if (snowthickness(i,j) > snowdmin .and. fsnow(i,j) > epsilon(fsnow)) then
         if (snowthickness(i,j) - dh_s_u_loss(i,j) / fsnow(i,j) <= snowdmin) then
           dh_s_u_loss(i,j) = (snowthickness(i,j) - snowdmin) * fsnow(i,j)
           if (dh_s_u_loss(i,j) > epsilon(dh_s_u_loss)) then
             dh_s_u_loss_tmp = dh_s_u_loss(i,j)
-            call SWE_FROM_HS(dh_s_u_loss_tmp,dSWE_s_u_loss_tmp,i,j,Nsmax,Nx,Ny,Nsnow,fsnow,Sice,Sliq,Ds,rhos_min,rhos_max,rho_snow)
+            call SWE_FROM_HS(dh_s_u_loss_tmp,dSWE_s_u_loss_tmp,i,j)
             dSWE_s_u_loss(i,j) = dSWE_s_u_loss_tmp
+            ! Same open tile weighting as before.
+            if (.not. tiled_trans_run) then
+              dSWE_s_u_loss(i,j) = dSWE_s_u_loss(i,j) * (1.0 - forestfrac(i,j))
+            end if
           else
             dh_s_u_loss(i,j) = 0.0
             dSWE_s_u_loss(i,j) = 0.0
@@ -1673,10 +1802,27 @@ do j = 1, Ny
       swe_loc = sum(Sice(:,i,j) + Sliq(:,i,j))
       dSWE_s_v_loss(i,j) = dt * Qs_v(i,j) * fsnow(i,j) / delta_SN
       dSWE_s_v_gain(i,j) = dt * Qs_v(i-1,j) * fsnow(i-1,j) / delta_SN
+      ! The SWE loss due to wind only occurs on the open part of the pixel.
+      ! The SWE gained by neighbouring is then weighted by the open fraction of the pixel.
+      ! The SWE gain due to wind only occurs on the open part of the pixel.
+      ! If it is a tiled run or open run, the transferred SWE is then weighted differently.
+      if (tiled_trans_run) then
+        ! In the open tile, SWE loss stays the same since it will be weighted later when combining the tiles.
+        ! SWE gain from neighbouring pixel is first weighted by the open fraction of origin pixel, 
+        ! then divided by the open fraction of the target pixel in the open tile, 
+        ! since it will be counter-weighted later when combining the tiles.
+        if (forestfrac(i,j) <= 0.9) then
+          dSWE_s_v_gain(i,j) = dSWE_s_v_gain(i,j) * (1.0 - forestfrac(i-1,j)) / (1.0 - forestfrac(i,j))
+          ! else: the flux is already zero
+        end if
+      else
+        dSWE_s_v_loss(i,j) = dSWE_s_v_loss(i,j) * (1.0 - forestfrac(i,j))
+        dSWE_s_v_gain(i,j) = dSWE_s_v_gain(i,j) * (1.0 - forestfrac(i-1,j))
+      end if
       dSWE_s_v_loss(i,j) = min(dSWE_s_v_loss(i,j),swe_loc) ! No need to adjust Qs_v here because if thresholded, it will be done in the next if loop anyway
       if (dSWE_s_v_loss(i,j) > epsilon(dSWE_s_v_loss)) then
         dSWE_s_v_loss_tmp = dSWE_s_v_loss(i,j)
-        call HS_FROM_SWE(Nsmax,Nx,Ny,Nsnow,fsnow,Sice,Sliq,Ds,dSWE_s_v_loss_tmp,dh_s_v_loss_tmp,i,j)
+        call HS_FROM_SWE(dSWE_s_v_loss_tmp,dh_s_v_loss_tmp,i,j)
         dh_s_v_loss(i,j) = dh_s_v_loss_tmp
       else
         dSWE_s_v_loss(i,j) = 0.0
@@ -1690,14 +1836,18 @@ do j = 1, Ny
       ! on the ground (or captured within the vegetation) to be
       ! eroded.
       Ds_hard = snowthickness(i,j) - Ds_soft(i,j)
-      snowdmin = max(vegsnowd_xy(i,j),Ds_hard)
+      snowdmin = max(veg_shd(i,j),Ds_hard)
       if (snowthickness(i,j) > snowdmin .and. fsnow(i,j) > epsilon(fsnow)) then
         if (snowthickness(i,j) - dh_s_v_loss(i,j) / fsnow(i,j) <= snowdmin) then
           dh_s_v_loss(i,j) = (snowthickness(i,j) - snowdmin) * fsnow(i,j)
           if (dh_s_v_loss(i,j) > epsilon(dh_s_v_loss)) then
             dh_s_v_loss_tmp = dh_s_v_loss(i,j)
-            call SWE_FROM_HS(dh_s_v_loss_tmp,dSWE_s_v_loss_tmp,i,j,Nsmax,Nx,Ny,Nsnow,fsnow,Sice,Sliq,Ds,rhos_min,rhos_max,rho_snow)
+            call SWE_FROM_HS(dh_s_v_loss_tmp,dSWE_s_v_loss_tmp,i,j)
             dSWE_s_v_loss(i,j) = dSWE_s_v_loss_tmp
+            ! Same open tile weighting as before.
+            if (.not. tiled_trans_run) then
+              dSWE_s_v_loss(i,j) = dSWE_s_v_loss(i,j) * (1.0 - forestfrac(i,j))
+            end if
           else
             dh_s_v_loss(i,j) = 0.0
             dSWE_s_v_loss(i,j) = 0.0
@@ -1726,10 +1876,27 @@ do j = 1, Ny
       swe_loc = sum(Sice(:,i,j) + Sliq(:,i,j))
       dSWE_s_v_loss(i,j) = dt * Qs_v(i,j) * fsnow(i,j) / delta_SN
       dSWE_s_v_gain(i,j) = dt * Qs_v(i+1,j) * fsnow(i+1,j) / delta_SN
+      ! The SWE loss due to wind only occurs on the open part of the pixel.
+      ! The SWE gained by neighbouring is then weighted by the open fraction of the pixel.
+      ! The SWE gain due to wind only occurs on the open part of the pixel.
+      ! If it is a tiled run or open run, the transferred SWE is then weighted differently.
+      if (tiled_trans_run) then
+        ! In the open tile, SWE loss stays the same since it will be weighted later when combining the tiles.
+        ! SWE gain from neighbouring pixel is first weighted by the open fraction of origin pixel, 
+        ! then divided by the open fraction of the target pixel in the open tile, 
+        ! since it will be counter-weighted later when combining the tiles.
+        if (forestfrac(i,j) <= 0.9) then
+          dSWE_s_v_gain(i,j) = dSWE_s_v_gain(i,j) * (1.0 - forestfrac(i+1,j)) / (1.0 - forestfrac(i,j))
+          ! else: the flux is already zero
+        end if
+      else
+        dSWE_s_v_loss(i,j) = dSWE_s_v_loss(i,j) * (1.0 - forestfrac(i,j))
+        dSWE_s_v_gain(i,j) = dSWE_s_v_gain(i,j) * (1.0 - forestfrac(i+1,j))
+      end if
       dSWE_s_v_loss(i,j) = min(dSWE_s_v_loss(i,j),swe_loc) ! No need to adjust Qs_v here because if thresholded, it will be done in the next if loop anyway
       if (dSWE_s_v_loss(i,j) > epsilon(dSWE_s_v_loss)) then
         dSWE_s_v_loss_tmp = dSWE_s_v_loss(i,j)
-        call HS_FROM_SWE(Nsmax,Nx,Ny,Nsnow,fsnow,Sice,Sliq,Ds,dSWE_s_v_loss_tmp,dh_s_v_loss_tmp,i,j)
+        call HS_FROM_SWE(dSWE_s_v_loss_tmp,dh_s_v_loss_tmp,i,j)
         dh_s_v_loss(i,j) = dh_s_v_loss_tmp
       else
         dSWE_s_v_loss(i,j) = 0.0
@@ -1743,14 +1910,18 @@ do j = 1, Ny
       ! on the ground (or captured within the vegetation) to be
       ! eroded.
       Ds_hard = snowthickness(i,j) - Ds_soft(i,j)
-      snowdmin = max(vegsnowd_xy(i,j),Ds_hard)
+      snowdmin = max(veg_shd(i,j),Ds_hard)
       if (snowthickness(i,j) > snowdmin .and. fsnow(i,j) > epsilon(fsnow)) then
         if (snowthickness(i,j) - dh_s_v_loss(i,j) / fsnow(i,j) <= snowdmin) then
           dh_s_v_loss(i,j) = (snowthickness(i,j) - snowdmin) * fsnow(i,j)
           if (dh_s_v_loss(i,j) > epsilon(dh_s_v_loss)) then
             dh_s_v_loss_tmp = dh_s_v_loss(i,j)
-            call SWE_FROM_HS(dh_s_v_loss_tmp,dSWE_s_v_loss_tmp,i,j,Nsmax,Nx,Ny,Nsnow,fsnow,Sice,Sliq,Ds,rhos_min,rhos_max,rho_snow)
+            call SWE_FROM_HS(dh_s_v_loss_tmp,dSWE_s_v_loss_tmp,i,j)
             dSWE_s_v_loss(i,j) = dSWE_s_v_loss_tmp
+            ! Same open tile weighting as before.
+            if (.not. tiled_trans_run) then
+              dSWE_s_v_loss(i,j) = dSWE_s_v_loss(i,j) * (1.0 - forestfrac(i,j))
+            end if
           else
             dh_s_v_loss(i,j) = 0.0
             dSWE_s_v_loss(i,j) = 0.0
@@ -1770,7 +1941,7 @@ do j = 1, Ny
   end do
 end do
 
-! Update the snow depth changes due to saltation transport from the
+! Update the snow depth changes due to saltation or suspension transport from the
 ! the east and west, and north and south.
 eps = 1e-6
 do j = 1, Ny
@@ -1795,7 +1966,7 @@ do j = 1, Ny
     dSWE_s_loss = dSWE_s_u_loss(i,j) + dSWE_s_v_loss(i,j)
     dh_s_gain = dSWE_s_gain / rho_snow
     if (dSWE_s_loss > epsilon(dSWE_s_loss)) then
-      call HS_FROM_SWE(Nsmax,Nx,Ny,Nsnow,fsnow,Sice,Sliq,Ds,dSWE_s_loss,dh_s_loss,i,j)
+      call HS_FROM_SWE(dSWE_s_loss,dh_s_loss,i,j)
     else
       dSWE_s_loss = 0.0
       dh_s_loss = 0.0
@@ -1805,9 +1976,7 @@ do j = 1, Ny
     Ds_soft(i,j) = max(Ds_soft(i,j) - dh_s_loss,0.0)
 
     if (dSWE_s_loss > epsilon(dSWE_s_loss) .and. dh_s_loss > epsilon(dh_s_loss)) then
-      call SNOW_ABLATION(dh_s_loss, dSWE_s_loss, i, j, Nsmax, Nx, Ny, &
-                       Sice, Sliq, Ds, histowet, Nsnow, &
-                       fsnow, Tsnow, Ds_min, Tm)
+      call SNOW_ABLATION(dh_s_loss,dSWE_s_loss,i,j)
     end if
 
     ! Net mass gain for this grid cell at this time step.
@@ -1830,37 +1999,25 @@ end subroutine getnewdepth
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-subroutine surface_snow(Nsmax,Nx,Ny,Ua,dt,zU,z0_snow, &
-                        Nsnow,fsnow,Sice,Sliq,Ds,Tsnow,Utau_t)
+subroutine surface_snow(Utau_t)
 
-use CONSTANTS, only: &
-  Tm                  ! Melting point (K)
+use GRID, only: &
+  Nx,Ny               ! Grid dimensions
 
-use PARAMETERS, only: &
-  rhos_min,          &! Minimum snow density (kg/m^3)
-  rhos_max            ! Maximum snow density (kg/m^3)
+use LANDUSE, only: &
+  dem                 ! Terrain elevation (m)
 
 use PARAM_SNOWTRAN3D, only: &
   rho_snow            ! Constant snow density (kg/m^3)
 
+use STATE_VARIABLES, only: &
+  Nsnow,             &! Number of snow layers
+  fsnow,             &! Snow cover fraction 
+  Sice,              &! Ice content of snow layers (kg/m^2)
+  Sliq,              &! Liquid content of snow layers (kg/m^2)
+  Ds                  ! Snow layer thicknesses (m)
+
 implicit none
-
-integer, intent(in) :: &
-  Nsmax,Nx,Ny,       &! Grid dimensions
-  Nsnow(Nx,Ny)        ! Number of snow layers
-
-real, intent(in) :: &
-  Ua(Nx,Ny),         &! Wind speed (m/s)
-  dt,                &! Timestep (s)
-  zU,                &! Wind speed measurement height (m)
-  z0_snow(Nx,Ny),    &! Roughness length of snow (m)
-  fsnow(Nx,Ny),      &! Snow cover fraction
-  Sice(Nsmax,Nx,Ny), &! Ice content of snow layers (kg/m^2)
-  Sliq(Nsmax,Nx,Ny), &! Liquid content of snow layers (kg/m^2)
-  Tsnow(Nsmax,Nx,Ny)  ! Snow layer temperatures (K)
-
-real, intent(inout) :: &
-  Ds(Nsmax,Nx,Ny)     ! Snow layer thicknesses (m)
 
 real, intent(inout) :: &
   Utau_t(Nx,Ny)       ! Threshold friction velocity (m/s)
@@ -1869,55 +2026,15 @@ integer :: &
   i,j                 ! Point counters
 
 real :: &
-  A1,                &! Coefficient A1 in Liston et al. (2007), eq. 17 p. 245 (m^-1)
-  A2,                &! Coefficient A2 in Liston et al. (2007), eq. 17 p. 245 (m^3/kg)
-  B,                 &! Coefficient B in Liston et al. (2007), eq. 17 p. 245 (K-1)
-  U,                 &! Wind speed contribution to snow compaction
-  rho_surf_snow,     &! Density of top snow layer  (kg/m^3)
-  C,                 &! Density rate coefficient, C in Liston et al. (2007), eq. 17 p. 245
-  alpha,             &! Coefficient E3 in Liston et al. (2007), eq. 18 p. 245 (m/s)
-  windspd_2m          ! Windspeed at 2m height (m/s)
+  rho_surf_snow       ! Density of top snow layer  (kg/m^3)
 
-! Define the density rate coefficients.
-C = 0.10
-
-! Define alpha. 
-alpha = 0.2
 
 do j = 1, Ny
   do i = 1, Nx
 
-    ! Calculate the 2-m wind speed.
-    windspd_2m = Ua(i,j) * log(2.0/z0_snow(i,j))/log(zU/z0_snow(i,j))
-
-    ! Initialize coefficients
-    A1 = 0.0013
-    A2 = 0.021
-    B = 0.08
-
-    ! Evolve the near-surface snow density under the influence of
-    ! temperature and snow-transporting wind speeds.
-
-    ! Update the snow density of the soft snow layer.  Eliminate the
-    ! wind speed influence for speeds below 5 m/s, but account for it
-    ! if speeds are >= 5 m/s.
-    if (windspd_2m >= 5.0) then
-      U = 5.0 + 15.0 * (1.0 - exp(-(alpha*(windspd_2m - 5.0))))
-    else
-      U = 1.0
-    end if
-
     rho_surf_snow = rho_snow
     if (Nsnow(i,j) > 0 .and. Ds(1,i,j) > epsilon(Ds)) then
       rho_surf_snow = (Sice(1,i,j) + Sliq(1,i,j)) / Ds(1,i,j) / fsnow(i,j)
-      rho_surf_snow = rho_surf_snow + dt * &
-                      (C * A1 * U * rho_surf_snow * &
-                      exp((- B)*(Tm-Tsnow(1,i,j))) * exp((- A2)*rho_surf_snow))
-      ! Bound the calculated density.
-      rho_surf_snow = min(rhos_max,rho_surf_snow)
-      rho_surf_snow = max(rhos_min,rho_surf_snow)
-      ! Update surface snow layer thickness after wind compaction
-      Ds(1,i,j) = (Sice(1,i,j) + Sliq(1,i,j)) / rho_surf_snow / fsnow(i,j)
     end if
 
     ! Calculate the snow threshold friction velocity.

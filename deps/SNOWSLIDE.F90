@@ -8,50 +8,48 @@
 ! North of (i,j): (i+1,j)
 ! West of (i,j): (i,j-1)
 ! East of (i,j): (i,j+1)
-! Modified to be standalone - all variables passed as arguments
 !-----------------------------------------------------------------------
-subroutine SNOWSLIDE(Nx, Ny, Nsmax, snowdepth0, Sice0, dSWE_slide, &
-                     fsnow, Ds, dSWE_tot_slide, index_sorted_dem, &
-                     dem, slope, Shd, dyn_ratio, rho_deposit, &
-                     slope_min, Shd_min, Ds_min, Tm, rho_snow, &
-                     Sice, Sliq, Nsnow, Tsnow, histowet, &
-                     rhos_min, rhos_max)
+subroutine SNOWSLIDE(snowdepth0,Sice0,dSWE_slide)
+
+use MODTILE, only: &
+  tiled_trans_run              ! Tiled trans run flag
+
+use GRID, only: &
+  Nx,Ny                     ! Grid dimensions
+
+use STATE_VARIABLES, only: &
+  fsnow,                   &! Snow cover fraction 
+  Ds,                      &! Snow layer thicknesses (m)
+  dSWE_tot_slide,          &! Cumulated SWE change due to snow slides (kg/m^2)
+  index_sorted_dem          ! Location (i,j) of sorted grid points
+
+use LANDUSE, only: &
+  dem,                     &! Terrain elevation (m)
+  slope,                   &! Slope (deg)
+  Shd,                     &! Snow holding depth (m)
+  forestfrac                ! Forest fraction
+
+use PARAM_SNOWSLIDE, only: &
+  dyn_ratio,               &! Dynamic snow holding depth ratio
+  trig_ratio,              &! Hysteretic triggering snow holding depth ratio
+  rho_deposit,             &! Constant snow avalanche deposit density (kg/m^3)
+  slope_min,               &! Minimum slope for snow slide occurrence (deg)
+  Shd_min                   ! Minimum snow holding depth (m)
 
 implicit none
 
-! Input dimensions and parameters
-integer, intent(in) :: Nx, Ny, Nsmax
-real, intent(in) :: dyn_ratio, rho_deposit, slope_min, Shd_min
-real, intent(in) :: Ds_min, Tm, rho_snow, rhos_min, rhos_max
-
-! Input/output arrays
 real, intent(inout) :: &
   snowdepth0(Nx,Ny),       &! Snow depth of deposited snow (m)
   Sice0(Nx,Ny),            &! Ice content of deposited snow (kg/m^2)
   dSWE_slide(Nx,Ny)         ! SWE change due to snow slides (kg/m^2)
 
-! Input state arrays
-real, intent(in) :: &
-  fsnow(Nx,Ny),            &! Snow cover fraction
-  Ds(Nsmax,Nx,Ny),         &! Snow layer thicknesses (m)
-  dem(Nx,Ny),              &! Terrain elevation (m)
-  slope(Nx,Ny),            &! Slope (deg)
-  Shd(Nx,Ny)                ! Snow holding depth (m)
-
-integer, intent(in) :: &
-  index_sorted_dem(Nx*Ny,2), &! Location (i,j) of sorted grid points
-  Nsnow(Nx,Ny)               ! Number of snow layers
-
-real, intent(inout) :: &
-  dSWE_tot_slide(Nx,Ny),   &! Cumulated SWE change due to snow slides (kg/m^2)
-  Sice(Nsmax,Nx,Ny),       &! Ice content of snow layers (kg/m^2)
-  Sliq(Nsmax,Nx,Ny),       &! Liquid content of snow layers (kg/m^2)
-  Tsnow(Nsmax,Nx,Ny),      &! Snow layer temperatures (K)
-  histowet(Nsmax,Nx,Ny)     ! Historical variable for past wetting of a layer (0-1)
-
 integer :: &
   i,j,                     &! Point counters
   n                         ! Vector point counter
+
+logical :: &
+  snow_excess_trigger,     &! Boolean to identify pixels where snow is available for avalanche triggering
+  snow_excess_depo          ! Boolean to identify pixels where snow is available for avalanche continuation
 
 logical :: &
   snow_depo(Nx,Ny)          ! Boolean to identify pixels where snow is deposited
@@ -106,7 +104,8 @@ do n = 1, Nx*Ny
 
   ! Start slide processes only if slope higher than the defined minimum. 
   ! If it is a pixel receiving avalanche snow, no slope threshold.
-  if (slope(i,j) >= slope_min .or. snow_depo(i,j)) then
+  ! No sliding if more than 50% forest
+  if ((slope(i,j) >= slope_min .or. snow_depo(i,j)) .and. forestfrac(i,j) < 0.5) then
 
     ! Update snowdepth in case snow has been transported to this pixel earlier in the loop
     snowdepth_updated = sum(Ds(:,i,j)) * fsnow(i,j) + snowdepth0(i,j)
@@ -115,7 +114,7 @@ do n = 1, Nx*Ny
     elev = dem(i,j) + snowdepth_updated
 
     ! If an avalanche is occurring, the snow holding depth is reduced
-    ! to micic the dynamic effect
+    ! to mimic the dynamic effect
     if (snow_depo(i,j)) then
       Shd_corr(i,j) = Shd_corr(i,j) * dyn_ratio
       Shd_corr(i,j) = max(Shd_corr(i,j),Shd_min)
@@ -124,10 +123,22 @@ do n = 1, Nx*Ny
     ! Compute the depth of snow available for avalanche transport
     snowdepth_available = max(0.0, snowdepth_updated - Shd_corr(i,j))
 
-    ! if snowdepth_available == 0 then there is no snow available to slide.
+    ! Only the open part of the pixel can slide
+    ! In case of tiled run, the weighting is done later when combining tiles.
+    if (.not. tiled_trans_run) then
+      snowdepth_available = snowdepth_available * (1 - forestfrac(i,j))
+    end if
+
+    ! In absence of current avalanche, an hysteretic ratio of the snow holding depth must be overcome
+    ! to trigger a new avalanche.
+    snow_excess_trigger = (.not. snow_depo(i,j)) &
+                          .and. (snowdepth_updated - Shd_corr(i,j) * trig_ratio > epsilon(snowdepth_available))
+    ! If an avalanche is arriving at the pixel, the available snowdepth over holding threshold must be overcome 
+    ! to continue the avalanche.
+    snow_excess_depo = (snow_depo(i,j)) .and. (snowdepth_available > epsilon(snowdepth_available))
 
     ! There is a snow excess at the pixel.
-    if (snowdepth_available > epsilon(snowdepth_available)) then
+    if (snow_excess_trigger .or. snow_excess_depo) then
 
       if (i == 1 .or. i == Nx .or. j == 1 .or. j == Ny) then
         ! Case 1: edge pixels. Excess snow is dumped out of the domain
@@ -149,13 +160,9 @@ do n = 1, Nx*Ny
           Sice0(i,j) = 0.0
 
           ! Compute the mass of snow available for transport
-          call SWE_FROM_HS(snowdepth_available2, swe_available2, i, j, &
-                           Nsmax, Nx, Ny, Nsnow, fsnow, Sice, Sliq, Ds, &
-                           rhos_min, rhos_max, rho_snow)
+          call SWE_FROM_HS(snowdepth_available2,swe_available2,i,j)
 
-          call SNOW_ABLATION(snowdepth_available2, swe_available2, i, j, &
-                             Nsmax, Nx, Ny, Sice, Sliq, Ds, histowet, &
-                             Nsnow, fsnow, Tsnow, Ds_min, Tm)
+          call SNOW_ABLATION(snowdepth_available2,swe_available2,i,j)
 
           swe_available = swe_available + swe_available2
 
@@ -173,31 +180,32 @@ do n = 1, Nx*Ny
       else
         ! Case 2: inner domain pixels. Excess snow is routed to lower pixels if there are.
         ! Mass transfers are weighted by elevation (snowdepth included) differences.
+        ! The forest fraction reduces the weight of the pixel. No snow is transferred to fully forested pixels.
 
         ! South of (i,j): (i-1,j)
         elev_S = dem(i-1,j) + sum(Ds(:,i-1,j)) * fsnow(i-1,j) + snowdepth0(i-1,j)
-        w_S = max(0.0, elev - elev_S)
+        w_S = max(0.0, elev - elev_S) * (1-forestfrac(i-1,j))
         ! North of (i,j): (i+1,j)
         elev_N = dem(i+1,j) + sum(Ds(:,i+1,j)) * fsnow(i+1,j) + snowdepth0(i+1,j)
-        w_N = max(0.0, elev - elev_N)
+        w_N = max(0.0, elev - elev_N) * (1-forestfrac(i+1,j))
         ! West of (i,j): (i,j-1)
         elev_W = dem(i,j-1) + sum(Ds(:,i,j-1)) * fsnow(i,j-1) + snowdepth0(i,j-1)
-        w_W = max(0.0, elev - elev_W)
+        w_W = max(0.0, elev - elev_W) * (1-forestfrac(i,j-1))
         ! East of (i,j): (i,j+1)
         elev_E = dem(i,j+1) + sum(Ds(:,i,j+1)) * fsnow(i,j+1) + snowdepth0(i,j+1)
-        w_E = max(0.0, elev - elev_E)
+        w_E = max(0.0, elev - elev_E) * (1-forestfrac(i,j+1))
         ! South-West of (i,j): (i-1,j-1)
         elev_SW = dem(i-1,j-1) + sum(Ds(:,i-1,j-1)) * fsnow(i-1,j-1) + snowdepth0(i-1,j-1)
-        w_SW = max(0.0, elev - elev_SW)
+        w_SW = max(0.0, elev - elev_SW) * (1-forestfrac(i-1,j-1))
         ! South-East of (i,j): (i-1,j+1)
         elev_SE = dem(i-1,j+1) + sum(Ds(:,i-1,j+1)) * fsnow(i-1,j+1) + snowdepth0(i-1,j+1)
-        w_SE = max(0.0, elev - elev_SE)
+        w_SE = max(0.0, elev - elev_SE) * (1-forestfrac(i-1,j+1))
         ! North-West of (i,j): (i+1,j-1)
         elev_NW = dem(i+1,j-1) + sum(Ds(:,i+1,j-1)) * fsnow(i+1,j-1) + snowdepth0(i+1,j-1)
-        w_NW = max(0.0, elev - elev_NW)
+        w_NW = max(0.0, elev - elev_NW) * (1-forestfrac(i+1,j-1))
         ! North-East of (i,j): (i+1,j+1)
         elev_NE = dem(i+1,j+1) + sum(Ds(:,i+1,j+1)) * fsnow(i+1,j+1) + snowdepth0(i+1,j+1)
-        w_NE = max(0.0, elev - elev_NE)
+        w_NE = max(0.0, elev - elev_NE) * (1-forestfrac(i+1,j+1))
 
         delev_tot = w_S + w_N + w_W + w_E + w_SW + w_SE + w_NW + w_NE
         ! if delev_tot == 0 then it's a "sink", no avalanche possible.
@@ -229,13 +237,9 @@ do n = 1, Nx*Ny
             Sice0(i,j) = 0.0
 
             ! Compute the mass of snow available for transport
-            call SWE_FROM_HS(snowdepth_available2, swe_available2, i, j, &
-                             Nsmax, Nx, Ny, Nsnow, fsnow, Sice, Sliq, Ds, &
-                             rhos_min, rhos_max, rho_snow)
+            call SWE_FROM_HS(snowdepth_available2,swe_available2,i,j)
 
-            call SNOW_ABLATION(snowdepth_available2, swe_available2, i, j, &
-                               Nsmax, Nx, Ny, Sice, Sliq, Ds, histowet, &
-                               Nsnow, fsnow, Tsnow, Ds_min, Tm)
+            call SNOW_ABLATION(snowdepth_available2,swe_available2,i,j)
 
             swe_available = swe_available + swe_available2
 
@@ -256,6 +260,13 @@ do n = 1, Nx*Ny
           ! South
           if (w_S > epsilon(w_S)) then
             dswe = w_S * swe_available
+            ! The lower pixel only receives snow from the open part of the higher pixel.
+            ! If not tiled run, snow transfer has already been weighted.
+            ! If tiled run, the SWE transfer is concentrated on the open part of the pixel, 
+            ! hence division by open fraction to cancel counter-weighting later when combining tiles.
+            if (tiled_trans_run) then
+              dswe = dswe * (1 - forestfrac(i,j)) / (1 - forestfrac(i-1,j))
+            end if
             Sice0(i-1,j) = Sice0(i-1,j) + dswe
             snowdepth0(i-1,j) = snowdepth0(i-1,j) + dswe / rho_deposit
             snow_depo(i-1,j) = .TRUE.
@@ -266,6 +277,13 @@ do n = 1, Nx*Ny
           ! North
           if (w_N > epsilon(w_N)) then
             dswe = w_N * swe_available
+            ! The lower pixel only receives snow from the open part of the higher pixel.
+            ! If not tiled run, snow transfer has already been weighted.
+            ! If tiled run, the SWE transfer is concentrated on the open part of the pixel, 
+            ! hence division by open fraction to cancel counter-weighting later when combining tiles.
+            if (tiled_trans_run) then
+              dswe = dswe * (1 - forestfrac(i,j)) / (1 - forestfrac(i+1,j))
+            end if
             Sice0(i+1,j) = Sice0(i+1,j) + dswe
             snowdepth0(i+1,j) = snowdepth0(i+1,j) + dswe / rho_deposit
             snow_depo(i+1,j) = .TRUE.
@@ -276,6 +294,13 @@ do n = 1, Nx*Ny
           ! West
           if (w_W > epsilon(w_W)) then
             dswe = w_W * swe_available
+            ! The lower pixel only receives snow from the open part of the higher pixel.
+            ! If not tiled run, snow transfer has already been weighted.
+            ! If tiled run, the SWE transfer is concentrated on the open part of the pixel, 
+            ! hence division by open fraction to cancel counter-weighting later when combining tiles.
+            if (tiled_trans_run) then
+              dswe = dswe * (1 - forestfrac(i,j)) / (1 - forestfrac(i,j-1))
+            end if
             Sice0(i,j-1) = Sice0(i,j-1) + dswe
             snowdepth0(i,j-1) = snowdepth0(i,j-1) + dswe / rho_deposit
             snow_depo(i,j-1) = .TRUE.
@@ -286,6 +311,13 @@ do n = 1, Nx*Ny
           ! East
           if (w_E > epsilon(w_E)) then
             dswe = w_E * swe_available
+            ! The lower pixel only receives snow from the open part of the higher pixel.
+            ! If not tiled run, snow transfer has already been weighted.
+            ! If tiled run, the SWE transfer is concentrated on the open part of the pixel, 
+            ! hence division by open fraction to cancel counter-weighting later when combining tiles.
+            if (tiled_trans_run) then
+              dswe = dswe * (1 - forestfrac(i,j)) / (1 - forestfrac(i,j+1))
+            end if
             Sice0(i,j+1) = Sice0(i,j+1) + dswe
             snowdepth0(i,j+1) = snowdepth0(i,j+1) + dswe / rho_deposit
             snow_depo(i,j+1) = .TRUE.
@@ -296,6 +328,13 @@ do n = 1, Nx*Ny
           ! South-West
           if (w_SW > epsilon(w_SW)) then
             dswe = w_SW * swe_available
+            ! The lower pixel only receives snow from the open part of the higher pixel.
+            ! If not tiled run, snow transfer has already been weighted.
+            ! If tiled run, the SWE transfer is concentrated on the open part of the pixel, 
+            ! hence division by open fraction to cancel counter-weighting later when combining tiles.
+            if (tiled_trans_run) then
+              dswe = dswe * (1 - forestfrac(i,j)) / (1 - forestfrac(i-1,j-1))
+            end if
             Sice0(i-1,j-1) = Sice0(i-1,j-1) + dswe
             snowdepth0(i-1,j-1) = snowdepth0(i-1,j-1) + dswe / rho_deposit
             snow_depo(i-1,j-1) = .TRUE.
@@ -306,6 +345,13 @@ do n = 1, Nx*Ny
           ! South-East
           if (w_SE > epsilon(w_SE)) then
             dswe = w_SE * swe_available
+            ! The lower pixel only receives snow from the open part of the higher pixel.
+            ! If not tiled run, snow transfer has already been weighted.
+            ! If tiled run, the SWE transfer is concentrated on the open part of the pixel, 
+            ! hence division by open fraction to cancel counter-weighting later when combining tiles.
+            if (tiled_trans_run) then
+              dswe = dswe * (1 - forestfrac(i,j)) / (1 - forestfrac(i-1,j+1))
+            end if
             Sice0(i-1,j+1) = Sice0(i-1,j+1) + dswe
             snowdepth0(i-1,j+1) = snowdepth0(i-1,j+1) + dswe / rho_deposit
             snow_depo(i-1,j+1) = .TRUE.
@@ -316,6 +362,13 @@ do n = 1, Nx*Ny
           ! North-West
           if (w_NW > epsilon(w_NW)) then
             dswe = w_NW * swe_available
+            ! The lower pixel only receives snow from the open part of the higher pixel.
+            ! If not tiled run, snow transfer has already been weighted.
+            ! If tiled run, the SWE transfer is concentrated on the open part of the pixel, 
+            ! hence division by open fraction to cancel counter-weighting later when combining tiles.
+            if (tiled_trans_run) then
+              dswe = dswe * (1 - forestfrac(i,j)) / (1 - forestfrac(i+1,j-1))
+            end if
             Sice0(i+1,j-1) = Sice0(i+1,j-1) + dswe
             snowdepth0(i+1,j-1) = snowdepth0(i+1,j-1) + dswe / rho_deposit
             snow_depo(i+1,j-1) = .TRUE.
@@ -326,6 +379,13 @@ do n = 1, Nx*Ny
           ! North-East
           if (w_NE > epsilon(w_NE)) then
             dswe = w_NE * swe_available
+            ! The lower pixel only receives snow from the open part of the higher pixel.
+            ! If not tiled run, snow transfer has already been weighted.
+            ! If tiled run, the SWE transfer is concentrated on the open part of the pixel, 
+            ! hence division by open fraction to cancel counter-weighting later when combining tiles.
+            if (tiled_trans_run) then
+              dswe = dswe * (1 - forestfrac(i,j)) / (1 - forestfrac(i+1,j+1))
+            end if
             Sice0(i+1,j+1) = Sice0(i+1,j+1) + dswe
             snowdepth0(i+1,j+1) = snowdepth0(i+1,j+1) + dswe / rho_deposit
             snow_depo(i+1,j+1) = .TRUE.

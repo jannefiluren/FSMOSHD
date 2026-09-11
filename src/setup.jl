@@ -1,199 +1,292 @@
+# Model construction: the setup routine that assembles an FSM from a grid, a landuse domain and
+# a physics/params selection, followed by the construction helpers it uses.
+
 """
-    setup(Tf, Ti, landuse, Nx, Ny, settings)
+    setup([arch], grid, landuse; tile, physics = Dict(), params = Dict())
 
-Initialize the FSM snow model with specified configuration and domain properties.
+Initialize the FSM snow model on `grid` for a landuse domain.
 
-Creates and configures the FSM model state structure with landuse data, model parameters,
-and domain dimensions. Sets up soil properties, surface characteristics, and applies 
-configuration-specific settings for different surface types and model behaviors.
+Builds and configures the model state, selecting physics parameterizations from `physics`
+(falling back to defaults) and applying `params` overrides. Float precision and domain size are
+taken from `grid` (`eltype(grid)`, `grid.Nx`, `grid.Ny`).
 
 # Arguments
-- `Tf`: Floating-point precision type (typically Float32 or Float64)
-- `Ti`: Integer type for array indices (typically Int32 or Int64)
-- `landuse::Dict`: Landuse data dictionary with topographic and surface properties
-- `Nx::Int, Ny::Int`: Model domain dimensions
-- `settings::Dict`: Configuration dictionary containing:
-  - `"tile"`: Surface tile type ("open", "forest", "glacier")
-  - `"config"` (optional): Model configuration flags (SNFRAC, CANMOD, EXCHNG, ZOFFST, etc.)
-  - `"params"` (optional): Parameter overrides (hfsn etc.)
+- `arch::AbstractArchitecture`: architecture the model arrays live on (optional, default `CPU()`);
+  pass e.g. `GPU(CUDABackend())` for GPU runs.
+- `grid::Grid`: model grid, carrying float precision and `Nx`/`Ny`.
+- `landuse::Dict`: landuse data with topographic and surface properties.
+
+# Keyword arguments
+- `tile`: surface tile type (`"open"`, `"forest"`, `"glacier"`).
+- `physics::Dict` (optional): scheme selection, mapping a physics name to a scheme type or
+  instance, e.g. `Dict("snow_fraction" => TanhSnowFraction, "canopy" => OneLayerCanopy)`. Keys:
+  `snow_albedo`, `canopy`, `substrate`, `conductivity`, `compaction`, `hydrology`,
+  `new_snow_density`, `layering`, `snow_fraction`, `reference_height`, `surface_layer`.
+  Unspecified schemes use defaults; `canopy`/`surface_layer`/`substrate` default from `tile`.
+- `params::Dict` (optional): parameter overrides routed by field name to `Parameters` (scalars)
+  or `Surface` (per-cell fields), e.g. `dt`, `z0_snow`. Scheme parameters are set at construction
+  via the `physics` schemes, not here.
 
 # Returns
-- `FSM`: Initialized model state structure ready for simulation
+- `FSM`: initialized model state ready for simulation.
 """
-function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
+function setup end
 
+function setup(grid::Grid, landuse::Dict; kwargs...)
+    return setup(CPU(), grid, landuse; kwargs...)
+end
+
+# Convenience: a settings dict with "tile" (required) and optional "physics"/"params" keys.
+function setup(arch::AbstractArchitecture, grid::Grid, landuse::Dict, settings::AbstractDict)
+    return setup(
+        arch, grid, landuse;
+        tile = settings["tile"],
+        physics = get(settings, "physics", Dict()),
+        params = get(settings, "params", Dict()),
+    )
+end
+
+setup(grid::Grid, landuse::Dict, settings::AbstractDict) = setup(CPU(), grid, landuse, settings)
+
+const PHYSICS_KEYS = (
+    "snow_albedo", "canopy", "substrate", "conductivity", "compaction", "hydrology",
+    "new_snow_density", "layering", "snow_fraction", "reference_height", "surface_layer",
+)
+
+function setup(
+        arch::AbstractArchitecture,
+        grid::Grid,
+        landuse::Dict;
+        tile::String,
+        physics::AbstractDict = Dict(),
+        params::AbstractDict = Dict(),
+    )
+
+    Tf = eltype(grid)
+    Nx, Ny = grid.Nx, grid.Ny
     @unpack_constants(Tf)
 
-    # Create fsm object
-    fsm = FSM{Tf, Ti}(Nx = Nx, Ny = Ny)
+    tile in ("open", "forest", "glacier") || error("tile requires open, forest or glacier (got tile = $tile)")
 
-    # Set tile
-    fsm.TILE = settings["tile"]
-
-    # Apply model configuration
-    if haskey(settings, "config")
-        for (key, value) in settings["config"]
-            if value isa Int
-                value = Ti(value)
-            end
-            setfield!(fsm, Symbol(key), value)
-        end
+    for key in keys(physics)
+        key in PHYSICS_KEYS || throw(ArgumentError("unknown physics key \"$key\" (known: $(join(PHYSICS_KEYS, ", ")))"))
     end
 
-    # Apply parameter overrides
-    if haskey(settings, "params")
-        for (key, value) in settings["params"]
-            field = Symbol(key)
-            existing = getfield(fsm, field)
-            target_type = eltype(existing)
-            if existing isa AbstractArray && !(value isa AbstractArray)
-                # scalar overriding an array field: fill the entire array
-                fill!(existing, target_type(value))
-            else
-                # scalar to scalar, or array to array: assign directly
-                setfield!(fsm, field, target_type.(value))
-            end
-        end
+    # canopy / surface_layer / substrate default from the tile; the user may override via physics.
+    canopy = instantiate(get(physics, "canopy", tile == "forest" ? OneLayerCanopy : NoCanopy), grid)
+    if tile == "forest"
+        canopy isa OneLayerCanopy || error("forest tile requires a OneLayerCanopy canopy")
+        default_surface_layer = ForestSurfaceLayer
+        default_substrate = SoilSubstrate
+    else
+        default_surface_layer = OpenSurfaceLayer{Tf}()
+        default_substrate = tile == "open" ? SoilSubstrate : IceSubstrate
     end
 
-    # Settings specific for FSNRHO=0 (fixed fresh snow density)
-    if (fsm.FSNRHO == 0)
-        fsm.rhof = fsm.rho0
+    # runic: off
+    schemes = (
+        snow_albedo        = instantiate(get(physics, "snow_albedo", PrognosticAlbedo), grid),
+        canopy             = canopy,
+        substrate          = instantiate(get(physics, "substrate", default_substrate), grid),
+        conductivity       = instantiate(get(physics, "conductivity", DensityConductivity), grid),
+        compaction         = instantiate(get(physics, "compaction", CrocusCompaction), grid),
+        hydrology          = instantiate(get(physics, "hydrology", DensityBucketHydrology), grid),
+        new_snow_density   = instantiate(get(physics, "new_snow_density", ElevationFreshSnowDensity), grid),
+        layering           = instantiate(get(physics, "layering", OriginalLayering), grid),
+        snow_fraction      = instantiate(get(physics, "snow_fraction", PointSnowFraction), grid),
+        reference_height   = instantiate(get(physics, "reference_height", AboveGround), grid),
+        surface_layer      = instantiate(get(physics, "surface_layer", default_surface_layer), grid),
+    )
+    # runic: on
+
+    fsm = FSM(grid; schemes...)
+
+    for scheme in schemes
+        check_grid(scheme, Nx, Ny)
+    end
+
+    # Apply parameter overrides to the right sub-struct.
+    apply_params!(fsm, params)
+
+    sf = fsm.surface
+    st = fsm.state
+
+    # Settings specific for fixed fresh snow density
+    if fsm.physics.new_snow_density isa FixedFreshSnowDensity
+        fsm.params = reconstruct(fsm.params; rhof = fsm.params.rho0)
     end
 
     # Derived soil parameters
-    mask = fsm.fcly .+ fsm.fsnd .> Tf(1)
-    fsm.fcly[mask] .= Tf(1) .- fsm.fsnd[mask]
+    mask = sf.fcly .+ sf.fsnd .> Tf(1)
+    sf.fcly[mask] .= Tf(1) .- sf.fsnd[mask]
 
-    fsm.b .= Tf(3.1) .+ Tf(15.7) .* fsm.fcly .- Tf(0.3) .* fsm.fsnd
-    fsm.hcap_soil .= (Tf(2.128) .* fsm.fcly .+ Tf(2.385) .* fsm.fsnd) .* Tf(1.0e6) ./ (fsm.fcly .+ fsm.fsnd)
-    fsm.sathh .= Tf(10) .^ (Tf(0.17) .- Tf(0.63) .* fsm.fcly .- Tf(1.58) .* fsm.fsnd)
-    fsm.Vsat .= Tf(0.505) .- Tf(0.037) .* fsm.fcly .- Tf(0.142) .* fsm.fsnd
-    fsm.Vcrit .= fsm.Vsat .* (fsm.sathh ./ Tf(3.364)) .^ (Tf(1) ./ fsm.b)
-    hcon_min = (hcon_clay .^ fsm.fcly) .* (hcon_sand .^ (Tf(1) .- fsm.fcly))
-    fsm.hcon_soil .= (hcon_air .^ fsm.Vsat) .* (hcon_min .^ (Tf(1) .- fsm.Vsat))
+    sf.b .= Tf(3.1) .+ Tf(15.7) .* sf.fcly .- Tf(0.3) .* sf.fsnd
+    sf.hcap_soil .= (Tf(2.128) .* sf.fcly .+ Tf(2.385) .* sf.fsnd) .* Tf(1.0e6) ./ (sf.fcly .+ sf.fsnd)
+    sf.sathh .= Tf(10) .^ (Tf(0.17) .- Tf(0.63) .* sf.fcly .- Tf(1.58) .* sf.fsnd)
+    sf.Vsat .= Tf(0.505) .- Tf(0.037) .* sf.fcly .- Tf(0.142) .* sf.fsnd
+    sf.Vcrit .= sf.Vsat .* (sf.sathh ./ Tf(3.364)) .^ (Tf(1) ./ sf.b)
+    hcon_min = (hcon_clay .^ sf.fcly) .* (hcon_sand .^ (Tf(1) .- sf.fcly))
+    sf.hcon_soil .= (hcon_air .^ sf.Vsat) .* (hcon_min .^ (Tf(1) .- sf.Vsat))
 
     # Initial soil profiles
-    for k in 1:fsm.Nsoil
-        fsm.theta[k, :, :] .= fsm.fsat * fsm.Vsat[:, :]
-        fsm.Tsoil[k, :, :] .= fsm.Tprof
+    for k in 1:fsm.grid.Nsoil
+        st.theta[k, :, :] .= fsm.params.fsat * sf.Vsat[:, :]
+        st.Tsoil[k, :, :] .= fsm.params.Tprof
     end
 
     # Cap surface and soil temperatures for glacier
-    if (fsm.TILE == "glacier")
-        fsm.Tsrf .= min.(fsm.Tsrf, Tm)
-        fsm.Tsoil .= min.(fsm.Tsoil, Tm)
+    if fsm.physics.substrate isa IceSubstrate
+        st.Tsrf .= min.(st.Tsrf, Tm)
+        st.Tsoil .= min.(st.Tsoil, Tm)
     end
 
     # Load terrain properties from landuse data
-    fsm.fsky_terr .= Tf.(landuse["skyvf"]["data"])
-    fsm.dem .= Tf.(landuse["elevation"]["data"])
-    fsm.prec_multi .= landuse["prec_multi"]["data"]   # TODO hack float64
+    sf.fsky_terr .= Tf.(landuse["skyvf"]["data"])
+    sf.dem .= Tf.(landuse["elevation"]["data"])
+    sf.prec_multi .= landuse["prec_multi"]["data"]
 
     # Set tile fractions non open tiles
-    if (fsm.TILE != "open")
-        fsm.tilefrac .= Tf.(landuse[lowercase(fsm.TILE)]["data"])
+    if tile != "open"
+        sf.tilefrac .= Tf.(landuse[lowercase(tile)]["data"])
     end
 
     # Initialize snow cover fraction specific variables
-    fsm.slopemu .= Tf.(landuse["slopemu"]["data"])
-    fsm.xi .= Tf.(landuse["xi"]["data"])
-    fsm.Ld .= Tf.(landuse["Ld"]["data"])
+    sf.slopemu .= Tf.(landuse["slopemu"]["data"])
+    sf.xi .= Tf.(landuse["xi"]["data"])
+    sf.Ld .= Tf.(landuse["Ld"]["data"])
 
     # Canopy properties
-    if (fsm.TILE == "forest")
+    if tile == "forest"
 
-        fsm.fveg .= Tf.(landuse["fveg"]["data"])
-        fsm.hcan .= Tf.(landuse["hcan"]["data"])
-        fsm.lai .= Tf.(landuse["lai"]["data"])
-        fsm.vfhp .= Tf.(landuse["vfhp"]["data"])
-        fsm.fves .= Tf.(landuse["fves"]["data"])
+        sf.fveg .= Tf.(landuse["fveg"]["data"])
+        sf.hcan .= Tf.(landuse["hcan"]["data"])
+        sf.lai .= Tf.(landuse["lai"]["data"])
+        sf.vfhp .= Tf.(landuse["vfhp"]["data"])
+        sf.fves .= Tf.(landuse["fves"]["data"])
 
-        fsm.pmultf .= Tf.((1 .- (1 .- landuse["prec_multi"]["data"]) .* (1 .- landuse["forest"]["data"] * fsm.pmultf_for)) ./ landuse["prec_multi"]["data"])   # TODO if this works, integrate with prec_multi instead...
+        sf.pmultf .= Tf.((1 .- (1 .- landuse["prec_multi"]["data"]) .* (1 .- landuse["forest"]["data"] * fsm.params.pmultf_for)) ./ landuse["prec_multi"]["data"])
 
-        fsm.VAI[:, :] = fsm.lai[:, :]
-        fsm.trcn[:, :] = Tf(1) .- Tf(0.9) .* fsm.fveg[:, :]
-        fsm.fsky .= fsm.vfhp ./ fsm.trcn
-        # Handle values where fsky > 1
-        mask = fsm.fsky .> Tf(1)
-        fsm.trcn[mask] .= fsm.vfhp[mask]
-        fsm.fsky[mask] .= Tf(1)
+        sf.VAI[:, :] = sf.lai[:, :]
+        sf.trcn[:, :] = Tf(1) .- Tf(0.9) .* sf.fveg[:, :]
+        sf.fsky .= sf.vfhp ./ sf.trcn
+        # Clamp fsky to 1, moving the excess into trcn
+        mask = sf.fsky .> Tf(1)
+        sf.trcn[mask] .= sf.vfhp[mask]
+        sf.fsky[mask] .= Tf(1)
     end
 
-    fsm.canh[:, :] = Tf(12500) * fsm.VAI[:, :]
-    fsm.scap[:, :] = fsm.cvai * fsm.VAI[:, :]
-
-    # Tuned snow surface properties (same for glacier, but there given in settings["params"]["z0_snow"])
-    if (fsm.SNTRAN == 1 || fsm.SNSLID == 1)
-        fsm.z0_snow[fsm.glacierfrac .> eps(Tf)] .= fsm.z0gl
-    end
-
-    # Initialize SnowSlide arrays if enabled    TODO this is computed using Float64 in matlab originally...
-    if fsm.SNSLID == 1
-        # Allocate SnowSlide arrays
-        fsm.slope = zeros(Tf, Nx, Ny)
-        fsm.Shd = zeros(Tf, Nx, Ny)
-        fsm.dSWE_tot_slide = zeros(Tf, Nx, Ny)
-        fsm.index_sorted_dem = zeros(Ti, Nx * Ny, 2)
-
-        # Sort DEM indices for processing order (highest to lowest elevation)
-        sort_dem_indices!(fsm.index_sorted_dem, fsm.dem)
-
-        # Load slope data
-        if haskey(landuse, "slope")
-            fsm.slope = Tf.(landuse["slope"]["data"])
-        else
-            error("SNSLID=1 but no 'slope' data found in landuse dictionary.")     # TODO maybe remove, should always be there...
+    # Narrow the tile mask by the configuration's data requirement (canopy tile: fveg > 0), then
+    # validate the remaining forest inputs.
+    if tile == "forest"
+        canopy_free = (sf.tilefrac .>= fsm.params.tthresh) .& (sf.fveg .<= 0)
+        dropped = count(canopy_free)
+        if dropped > 0
+            @warn "forest tile: $dropped active cell(s) have fveg == 0 and are excluded from the tile"
+            sf.tilefrac[canopy_free] .= Tf(0)
         end
 
-        # Calculate snow holding depth normal to the slope
-        slope_thres = copy(fsm.slope)
-        slope_thres[slope_thres .< fsm.snow_slide_slope_floor] .= fsm.snow_slide_slope_floor
-        shd_norm = fsm.snow_slide_shd_a .* slope_thres .^ (fsm.snow_slide_shd_b)
+        # Forest inputs must be > 0 on active cells: the canopy physics divides by VAI/scap/trcn, so bad input silently gives Inf/NaN.
+        active = sf.tilefrac .>= fsm.params.tthresh
+        for (name, field) in (
+                ("fveg", sf.fveg), ("hcan", sf.hcan), ("lai", sf.lai),
+                ("vfhp", sf.vfhp), ("fves", sf.fves), ("trcn", sf.trcn),
+            )
+            bad = count(active .& .!(field .> Tf(0)))
+            bad == 0 || error("forest tile: $bad active cell(s) have non-positive $name; forest landuse inputs (fveg, hcan, lai, vfhp, fves) must be strictly positive")
+        end
+    end
 
-        # Convert to vertical snow holding depth
-        cos_slope_thres = cosd.(slope_thres)
-        cos_slope_thres[cos_slope_thres .< fsm.snow_slide_cos_floor] .= fsm.snow_slide_cos_floor
-        fsm.Shd = shd_norm .* cos_slope_thres
+    sf.canh[:, :] = Tf(12500) * sf.VAI[:, :]
+    sf.scap[:, :] = fsm.params.cvai * sf.VAI[:, :]
 
+    if !(arch isa CPU)
+        fsm = on_architecture(arch, fsm)
     end
 
     return fsm
 
 end
 
+"""
+    grid_array(Tf, x, Nx, Ny)
+
+Materialize a parameterization parameter as an `Nx` by `Ny` array of element type `Tf`.
+A scalar is broadcast over the whole grid; an array is converted element-wise.
+"""
+grid_array(::Type{Tf}, x::Number, Nx, Ny) where {Tf} = fill(Tf(x), Nx, Ny)
+grid_array(::Type{Tf}, x::AbstractArray, Nx, Ny) where {Tf} = convert(Array{Tf, 2}, x)
 
 """
-    sort_dem_indices!(index_sorted_dem, dem)
+    check_grid(scheme, Nx, Ny)
 
-Sort DEM indices from highest to lowest elevation for SnowSlide processing order.
+Assert that any grid-shaped parameter held by `scheme` matches the `Nx` by `Ny` model grid.
+The fallback accepts anything, so a parameterization built only from scalars needs no method.
 
-This function sorts a DEM of size N x Ny by decreasing elevation.
-It returns a (Nx*Ny,2) array: dimension 1 is sorted by decreasing
-elevation; dimension 2 contains row and column of the given pixels.
-
-# Arguments
-- `index_sorted_dem::Matrix{Ti}`: Output array for sorted (i,j) indices
-- `dem::Matrix{Tf}`: Digital elevation model
+Without this a mismatch is not caught at setup; it surfaces later as a `BoundsError` from
+inside a kernel, which says nothing about the actual cause.
 """
-function sort_dem_indices!(index_sorted_dem::Matrix{Ti}, dem::Matrix{Tf}) where {Tf <: Real, Ti <: Integer}
-    # Get sorted indices by decreasing elevation
-    ind = sortperm(vec(dem), rev = true)
+check_grid(scheme, Nx, Ny) = nothing
 
-    # Get dimensions
-    rows, cols = size(dem)
-
-    # Create 2D index arrays
-    rows2D = repeat((1:rows)', outer = (1, cols))
-    cols2D = repeat((1:cols)', outer = (rows, 1))
-
-    # Extract row and column indices for sorted positions
-    ind_rows = rows2D[ind]
-    ind_cols = cols2D[ind]
-
-    # Fill output array
-    index_sorted_dem[:, 1] = Ti.(ind_rows)
-    index_sorted_dem[:, 2] = Ti.(ind_cols)
-
+function check_grid(scheme::AbstractParameterization, Nx, Ny)
+    for name in fieldnames(typeof(scheme))
+        value = getfield(scheme, name)
+        value isa AbstractArray || continue
+        size(value) == (Nx, Ny) || throw(
+            DimensionMismatch(
+                "$(nameof(typeof(scheme))) field `$name` is $(size(value)) but the model grid is ($Nx, $Ny)"
+            )
+        )
+    end
     return nothing
+end
+
+"""
+    instantiate(scheme, grid)
+
+Return a physics parameterization ready for the model: a scheme **type** is default-constructed at
+the grid's precision (`Scheme{eltype(grid)}(grid)`), while a ready-made **instance** is returned
+unchanged. Non-default schemes are constructed by the caller, e.g.
+`PrognosticAlbedo{Float32}(grid; adm = 200, adc = my_array)`.
+"""
+instantiate(scheme::Type, grid) = scheme{eltype(grid)}(grid)
+instantiate(scheme, grid) = scheme
+
+"""
+    reconstruct(x; kwargs...)
+
+Copy the immutable struct `x` with the named fields replaced. `Parameters` is rebuilt
+rather than mutated so that it stays isbits and can cross into a kernel by value.
+"""
+function reconstruct(x::T; kwargs...) where {T}
+    names = fieldnames(T)
+    fields = NamedTuple{names}(map(f -> getfield(x, f), names))
+    return T(; merge(fields, NamedTuple(kwargs))...)
+end
+
+# Route a scalar into the immutable Parameters via a functional update.
+@inline function set_param!(fsm, sym::Symbol, value)
+    v = convert(fieldtype(typeof(fsm.params), sym), value)
+    fsm.params = reconstruct(fsm.params; NamedTuple{(sym,)}((v,))...)
+    return fsm
+end
+
+"""
+    apply_params!(fsm, params)
+
+Apply parameter overrides: a `Parameters` scalar is reconstructed onto `fsm.params`;
+a `Surface` per-cell array is filled (scalar) or copied (array) in place.
+"""
+function apply_params!(fsm, params)
+    for (key, value) in params
+        sym = Symbol(key)
+        if hasfield(typeof(fsm.params), sym)
+            set_param!(fsm, sym, value)
+        elseif hasfield(typeof(fsm.surface), sym)
+            arr = getfield(fsm.surface, sym)
+            value isa AbstractArray ? (arr .= eltype(arr).(value)) : fill!(arr, eltype(arr)(value))
+        else
+            throw(ArgumentError("unknown parameter override \"$key\""))
+        end
+    end
+    return fsm
 end
