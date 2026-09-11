@@ -119,13 +119,13 @@ end
 
 @kwdef struct Diagnostics{GT, MF, AF}
     grid::GT
-    
+
     # drive
     es::MF = zeros(grid.Nx, grid.Ny)                 # Saturation vapour pressure (Pa)
     Qa::MF = zeros(grid.Nx, grid.Ny)                 # Specific humidity (kg/kg)
     Uaeff::MF = zeros(grid.Nx, grid.Ny)              # Wind speed with lower bound applied (m/s)
     Sfeff::MF = zeros(grid.Nx, grid.Ny)              # Snowfall reaching the surface (kg/m^2/s)
-    
+
     # radiation
     alb::MF = zeros(grid.Nx, grid.Ny)                # Albedo (-)
     asrf_out::MF = zeros(grid.Nx, grid.Ny)           # Surface albedo (-)
@@ -133,7 +133,7 @@ end
     SWsrf::MF = zeros(grid.Nx, grid.Ny)              # Net shortwave absorbed by the surface (W/m^2)
     SWsci::MF = zeros(grid.Nx, grid.Ny)              # Subcanopy incoming shortwave (W/m^2)
     LWeff::MF = zeros(grid.Nx, grid.Ny)              # Incoming longwave used in the energy balance (W/m^2)
-    
+
     # thermal
     ksnow::AF = zeros(grid.Nsmax, grid.Nx, grid.Ny)  # Thermal conductivity of snow (W/m/K)
     csoil::AF = zeros(grid.Nsoil, grid.Nx, grid.Ny)  # Areal heat capacity of soil (J/K/m^2)
@@ -143,7 +143,7 @@ end
     Ts1::MF = zeros(grid.Nx, grid.Ny)                # Surface layer temperature (K)
     ks1::MF = zeros(grid.Nx, grid.Ny)                # Surface thermal conductivity (W/m/K)
     Tveg0::MF = zeros(grid.Nx, grid.Ny)              # Vegetation temperature at start of timestep (K)
-    
+
     # surface_exchange_coefficients
     KH::MF = zeros(grid.Nx, grid.Ny)                 # Eddy diffusivity for heat to the atmosphere (m/s)
     KHa::MF = zeros(grid.Nx, grid.Ny)                # Eddy diffusivity from the canopy air space (m/s)
@@ -152,7 +152,7 @@ end
     KWg::MF = zeros(grid.Nx, grid.Ny)                # Eddy diffusivity for water from the ground (m/s)
     KWv::MF = zeros(grid.Nx, grid.Ny)                # Eddy diffusivity for water from vegetation (m/s)
     Usc::MF = zeros(grid.Nx, grid.Ny)                # Wind speed in canopy layer (m/s)
-    
+
     # surface_energy_balance
     Esrf::MF = zeros(grid.Nx, grid.Ny)               # Moisture flux from the surface (kg/m^2/s)
     Eveg::MF = zeros(grid.Nx, grid.Ny)               # Moisture flux from vegetation (kg/m^2/s)
@@ -166,12 +166,12 @@ end
     Melt::MF = zeros(grid.Nx, grid.Ny)               # Surface melt rate (kg/m^2/s)
     Rnet::MF = zeros(grid.Nx, grid.Ny)               # Net radiation (W/m^2)
     Rsrf::MF = zeros(grid.Nx, grid.Ny)               # Net radiation at surface (W/m^2)
-    
+
     # canopy
     intcpt::MF = zeros(grid.Nx, grid.Ny)             # Canopy interception (kg/m^2)
     Sbveg::MF = zeros(grid.Nx, grid.Ny)              # Sublimation from vegetation (kg/m^2)
     unload::MF = zeros(grid.Nx, grid.Ny)             # Snow mass unloaded from canopy (kg/m^2)
-    
+
     # snow
     Gsoil::MF = zeros(grid.Nx, grid.Ny)              # Heat flux into soil (W/m^2)
     Roff::MF = zeros(grid.Nx, grid.Ny)               # Total runoff (kg/m^2)
@@ -181,7 +181,7 @@ end
     Roff_snow::MF = zeros(grid.Nx, grid.Ny)          # Runoff at base of snow (kg/m^2)
     snowdepth0::MF = zeros(grid.Nx, grid.Ny)         # Snow depth at start of timestep (m)
     Sice0::MF = zeros(grid.Nx, grid.Ny)              # Ice content at start of timestep (kg/m^2)
-    
+
     # snow_layering
     Ds0::MF = zeros(grid.Nx, grid.Ny)                # Snow layer thickness at start of timestep (m)
 end
@@ -206,7 +206,8 @@ function FSM(
     }(grid, params, surface, state, diag, physics)
 end
 
-function FSM(grid::Grid{Tf};
+function FSM(
+        grid::Grid{Tf};
         snow_albedo = PrognosticAlbedo{Tf}(grid),
         canopy = NoCanopy{Tf}(),
         substrate = SoilSubstrate{Tf}(),

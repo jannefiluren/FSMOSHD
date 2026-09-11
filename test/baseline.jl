@@ -31,7 +31,7 @@ const DEFAULT_BASELINE = joinpath(PROJDIR, "test", "baseline_6c4dda5.txt")
 let src = read(joinpath(PROJDIR, "test", "test_regression.jl"), String)
     marker = findfirst("# Test data paths", src)
     marker === nothing && error("could not locate the helper/testset boundary in test_regression.jl")
-    include_string(Main, src[1:first(marker) - 1], "test_regression_helpers.jl")
+    include_string(Main, src[1:(first(marker) - 1)], "test_regression_helpers.jl")
 end
 
 # The three tile configurations, matching test/test_regression.jl
@@ -92,8 +92,10 @@ function generate_matrix(path, only_flags = String[])
         println(io, "# source commit : ", commit)
         println(io, "# hash is the authority; min/max/mean are for triage. See baseline.jl.")
         println(io, "#")
-        @printf(io, "# %-16s %-8s %-10s %-18s %8s %14s %14s %14s\n",
-            "config", "tile", "variable", "hash", "nonfinite", "min", "max", "mean")
+        @printf(
+            io, "# %-16s %-8s %-10s %-18s %8s %14s %14s %14s\n",
+            "config", "tile", "variable", "hash", "nonfinite", "min", "max", "mean"
+        )
 
         for (flag, values) in selected, value in values
             label = string(flag, "=", value)
@@ -108,10 +110,12 @@ function generate_matrix(path, only_flags = String[])
                     for var in sort(collect(keys(results)))
                         var == "timestamps" && continue
                         data = Float64.(results[var])
-                        @printf(io, "%-18s %-8s %-10s %-18s %8d %14.6g %14.6g %14.6g\n",
+                        @printf(
+                            io, "%-18s %-8s %-10s %-18s %8d %14.6g %14.6g %14.6g\n",
                             label, name, var, string(hash(results[var]), base = 16),
                             count(!isfinite, data),
-                            minimum(data), maximum(data), sum(data) / length(data))
+                            minimum(data), maximum(data), sum(data) / length(data)
+                        )
                     end
                 catch err
                     msg = first(split(replace(sprint(showerror, err), r"\s+" => " "), " Stacktrace"))
@@ -152,18 +156,22 @@ function generate(path)
         println(io, "# hash is Base.hash of the full output array and is the authority.")
         println(io, "# min/max/mean are for triage when a hash differs; they are not the check.")
         println(io, "#")
-        @printf(io, "# %-8s %-10s %-18s %8s %14s %14s %14s\n",
-            "tile", "variable", "hash", "nonfinite", "min", "max", "mean")
+        @printf(
+            io, "# %-8s %-10s %-18s %8s %14s %14s %14s\n",
+            "tile", "variable", "hash", "nonfinite", "min", "max", "mean"
+        )
 
         for (name, settings) in TILE_SETTINGS
             results = run_simulations(settings, Float32)
             for var in sort(collect(keys(results)))
                 var == "timestamps" && continue
                 data = Float64.(results[var])
-                @printf(io, "%-10s %-10s %-18s %8d %14.6g %14.6g %14.6g\n",
+                @printf(
+                    io, "%-10s %-10s %-18s %8d %14.6g %14.6g %14.6g\n",
                     name, var, string(hash(results[var]), base = 16),
                     count(!isfinite, data),
-                    minimum(data), maximum(data), sum(data) / length(data))
+                    minimum(data), maximum(data), sum(data) / length(data)
+                )
             end
         end
     end

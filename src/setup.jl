@@ -83,6 +83,7 @@ function setup(
         default_substrate = tile == "open" ? SoilSubstrate : IceSubstrate
     end
 
+    # runic: off
     schemes = (
         snow_albedo        = instantiate(get(physics, "snow_albedo", PrognosticAlbedo), grid),
         canopy             = canopy,
@@ -96,6 +97,7 @@ function setup(
         reference_height   = instantiate(get(physics, "reference_height", AboveGround), grid),
         surface_layer      = instantiate(get(physics, "surface_layer", default_surface_layer), grid),
     )
+    # runic: on
 
     fsm = FSM(grid; schemes...)
 

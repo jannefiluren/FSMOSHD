@@ -65,7 +65,7 @@ end
     if (Tsrf[i, j] >= Tm)
         tau = c.tmlt
     end
-    
+
     # Melt-season decay is a fixed 70 h, overriding both scheme timescales
     if summer_decay
         tau = Tf(70.0) * Tf(3600.0)

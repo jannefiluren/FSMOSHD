@@ -44,8 +44,10 @@ end
     (; Dzsoil) = grid
     (; dem, tilefrac) = surface
     (; Tsnow, Ds, Sice, Sliq, Nsnow, fsnow, Tsoil, Tsrf) = state
-    (; Sbsrf, Roff_bare, Roff_snow, Roff, meltflux_out, Gsoil, Sice0, snowdepth0,
-       unload, ksnow, ksoil, G, Melt, Esrf, Uaeff, Sfeff) = diag
+    (;
+        Sbsrf, Roff_bare, Roff_snow, Roff, meltflux_out, Gsoil, Sice0, snowdepth0,
+        unload, ksnow, ksoil, G, Melt, Esrf, Uaeff, Sfeff,
+    ) = diag
     (; Rf, Ta) = meteo
 
     if (tilefrac[i, j] >= tthresh)

@@ -37,11 +37,13 @@ function run_gpu_smoke(device_arch)
     # Mirrors the regression configs: ebalsrf/ebalfor, both snow-fraction paths, glacier branches.
     configs = [
         ("open", Dict("tile" => "open", "physics" => Dict("snow_fraction" => SeasonalSnowFraction))),
-        ("forest", Dict(
-            "tile" => "forest",
-            "physics" => Dict("canopy" => OneLayerCanopy, "snow_fraction" => TanhSnowFraction{Tf}(; hfsn = 0.3), "reference_height" => AboveCanopy),
-            "params" => Dict("z0_snow" => 0.01),
-        )),
+        (
+            "forest", Dict(
+                "tile" => "forest",
+                "physics" => Dict("canopy" => OneLayerCanopy, "snow_fraction" => TanhSnowFraction{Tf}(; hfsn = 0.3), "reference_height" => AboveCanopy),
+                "params" => Dict("z0_snow" => 0.01),
+            ),
+        ),
         ("glacier", Dict("tile" => "glacier", "physics" => Dict("snow_fraction" => SeasonalSnowFraction))),
     ]
 
